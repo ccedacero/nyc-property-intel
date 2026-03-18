@@ -92,13 +92,13 @@ CREATE INDEX IF NOT EXISTS idx_dof_sales_dedup
 CREATE INDEX IF NOT EXISTS idx_dof_annual_sales_bbl
     ON dof_annual_sales (bbl);
 CREATE INDEX IF NOT EXISTS idx_dof_annual_sales_date
-    ON dof_annual_sales (saledate DESC);
+    ON dof_annual_sales (sale_date DESC);
 CREATE INDEX IF NOT EXISTS idx_dof_annual_sales_zipcode
-    ON dof_annual_sales (zipcode);
+    ON dof_annual_sales (zip_code);
 CREATE INDEX IF NOT EXISTS idx_dof_annual_sales_zip_class_date
-    ON dof_annual_sales (zipcode, buildingclassattimeofsale, saledate DESC);
+    ON dof_annual_sales (zip_code, building_class_at_time_of_sale, sale_date DESC);
 CREATE INDEX IF NOT EXISTS idx_dof_annual_sales_dedup
-    ON dof_annual_sales (bbl, saledate, saleprice);
+    ON dof_annual_sales (bbl, sale_date, sale_price);
 
 -- DOB Violations (~2M rows)
 CREATE INDEX IF NOT EXISTS idx_dob_violations_bbl

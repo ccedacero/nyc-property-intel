@@ -42,7 +42,7 @@ LIMIT $5;"""
 _SQL_DOB = """\
 SELECT isndobbisviol, bbl, issuedate, violationtypecode, violationtype,
     violationcategory, description, dispositiondate, dispositioncomments,
-    penalityapplied, violationnumber
+    violationnumber
 FROM dob_violations
 WHERE bbl = $1
   AND ($2::date IS NULL OR issuedate >= $2)

@@ -53,7 +53,7 @@ FROM mv_violation_summary WHERE bbl = $1;"""
 
 _SQL_RECENT_SALES = """\
 SELECT saledate, saleprice, address, apartmentnumber, buildingclasscategory,
-    buildingclassatsale, residentialunits, commercialunits, totunits,
+    buildingclassattimeofsale, residentialunits, commercialunits, totalunits,
     landsquarefeet, grosssquarefeet
 FROM dof_sales
 WHERE bbl = $1
@@ -62,9 +62,9 @@ LIMIT 5;"""
 
 _SQL_COMP_SALES = """\
 SELECT bbl, address, saledate, saleprice, grosssquarefeet,
-    buildingclasscategory, totunits
+    buildingclasscategory, totalunits
 FROM dof_sales
-WHERE postcode = $1
+WHERE zipcode = $1
   AND saledate >= (CURRENT_DATE - INTERVAL '12 months')
   AND saleprice > 100
   AND grosssquarefeet > 0

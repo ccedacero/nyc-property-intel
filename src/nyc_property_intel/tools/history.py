@@ -33,10 +33,21 @@ SELECT DISTINCT ON (bbl, saledate, saleprice)
     CASE WHEN saleprice IS NOT NULL AND saleprice <= 100
         THEN 'NON_ARMS_LENGTH' ELSE 'MARKET' END AS sale_type
 FROM (
-    SELECT * FROM dof_sales WHERE bbl = $1
+    SELECT bbl, saledate, saleprice, address, neighborhood,
+        buildingclassattimeofsale, buildingclasscategory,
+        taxclassattimeofsale, residentialunits, commercialunits,
+        totalunits, landsquarefeet, grosssquarefeet, yearbuilt
+    FROM dof_sales WHERE bbl = $1
     UNION ALL
-    SELECT * FROM dof_annual_sales WHERE bbl = $1
-) combined
+    SELECT bbl, sale_date, sale_price, address, neighborhood,
+        building_class_at_time_of_sale, building_class_category,
+        tax_class_at_time_of_sale, residential_units, commercial_units,
+        total_units, land_square_feet, gross_square_feet, year_built
+    FROM dof_annual_sales WHERE bbl = $1
+) combined(bbl, saledate, saleprice, address, neighborhood,
+    buildingclassattimeofsale, buildingclasscategory,
+    taxclassattimeofsale, residentialunits, commercialunits,
+    totalunits, landsquarefeet, grosssquarefeet, yearbuilt)
 ORDER BY bbl, saledate DESC, saleprice DESC
 LIMIT $2;
 """

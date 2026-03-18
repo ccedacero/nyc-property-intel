@@ -90,7 +90,8 @@ async def lookup_property(
     # Condo detection: lot >= 1000 in Manhattan, or condono is present.
     lot_int = int(bbl_info["lot"])
     is_manhattan = bbl_info["borough"] == "1"
-    row["is_condo"] = (is_manhattan and lot_int >= 1000) or row.get("condono") is not None
+    condono = row.get("condono")
+    row["is_condo"] = (is_manhattan and lot_int >= 1000) or (condono is not None and condono != "")
 
     row["data_as_of"] = data_freshness_note(source_table)
 
