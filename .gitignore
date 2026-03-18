@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables
+.env
+
+# Data files
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any JS tooling)
+node_modules/
+
+# Testing / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# uv
+uv.lock
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/

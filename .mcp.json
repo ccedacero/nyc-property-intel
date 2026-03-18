@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nyc-property-intel": {
+      "command": "uv",
+      "args": ["run", "src/nyc_property_intel/server.py"],
+      "cwd": "/Users/devtzi/dev/nyc-property-intel"
+    }
+  }
+}
