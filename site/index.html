@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NYC Property Intel — NYC Property Due Diligence</title>
+  <meta name="description" content="Free MCP server giving Claude AI access to 22+ NYC public record databases for property due diligence. Violations, sales, ownership, zoning in one query.">
+  <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude AI real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NYC Property Intel">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="NYC Property Intel — Due Diligence from Public Records">
+  <meta property="og:description" content="Free MCP server giving Claude AI access to 22+ NYC public record databases. Violations, sales, ownership, zoning — one query.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nycpropertyintel.com/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://nycpropertyintel.com/assets/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="NYC Property Intel — Due Diligence from 22+ NYC Public Record Databases">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NYC Property Intel — Due Diligence from Public Records">
+  <meta name="twitter:description" content="Free MCP server giving Claude AI access to 22+ NYC public record databases for property due diligence.">
+  <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
+
+  <!-- JSON-LD Structured Data (consolidated @graph) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://nycpropertyintel.com/#website",
+        "url": "https://nycpropertyintel.com/",
+        "name": "NYC Property Intel",
+        "description": "Free MCP server for NYC property due diligence from public records",
+        "publisher": { "@id": "https://nycpropertyintel.com/#organization" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://nycpropertyintel.com/#organization",
+        "name": "NYC Property Intel",
+        "url": "https://nycpropertyintel.com/"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://nycpropertyintel.com/#software",
+        "name": "NYC Property Intel",
+        "description": "MCP server for NYC property due diligence — surfaces public record data from 22+ city databases via Claude AI",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "softwareVersion": "0.1.0",
+        "url": "https://nycpropertyintel.com/",
+        "downloadUrl": "https://github.com/nycpropertyintel/nyc-property-intel",
+        "author": { "@id": "https://nycpropertyintel.com/#organization" },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "license": "https://opensource.org/licenses/MIT"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://nycpropertyintel.com/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What data sources does NYC Property Intel use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NYC Property Intel aggregates data from 22+ official NYC public record databases including PLUTO (property profiles), HPD violations, DOB violations, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, and more. All data is sourced from NYC Open Data and city agency databases."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is NYC Property Intel a property appraisal tool?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. NYC Property Intel is a due diligence research tool, not an appraisal tool. It surfaces public record data for informational purposes only. It does not estimate property values and must not be used as a substitute for a licensed appraisal or for credit decisions."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does NYC Property Intel comply with fair housing law?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. NYC Property Intel provides building and property data from public city records only. It does not provide demographic data, tenant screening, or any analysis based on protected characteristics. The tool actively refuses requests that could facilitate housing discrimination."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is NYC Property Intel free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. NYC Property Intel is free and open-source under the MIT license. It runs locally on your machine using Claude Desktop or Claude Code."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is a BBL number and how do I find it?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BBL stands for Borough-Block-Lot, the unique 10-digit identifier for every tax lot in New York City. For example, 1-00835-0001 is a Manhattan property. You can find a property's BBL by searching its address using NYC Property Intel's lookup_property tool, or through NYC's ZoLa map or ACRIS."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the difference between HPD, DOB, and ECB violations?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "HPD violations are housing code violations issued by the Department of Housing Preservation and Development, classified as A (non-hazardous), B (hazardous), or C (immediately hazardous). DOB violations are building code violations from the Department of Buildings. ECB violations are issued by the Environmental Control Board (now OATH) for building, fire, and environmental infractions with monetary penalties."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I check building violations in NYC?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "You can check NYC building violations using NYC Property Intel by providing an address or BBL. The get_property_issues tool returns both HPD housing violations and DOB building code violations with severity, status, and dates. Alternatively, you can search individual agency websites: HPD Online for housing violations, DOB BIS for building violations."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can AI access NYC public property records?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. NYC Property Intel is an MCP (Model Context Protocol) server that gives Claude AI direct access to 22+ NYC public record databases loaded into a local PostgreSQL database. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due diligence reports — all from public city records."
+            }
+          }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <link rel="canonical" href="https://nycpropertyintel.com/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- HEADER                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a href="/" class="nav-logo">NYC Property Intel</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#tools">Tools</a></li>
+        <li><a href="#data-sources">Data</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#fair-housing">Fair Housing</a></li>
+        <li><a href="legal.html">Legal</a></li>
+        <li><a href="https://github.com/nycpropertyintel/nyc-property-intel" class="btn btn-sm" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main-content">
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- HERO                                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="hero" id="hero">
+      <div class="container">
+        <h1>NYC Property Due Diligence<br>from Public Records</h1>
+        <p class="hero-sub">
+          An MCP server that gives Claude AI access to <strong>22+ NYC public record databases</strong>.
+          Violations, sales history, ownership transfers, zoning, tax assessments &mdash; from one query.
+        </p>
+        <div class="hero-actions">
+          <a href="#install" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/nycpropertyintel/nyc-property-intel" class="btn btn-outline" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        </div>
+        <p class="hero-note">Free and open source &middot; MIT License &middot; Runs locally on your machine</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PROBLEM                                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section" id="problem">
+      <div class="container">
+        <h2>Due Diligence Takes Too Long</h2>
+        <p class="section-intro">
+          Before making an offer on an NYC property, you need to check violations,
+          sales history, liens, permits, zoning, and ownership records. That data
+          lives across dozens of separate city websites.
+        </p>
+        <div class="grid grid-3">
+          <div class="card">
+            <div class="card-number">22+</div>
+            <div class="card-label">Separate city data sources</div>
+            <p>ACRIS, HPD, DOB, DOF, DHCR, ZoLa, PAD &mdash; each with its own interface and search patterns.</p>
+          </div>
+          <div class="card">
+            <div class="card-number">4&ndash;6 hrs</div>
+            <div class="card-label">Per-property research time</div>
+            <p>Manual searches across multiple systems, copying data between browser tabs and spreadsheets.</p>
+          </div>
+          <div class="card">
+            <div class="card-number">Hidden</div>
+            <div class="card-label">Deal-killing violations</div>
+            <p>Open HPD Class C violations, DOB stop-work orders, and tax liens transfer to the buyer at closing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- HOW IT WORKS                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section section-alt" id="how-it-works">
+      <div class="container">
+        <h2>How It Works</h2>
+        <div class="grid grid-3">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Install the MCP server</h3>
+            <p>Clone the repo, load NYC public data into PostgreSQL, and add one config entry to Claude Desktop or Claude Code.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Ask Claude about any NYC property</h3>
+            <p>Use a street address or BBL (Borough-Block-Lot). Claude calls the right tools automatically.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Get a due diligence report</h3>
+            <p>Receive a structured summary from public city records &mdash; violations, sales history, zoning, FAR analysis, and more.</p>
+          </div>
+        </div>
+
+        <div class="demo-queries">
+          <h3>Example queries</h3>
+          <div class="query-examples">
+            <code>"Look up 350 5th Ave, Manhattan"</code>
+            <code>"What HPD violations does BBL 1012150061 have?"</code>
+            <code>"Show me the sales history for 170 West 85th Street"</code>
+            <code>"Find comparable sales near zip 11215"</code>
+            <code>"Give me a full due diligence report on BBL 3010060055"</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TOOLS                                                          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section" id="tools">
+      <div class="container">
+        <h2>Five Tools for Complete Due Diligence</h2>
+        <p class="section-intro">
+          Each tool queries official NYC public record data. All building and property data &mdash; no demographic information, no tenant data.
+        </p>
+
+        <div class="tools-grid">
+          <div class="tool-card">
+            <h3><span class="tool-name">lookup_property</span></h3>
+            <p>Look up a property by address or BBL. Returns the full profile: owner, building class, zoning, lot dimensions, assessed values, year built. <strong>Always call this first</strong> &mdash; you need a BBL before using other tools.</p>
+            <div class="tool-sources">PLUTO &middot; PAD &middot; GeoClient</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_property_issues</span></h3>
+            <p>HPD housing violations and DOB building code violations. Filter by severity class (A/B/C), status (open/closed), and date range. Class C violations are immediately hazardous.</p>
+            <div class="tool-sources">HPD Violations &middot; DOB Violations</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_property_history</span></h3>
+            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types.</p>
+            <div class="tool-sources">DOF Sales &middot; DOF Annual Sales &middot; ACRIS</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">search_comps</span></h3>
+            <p>Find comparable sales in the same zip code. Filter by building class, date range, and price. Returns price per square foot and building details.</p>
+            <div class="tool-sources">DOF Sales</div>
+          </div>
+
+          <div class="tool-card tool-card-featured">
+            <h3><span class="tool-name">analyze_property</span></h3>
+            <p>The full picture. Runs all sub-queries concurrently and returns a comprehensive summary: property profile, financial snapshot, development potential (FAR analysis), risk factors (violations), comparable market data, and key observations.</p>
+            <div class="tool-sources">PLUTO &middot; HPD &middot; DOB &middot; DOF &middot; ACRIS</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- DATA SOURCES                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section section-alt" id="data-sources">
+      <div class="container">
+        <h2>Data Sources</h2>
+        <p class="section-intro">
+          All data is sourced from official <strong>NYC Open Data</strong> and city agency databases
+          via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project.
+          Approximately 19 million rows of public record data, loaded into your local PostgreSQL database.
+        </p>
+
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dataset</th>
+                <th>Agency</th>
+                <th>What It Contains</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>PLUTO</td><td>DCP</td><td>Property profiles: zoning, lot area, building class, FAR, assessed values</td></tr>
+              <tr><td>PAD</td><td>DCP</td><td>Property Address Directory &mdash; address-to-BBL resolution</td></tr>
+              <tr><td>HPD Violations</td><td>HPD</td><td>Housing code violations by class (A/B/C) and status</td></tr>
+              <tr><td>HPD Complaints</td><td>HPD</td><td>Tenant complaint records</td></tr>
+              <tr><td>HPD Registrations</td><td>HPD</td><td>Building owner/agent registration records</td></tr>
+              <tr><td>HPD Litigations</td><td>HPD</td><td>Housing court cases filed by HPD</td></tr>
+              <tr><td>DOB Violations</td><td>DOB</td><td>Building code violations and disposition status</td></tr>
+              <tr><td>ECB Violations</td><td>OATH/ECB</td><td>Environmental Control Board violation records</td></tr>
+              <tr><td>DOF Rolling Sales</td><td>DOF</td><td>Recent property sales (rolling 12 months)</td></tr>
+              <tr><td>DOF Annual Sales</td><td>DOF</td><td>Historical property sales (2003&ndash;present)</td></tr>
+              <tr><td>DOF Assessments</td><td>DOF</td><td>Property tax valuations and assessment rolls</td></tr>
+              <tr><td>DOF Exemptions</td><td>DOF</td><td>Property tax exemption records</td></tr>
+              <tr><td>DOF Tax Liens</td><td>DOF</td><td>Properties with outstanding tax liens</td></tr>
+              <tr><td>Rent Stabilization</td><td>HCR/RGB</td><td>Rent-stabilized unit counts by building</td></tr>
+              <tr><td>ACRIS</td><td>DOF/ACRIS</td><td>Deeds, mortgages, liens, satisfactions, UCC filings</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="data-note">
+          NYC Property Intel is not affiliated with the City of New York or any city agency.
+          Data update frequency varies by source: PLUTO is updated quarterly, DOF sales monthly,
+          HPD/DOB violations near real-time.
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- INSTALL                                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section" id="install">
+      <div class="container">
+        <h2>Installation</h2>
+
+        <div class="install-steps">
+          <div class="install-step">
+            <h3>1. Clone and install dependencies</h3>
+            <pre><code>git clone https://github.com/nycpropertyintel/nyc-property-intel.git
+cd nyc-property-intel
+uv sync</code></pre>
+          </div>
+
+          <div class="install-step">
+            <h3>2. Set up PostgreSQL and load data</h3>
+            <pre><code>cp .env.example .env
+# Edit .env with your database credentials
+
+# Option A: Restore from dump (~10 min)
+pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
+
+# Option B: Load from source (~2.5 hours)
+./scripts/seed_nycdb.sh</code></pre>
+          </div>
+
+          <div class="install-step">
+            <h3>3. Add to Claude</h3>
+            <div class="install-tabs" role="tablist" aria-label="Installation method">
+              <button class="tab-btn active" data-tab="claude-desktop" role="tab" aria-selected="true" aria-controls="claude-desktop" id="tab-claude-desktop">Claude Desktop</button>
+              <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code">Claude Code</button>
+            </div>
+
+            <div class="tab-content active" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop">
+              <p>Add to <code>claude_desktop_config.json</code> (Settings &gt; Developer &gt; Edit Config):</p>
+              <pre><code>{
+  "mcpServers": {
+    "nyc-property-intel": {
+      "command": "uv",
+      "args": ["run", "nyc-property-intel"],
+      "cwd": "/absolute/path/to/nyc-property-intel",
+      "env": {
+        "DATABASE_URL": "postgresql://nycdb:nycdb@localhost:5432/nycdb"
+      }
+    }
+  }
+}</code></pre>
+            </div>
+
+            <div class="tab-content" id="claude-code" role="tabpanel" aria-labelledby="tab-claude-code">
+              <p>The <code>.mcp.json</code> file auto-registers when you open the project directory. Or add manually to <code>~/.claude.json</code>:</p>
+              <pre><code>{
+  "mcpServers": {
+    "nyc-property-intel": {
+      "command": "uv",
+      "args": ["run", "nyc-property-intel"],
+      "cwd": "/absolute/path/to/nyc-property-intel"
+    }
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="prereqs">
+          <h3>Prerequisites</h3>
+          <ul>
+            <li>Python 3.12+</li>
+            <li><a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener noreferrer">uv</a> package manager</li>
+            <li>PostgreSQL 16+</li>
+            <li><a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> CLI (for loading data from source)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- FAIR HOUSING                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section section-alt" id="fair-housing">
+      <div class="container">
+        <h2>Fair Housing Compliance</h2>
+        <p class="section-intro">
+          NYC Property Intel provides <strong>building and property data from public city records</strong>.
+          It does not provide, and actively refuses to provide, any information that could facilitate
+          housing discrimination.
+        </p>
+
+        <div class="fh-grid">
+          <div class="fh-card fh-refuses">
+            <h3>What This Tool Will Not Do</h3>
+            <ul>
+              <li>Provide demographic data about neighborhoods or building occupants</li>
+              <li>Screen or evaluate tenants or prospective tenants</li>
+              <li>Perform analysis based on the race, color, national origin, religion, sex,
+                  familial status, disability, age, sexual orientation, gender identity,
+                  marital status, citizenship status, lawful source of income, or any other
+                  protected characteristic of any person</li>
+              <li>Rank neighborhoods by &ldquo;desirability&rdquo; based on resident characteristics</li>
+              <li>Provide income profiling or socioeconomic analysis of occupants</li>
+            </ul>
+          </div>
+
+          <div class="fh-card fh-provides">
+            <h3>What This Tool Does</h3>
+            <ul>
+              <li>Surfaces building-level public records: violations, permits, sales, zoning</li>
+              <li>Shows property ownership from recorded deeds (ACRIS public records)</li>
+              <li>Reports tax assessment data from the Department of Finance</li>
+              <li>Calculates development potential from zoning and FAR data</li>
+              <li>Identifies regulatory risk from open violations and liens</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="fh-compliance">
+          NYC Property Intel is designed and operated in compliance with the
+          <strong>Fair Housing Act</strong> (42 U.S.C. &sect;&sect; 3601&ndash;3619),
+          the <strong>New York State Human Rights Law</strong> (N.Y. Exec. Law &sect; 296), and
+          the <strong>New York City Human Rights Law</strong> (N.Y.C. Admin. Code &sect; 8-107).
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- WHO IT'S FOR                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section" id="audience">
+      <div class="container">
+        <h2>Built for NYC Real Estate Professionals</h2>
+        <div class="grid grid-3">
+          <div class="card">
+            <h3>Investors</h3>
+            <p>Screen properties for violations, liens, and development potential before making offers. Understand a building's regulatory risk profile from public records.</p>
+          </div>
+          <div class="card">
+            <h3>Attorneys</h3>
+            <p>Pull ACRIS deed history, violation records, and tax lien data during transaction due diligence. Cross-reference ownership records across city databases.</p>
+          </div>
+          <div class="card">
+            <h3>Brokers</h3>
+            <p>Quickly research building details, sales history, and comparable transactions from official city records when evaluating listings.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- FOOTER                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-disclaimer">
+        <p>
+          <strong>Disclaimer:</strong> NYC Property Intel is provided for
+          <strong>educational and informational purposes only</strong>. It does not constitute
+          legal, tax, financial, or investment advice. The information presented is sourced
+          from NYC public records and may not be current, complete, or accurate. This tool is
+          <strong>not a substitute</strong> for a professional title search, property appraisal,
+          environmental assessment, or building inspection. Always consult qualified professionals
+          (attorneys, licensed appraisers, engineers) before making real estate decisions. NYC Property Intel
+          is not affiliated with the City of New York or any city agency. Use of this tool does not create
+          an attorney-client, fiduciary, or advisory relationship.
+        </p>
+        <p>
+          This tool must not be used for property valuations in connection with credit or lending decisions.
+          It is not an appraisal tool.
+        </p>
+        <p>
+          All real estate data is subject to the
+          <a href="https://www.hud.gov/program_offices/fair_housing_equal_opp/fair_housing_act_overview" target="_blank" rel="noopener noreferrer">Federal Fair Housing Act</a>,
+          which makes it illegal to discriminate based on race, color, religion, sex, handicap,
+          familial status, or national origin.
+        </p>
+      </div>
+
+      <div class="footer-links">
+        <a href="legal.html">Terms of Use &amp; Privacy Policy</a>
+        <a href="legal.html#fair-housing-policy">Fair Housing Policy</a>
+        <a href="https://github.com/nycpropertyintel/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span class="footer-license">MIT License</span>
+      </div>
+
+      <p class="footer-copy">&copy; 2026 NYC Property Intel. Not affiliated with the City of New York.</p>
+
+    </div>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>

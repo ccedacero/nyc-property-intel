@@ -26,7 +26,7 @@ MCP server that gives Claude access to NYC public property data for real estate 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/nyc-property-intel.git
+git clone https://github.com/nycpropertyintel/nyc-property-intel.git
 cd nyc-property-intel
 uv sync
 ```
