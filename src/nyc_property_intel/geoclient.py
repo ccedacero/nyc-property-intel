@@ -65,7 +65,7 @@ async def close_client() -> None:
 _ADDRESS_RE = re.compile(
     r"^\s*(?P<house_number>\d+(?:-\d+)?)\s+"
     r"(?P<street>.+?)"
-    r"(?:\s*,\s*(?P<borough_city>[A-Za-z ]+?))?"
+    r"(?:\s*[,\s]\s*(?P<borough_city>Manhattan|Bronx|Brooklyn|Queens|Staten\s+Island|New\s+York))?"
     r"(?:\s*,?\s*(?:NY|New York)\s*)?"
     r"(?:\s*(?P<zip>\d{5}))?\s*$",
     re.IGNORECASE,
@@ -151,23 +151,31 @@ async def _call_geoclient(
     if not settings.geoclient_configured:
         raise ToolError(
             "NYC GeoClient API credentials are not configured. "
-            "Set NYC_GEOCLIENT_APP_ID and NYC_GEOCLIENT_APP_KEY in your .env file. "
+            "Set NYC_GEOCLIENT_SUBSCRIPTION_KEY in your .env file. "
             "Register at https://api-portal.nyc.gov/"
         )
 
     borough_name = borough_code_to_name(borough_code)
     client = _get_client()
 
+    params: dict[str, str] = {
+        "houseNumber": house_number,
+        "street": street,
+        "borough": borough_name,
+    }
+    headers: dict[str, str] = {}
+
+    if settings.nyc_geoclient_subscription_key:
+        headers["Ocp-Apim-Subscription-Key"] = settings.nyc_geoclient_subscription_key
+    else:
+        params["app_id"] = settings.nyc_geoclient_app_id
+        params["app_key"] = settings.nyc_geoclient_app_key
+
     try:
         resp = await client.get(
             "/address.json",
-            params={
-                "houseNumber": house_number,
-                "street": street,
-                "borough": borough_name,
-                "app_id": settings.nyc_geoclient_app_id,
-                "app_key": settings.nyc_geoclient_app_key,
-            },
+            params=params,
+            headers=headers,
         )
         resp.raise_for_status()
     except httpx.TimeoutException:

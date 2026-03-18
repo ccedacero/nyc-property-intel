@@ -39,8 +39,8 @@ node_modules/
 htmlcov/
 .pytest_cache/
 
-# uv
-uv.lock
+# uv (lock file SHOULD be committed for reproducibility)
+# uv.lock
 
 # mypy
 .mypy_cache/

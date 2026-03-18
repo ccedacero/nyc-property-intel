@@ -20,11 +20,12 @@ class Settings(BaseSettings):
     )
 
     # ── Database ──────────────────────────────────────────────────────
-    database_url: str = "postgresql://nyc_property:devpassword@localhost:5432/nyc_property_intel"
+    database_url: str = "postgresql://nycdb:nycdb@localhost:5432/nycdb"
 
     # ── NYC GeoClient API ─────────────────────────────────────────────
     nyc_geoclient_app_id: str = ""
     nyc_geoclient_app_key: str = ""
+    nyc_geoclient_subscription_key: str = ""
 
     # ── Socrata Open Data ─────────────────────────────────────────────
     socrata_app_token: str = ""
@@ -35,7 +36,9 @@ class Settings(BaseSettings):
     @property
     def geoclient_configured(self) -> bool:
         """Return True if GeoClient credentials are present."""
-        return bool(self.nyc_geoclient_app_id and self.nyc_geoclient_app_key)
+        return bool(self.nyc_geoclient_subscription_key) or bool(
+            self.nyc_geoclient_app_id and self.nyc_geoclient_app_key
+        )
 
     @property
     def socrata_configured(self) -> bool:

@@ -120,10 +120,22 @@ async def fetch_one(
     Returns:
         A JSON-safe dict of column→value, or None if no row matched.
     """
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        record = await conn.fetchrow(query, *args)
-        return row_to_dict(record)
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            record = await conn.fetchrow(query, *args)
+            return row_to_dict(record)
+    except asyncpg.PostgresConnectionError as exc:
+        logger.error("Database connection error: %s", exc)
+        raise ConnectionError(
+            "Unable to connect to the property database. "
+            "Please check that PostgreSQL is running and try again."
+        ) from exc
+    except asyncpg.InterfaceError as exc:
+        logger.error("Database interface error: %s", exc)
+        raise ConnectionError(
+            "Lost connection to the property database. Please try again."
+        ) from exc
 
 
 async def fetch_all(
@@ -139,10 +151,22 @@ async def fetch_all(
     Returns:
         A list of JSON-safe dicts. Empty list if no rows matched.
     """
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        records = await conn.fetch(query, *args)
-        return [row_to_dict(r) for r in records]
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            records = await conn.fetch(query, *args)
+            return [row_to_dict(r) for r in records]
+    except asyncpg.PostgresConnectionError as exc:
+        logger.error("Database connection error: %s", exc)
+        raise ConnectionError(
+            "Unable to connect to the property database. "
+            "Please check that PostgreSQL is running and try again."
+        ) from exc
+    except asyncpg.InterfaceError as exc:
+        logger.error("Database interface error: %s", exc)
+        raise ConnectionError(
+            "Lost connection to the property database. Please try again."
+        ) from exc
 
 
 # ── Lifespan for FastMCP ──────────────────────────────────────────────

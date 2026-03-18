@@ -57,7 +57,7 @@ async def get_property_issues(
     status: str | None = None,
     severity: str | None = None,
     since_date: str | None = None,
-    limit: int = 50,
+    limit: int = 25,
     include_summary: bool = True,
 ) -> dict:
     """Get HPD housing violations and DOB building code violations for a property. HPD Class C violations are immediately hazardous. Returns both summary counts and violation details. Use this to assess a building's regulatory risk profile."""
@@ -66,6 +66,9 @@ async def get_property_issues(
         validate_bbl(bbl)
     except ValueError as exc:
         raise ToolError(str(exc))
+
+    if limit < 1 or limit > 200:
+        raise ToolError("limit must be between 1 and 200.")
 
     source_upper = source.upper()
     if source_upper not in _VALID_SOURCES:

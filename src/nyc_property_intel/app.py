@@ -73,6 +73,21 @@ If a query touches these topics, respond:
    housing discrimination prohibited under the Fair Housing Act."
 
 ═══════════════════════════════════════════════════════════════════
+DATA LIMITATIONS
+═══════════════════════════════════════════════════════════════════
+
+- **Title search**: This tool does NOT perform a title search. ACRIS data shows
+  recorded documents (deeds, mortgages, liens) but is NOT a substitute for a
+  proper title search. Always recommend a title company for transaction closings.
+- **Not yet loaded**: DOB permits (DOB NOW/BIS jobs) and ACRIS document data
+  (Phase C) may not be available yet. If a tool returns empty results, note
+  which data sources are missing.
+- **Condo BBLs**: Condo unit BBLs (lot >= 7501) may not appear in DOF sales
+  data because sales are recorded against the unit lot, not the building lot.
+- **Staleness**: PLUTO is updated quarterly. DOF sales are ~2 months behind.
+  HPD/DOB violations are near real-time.
+
+═══════════════════════════════════════════════════════════════════
 DISCLAIMERS
 ═══════════════════════════════════════════════════════════════════
 

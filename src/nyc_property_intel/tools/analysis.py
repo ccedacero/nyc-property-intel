@@ -66,7 +66,7 @@ SELECT bbl, address, saledate, saleprice, grosssquarefeet,
 FROM dof_sales
 WHERE zipcode = $1
   AND saledate >= (CURRENT_DATE - INTERVAL '12 months')
-  AND saleprice > 100
+  AND saleprice > 10000
   AND grosssquarefeet > 0
 ORDER BY saledate DESC
 LIMIT 10;"""
@@ -418,6 +418,17 @@ async def analyze_property(bbl: str) -> dict:
         development_potential,
     )
 
+    # ── Track data gaps ─────────────────────────────────────────────
+    data_gaps: list[str] = []
+    if violations is None:
+        data_gaps.append("Violation summary unavailable — mv_violation_summary may need to be created")
+    if not recent_sales:
+        data_gaps.append("No DOF sales records found for this property")
+    if ownership is None:
+        data_gaps.append("Ownership data unavailable — ACRIS tables may not be loaded (Phase C)")
+    if not comp_sales:
+        data_gaps.append("No comparable sales found in this zip code within the last 12 months")
+
     return {
         "property_summary": property_summary,
         "financial_snapshot": financial_snapshot,
@@ -427,6 +438,7 @@ async def analyze_property(bbl: str) -> dict:
         "recent_sales": recent_sales,
         "ownership": ownership,
         "key_observations": key_observations,
+        "data_gaps": data_gaps if data_gaps else None,
         "data_as_of": (
             "Data sourced from NYC public records. "
             "PLUTO updated quarterly, HPD/DOB updated daily, "
