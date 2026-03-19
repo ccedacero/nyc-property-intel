@@ -57,6 +57,7 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  scroll-padding-top: 72px; /* 64px sticky header + 8px breathing room */
 }
 
 body {
@@ -87,7 +88,15 @@ img {
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container { padding: 0 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .container { padding: 0 2rem; }
 }
 
 /* ── Header / Nav ─────────────────────────────────────────────────── */
@@ -286,11 +295,13 @@ img {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  transition: border-color 0.2s;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
   border-color: var(--text-muted);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .card h3 {
@@ -396,11 +407,14 @@ img {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  transition: border-color 0.2s;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 .tool-card:hover {
   border-color: var(--text-muted);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 .tool-card-featured {
@@ -469,6 +483,11 @@ img {
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
+}
+
+.data-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
 .data-table tbody tr:hover td {
@@ -855,6 +874,29 @@ pre code {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
+  }
+}
+
+/* ── Readable Line Length ──────────────────────────────────────────── */
+
+.section-intro,
+.hero-sub,
+.fh-compliance,
+.footer-disclaimer p,
+.legal-page p {
+  max-width: 70ch;
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

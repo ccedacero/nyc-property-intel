@@ -99,7 +99,8 @@ WHERE saleprice > 10000
   AND ($2::text IS NULL OR neighborhood ILIKE '%' || $2 || '%')
   AND ($3::text IS NULL OR buildingclassattimeofsale LIKE $3 || '%')
 GROUP BY DATE_TRUNC('quarter', saledate)
-ORDER BY quarter DESC;
+ORDER BY quarter DESC
+LIMIT 20;
 """
 
 

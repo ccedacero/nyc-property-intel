@@ -49,7 +49,7 @@ async def server_lifespan(server: Any):
             await close_client()
 
 
-mcp._lifespan = server_lifespan
+mcp.settings.lifespan = server_lifespan
 
 # ── Import tool modules ──────────────────────────────────────────────
 # Each tool module uses @mcp.tool() decorators that register themselves
