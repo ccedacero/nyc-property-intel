@@ -232,10 +232,10 @@ class TestFormatCurrency:
         assert format_currency(1234.56) == "$1,234.56"
 
     def test_negative_integer(self):
-        assert format_currency(-5000) == "$-5,000"
+        assert format_currency(-5000) == "-$5,000"
 
     def test_negative_float(self):
-        assert format_currency(-1234.56) == "$-1,234.56"
+        assert format_currency(-1234.56) == "-$1,234.56"
 
     def test_small_amount(self):
         assert format_currency(1) == "$1"

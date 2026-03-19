@@ -150,6 +150,10 @@ def format_currency(amount: int | float | None) -> str:
     """
     if amount is None:
         return "N/A"
+    if amount < 0:
+        if isinstance(amount, float) and amount != int(amount):
+            return f"-${abs(amount):,.2f}"
+        return f"-${abs(int(amount)):,}"
     if isinstance(amount, float) and amount != int(amount):
         return f"${amount:,.2f}"
     return f"${int(amount):,}"

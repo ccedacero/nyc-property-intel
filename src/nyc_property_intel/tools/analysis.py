@@ -72,7 +72,8 @@ ORDER BY saledate DESC
 LIMIT 10;"""
 
 _SQL_OWNERSHIP = """\
-SELECT *
+SELECT bbl, documentid, doctype, docdate, amount,
+    grantor_names, grantee_names, recorded_datetime
 FROM mv_current_ownership WHERE bbl = $1;"""
 
 

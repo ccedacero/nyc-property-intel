@@ -29,20 +29,33 @@
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
 
+  function activateTab(btn) {
+    var target = btn.getAttribute("data-tab");
+    tabBtns.forEach(function (b) {
+      b.classList.remove("active");
+      b.setAttribute("aria-selected", "false");
+      b.setAttribute("tabindex", "-1");
+    });
+    tabContents.forEach(function (c) { c.classList.remove("active"); });
+    btn.classList.add("active");
+    btn.setAttribute("aria-selected", "true");
+    btn.setAttribute("tabindex", "0");
+    btn.focus();
+    var el = document.getElementById(target);
+    if (el) el.classList.add("active");
+  }
+
   tabBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var target = btn.getAttribute("data-tab");
-
-      tabBtns.forEach(function (b) {
-        b.classList.remove("active");
-        b.setAttribute("aria-selected", "false");
-      });
-      tabContents.forEach(function (c) { c.classList.remove("active"); });
-
-      btn.classList.add("active");
-      btn.setAttribute("aria-selected", "true");
-      var el = document.getElementById(target);
-      if (el) el.classList.add("active");
+    btn.addEventListener("click", function () { activateTab(btn); });
+    btn.addEventListener("keydown", function (e) {
+      var idx = Array.prototype.indexOf.call(tabBtns, btn);
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        activateTab(tabBtns[(idx + 1) % tabBtns.length]);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        activateTab(tabBtns[(idx - 1 + tabBtns.length) % tabBtns.length]);
+      }
     });
   });
 

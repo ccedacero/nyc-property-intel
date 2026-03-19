@@ -213,13 +213,10 @@ def _sync_cleanup() -> None:
     """Best-effort synchronous cleanup for atexit / signal handlers."""
     if _pool is not None and not _pool._closed:
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(close_pool())
-            else:
-                loop.run_until_complete(close_pool())
+            loop = asyncio.get_running_loop()
+            loop.create_task(close_pool())
         except RuntimeError:
-            # No event loop available — nothing we can do.
+            # No running event loop — server already shut down cleanly.
             pass
 
 
