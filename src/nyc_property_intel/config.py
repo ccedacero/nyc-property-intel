@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # ── Socrata Open Data ─────────────────────────────────────────────
     socrata_app_token: str = ""
+    socrata_rate_limit_per_hour: int = 5000
 
     # ── Logging ───────────────────────────────────────────────────────
     log_level: str = "INFO"

@@ -25,8 +25,24 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
+from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.config import settings
+
+
+def _redact_dsn(dsn: str) -> str:
+    """Return the DSN with the password replaced by ****."""
+    try:
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(dsn)
+        if parsed.password:
+            netloc = f"{parsed.username}:****@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            return urlunparse(parsed._replace(netloc=netloc))
+    except Exception:
+        pass
+    return "<redacted>"
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +59,7 @@ async def get_pool() -> asyncpg.Pool:
     """
     global _pool
     if _pool is None or _pool._closed:
-        logger.info("Creating asyncpg connection pool → %s", settings.database_url)
+        logger.info("Creating asyncpg connection pool → %s", _redact_dsn(settings.database_url))
         _pool = await asyncpg.create_pool(
             dsn=settings.database_url,
             min_size=1,
@@ -125,15 +141,17 @@ async def fetch_one(
         async with pool.acquire() as conn:
             record = await conn.fetchrow(query, *args)
             return row_to_dict(record)
+    except asyncpg.UndefinedTableError:
+        raise  # Let callers handle missing tables via graceful degradation.
     except asyncpg.PostgresConnectionError as exc:
-        logger.error("Database connection error: %s", exc)
-        raise ConnectionError(
+        logger.error("Database connection error in fetch_one: %s", exc)
+        raise ToolError(
             "Unable to connect to the property database. "
             "Please check that PostgreSQL is running and try again."
         ) from exc
     except asyncpg.InterfaceError as exc:
-        logger.error("Database interface error: %s", exc)
-        raise ConnectionError(
+        logger.error("Database interface error in fetch_one: %s", exc)
+        raise ToolError(
             "Lost connection to the property database. Please try again."
         ) from exc
 
@@ -156,15 +174,17 @@ async def fetch_all(
         async with pool.acquire() as conn:
             records = await conn.fetch(query, *args)
             return [row_to_dict(r) for r in records]
+    except asyncpg.UndefinedTableError:
+        raise  # Let callers handle missing tables via graceful degradation.
     except asyncpg.PostgresConnectionError as exc:
-        logger.error("Database connection error: %s", exc)
-        raise ConnectionError(
+        logger.error("Database connection error in fetch_all: %s", exc)
+        raise ToolError(
             "Unable to connect to the property database. "
             "Please check that PostgreSQL is running and try again."
         ) from exc
     except asyncpg.InterfaceError as exc:
-        logger.error("Database interface error: %s", exc)
-        raise ConnectionError(
+        logger.error("Database interface error in fetch_all: %s", exc)
+        raise ToolError(
             "Lost connection to the property database. Please try again."
         ) from exc
 

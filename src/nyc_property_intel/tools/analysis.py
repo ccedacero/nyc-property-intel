@@ -355,30 +355,41 @@ async def analyze_property(bbl: str) -> dict:
             "heavy load. Please try again."
         )
 
-    # Unpack results, replacing exceptions with None / empty list.
+    # Unpack results. Re-raise ToolError (DB connection failures) immediately
+    # since they indicate infrastructure failure, not missing data. Replace
+    # other exceptions (e.g. UndefinedTableError for unloaded datasets) with
+    # None / empty list so the analysis degrades gracefully.
     profile_result, violations_result, sales_result, ownership_result = results
 
     profile: dict[str, Any] | None = None
-    if isinstance(profile_result, BaseException):
-        logger.error("Profile sub-query failed: %s", profile_result)
+    if isinstance(profile_result, ToolError):
+        raise profile_result
+    elif isinstance(profile_result, BaseException):
+        logger.error("Profile sub-query failed", exc_info=profile_result)
     else:
         profile = profile_result
 
     violations: dict[str, Any] | None = None
-    if isinstance(violations_result, BaseException):
-        logger.error("Violations sub-query failed: %s", violations_result)
+    if isinstance(violations_result, ToolError):
+        raise violations_result
+    elif isinstance(violations_result, BaseException):
+        logger.error("Violations sub-query failed", exc_info=violations_result)
     else:
         violations = violations_result
 
     recent_sales: list[dict[str, Any]] = []
-    if isinstance(sales_result, BaseException):
-        logger.error("Sales sub-query failed: %s", sales_result)
+    if isinstance(sales_result, ToolError):
+        raise sales_result
+    elif isinstance(sales_result, BaseException):
+        logger.error("Sales sub-query failed", exc_info=sales_result)
     else:
         recent_sales = sales_result  # type: ignore[assignment]
 
     ownership: dict[str, Any] | None = None
-    if isinstance(ownership_result, BaseException):
-        logger.error("Ownership sub-query failed: %s", ownership_result)
+    if isinstance(ownership_result, ToolError):
+        raise ownership_result
+    elif isinstance(ownership_result, BaseException):
+        logger.error("Ownership sub-query failed", exc_info=ownership_result)
     else:
         ownership = ownership_result
 
