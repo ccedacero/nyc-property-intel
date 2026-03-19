@@ -26,6 +26,29 @@ class RateLimiter:
 
 _limiter = RateLimiter(max_per_hour=settings.socrata_rate_limit_per_hour)
 
+# Singleton client — reuses TCP connections rather than opening a new one
+# per request. Lifecycle mirrors the MCP server lifespan; call close_client()
+# on shutdown to drain keep-alive connections cleanly.
+_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None or _client.is_closed:
+        _client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=5.0),
+            headers={"Accept": "application/json"},
+        )
+    return _client
+
+
+async def close_client() -> None:
+    """Close the shared httpx client. Call from the server lifespan."""
+    global _client
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+        _client = None
+
 
 async def query_socrata(
     dataset_id: str,
@@ -47,11 +70,10 @@ async def query_socrata(
     if settings.socrata_app_token:
         params["$$app_token"] = settings.socrata_app_token
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{SOCRATA_BASE}/{dataset_id}.json",
-            params=params,
-            timeout=30.0,
-        )
-        resp.raise_for_status()
-        return resp.json()
+    client = _get_client()
+    resp = await client.get(
+        f"{SOCRATA_BASE}/{dataset_id}.json",
+        params=params,
+    )
+    resp.raise_for_status()
+    return resp.json()

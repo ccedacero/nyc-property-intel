@@ -117,7 +117,13 @@ async def search_comps(
     limit: int = 20,
     include_stats: bool = True,
 ) -> dict:
-    """Find comparable property sales and neighborhood market statistics. Can search by zip code, building class, size, and time period. If a reference BBL is provided, uses that property's characteristics as defaults. Returns individual sales with price per sqft and quarterly market trends."""
+    """Find comparable property sales and neighborhood market statistics.
+
+    Can search by zip code, building class, size, and time period. If a
+    reference BBL is provided, uses that property's characteristics as
+    defaults. Returns individual sales with price per sqft and quarterly
+    market trends.
+    """
 
     # ── Validate inputs ───────────────────────────────────────────────
     ref_property: dict | None = None
@@ -126,7 +132,7 @@ async def search_comps(
         try:
             validate_bbl(bbl)
         except ValueError as exc:
-            raise ToolError(str(exc))
+            raise ToolError(str(exc)) from exc
 
         # Look up reference property for default characteristics
         ref_property = await fetch_one(_SQL_REF_PROPERTY, bbl)

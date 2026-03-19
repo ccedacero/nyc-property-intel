@@ -104,10 +104,10 @@ def _parse_date(value: str | None) -> date | None:
         return None
     try:
         return datetime.strptime(value.strip(), "%Y-%m-%d").date()
-    except ValueError:
+    except ValueError as exc:
         raise ToolError(
             f"Invalid date format: {value!r}. Use YYYY-MM-DD (e.g. '2020-01-15')."
-        )
+        ) from exc
 
 
 @mcp.tool()
@@ -121,13 +121,19 @@ async def get_property_history(
     end_date: str | None = None,
     limit: int = 15,
 ) -> dict:
-    """Get the history of a NYC property including sales from DOF records and ownership transfers from ACRIS deed records. Shows sale prices, dates, buyer/seller names, and document types. Use this to understand a property's transaction history and price trajectory."""
+    """Get the history of a NYC property including sales and ownership transfers.
+
+    Pulls sales from DOF records and ownership transfers from ACRIS deed
+    records. Shows sale prices, dates, buyer/seller names, and document types.
+    Use this to understand a property's transaction history and price
+    trajectory.
+    """
 
     # ── Validate inputs ───────────────────────────────────────────────
     try:
         borough, block, lot = validate_bbl(bbl)
     except ValueError as exc:
-        raise ToolError(str(exc))
+        raise ToolError(str(exc)) from exc
 
     parsed_start = _parse_date(start_date)
     parsed_end = _parse_date(end_date)
@@ -211,6 +217,8 @@ async def get_property_history(
 
     # Deduplicate data sources
     result["data_sources"] = list(dict.fromkeys(result["data_sources"]))
-    result["data_as_of"] = "; ".join(result["data_sources"]) if result["data_sources"] else "No data sources queried."
+    result["data_as_of"] = (
+        "; ".join(result["data_sources"]) if result["data_sources"] else "No data sources queried."
+    )
 
     return result

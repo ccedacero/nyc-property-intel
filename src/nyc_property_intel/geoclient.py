@@ -95,10 +95,16 @@ def parse_address(address: str) -> dict[str, str]:
     Raises:
         ToolError: If the address cannot be parsed.
     """
+    if len(address) > 200:
+        raise ToolError("Address is too long (max 200 characters).")
+
+    # Truncate address in error messages to avoid echoing arbitrary input.
+    _safe_addr = address[:120].replace('"', "'")
+
     match = _ADDRESS_RE.match(address.strip())
     if not match:
         raise ToolError(
-            f"Could not parse address: \"{address}\". "
+            f"Could not parse address: \"{_safe_addr}\". "
             "Please provide a street address with a house number, "
             "e.g. \"123 Main St, Brooklyn, NY 11201\"."
         )
@@ -123,7 +129,7 @@ def parse_address(address: str) -> dict[str, str]:
 
     if borough_code is None:
         raise ToolError(
-            f"Could not determine borough for \"{address}\". "
+            f"Could not determine borough for \"{_safe_addr}\". "
             "Please include a borough name (Manhattan, Brooklyn, etc.) "
             "or a valid NYC zip code."
         )
@@ -178,21 +184,21 @@ async def _call_geoclient(
             headers=headers,
         )
         resp.raise_for_status()
-    except httpx.TimeoutException:
+    except httpx.TimeoutException as exc:
         raise ToolError(
             "NYC GeoClient API timed out. The service may be temporarily "
             "unavailable — please try again in a moment."
-        )
+        ) from exc
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 403:
             raise ToolError(
                 "NYC GeoClient returned 403 Forbidden. Check that your "
                 "API credentials are valid and have not expired."
-            )
+            ) from exc
         raise ToolError(
             f"NYC GeoClient API error (HTTP {exc.response.status_code}). "
             "Please try again."
-        )
+        ) from exc
 
     data = resp.json()
     result = data.get("address", {})

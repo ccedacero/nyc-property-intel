@@ -60,12 +60,17 @@ async def get_property_issues(
     limit: int = 25,
     include_summary: bool = True,
 ) -> dict:
-    """Get HPD housing violations and DOB building code violations for a property. HPD Class C violations are immediately hazardous. Returns both summary counts and violation details. Use this to assess a building's regulatory risk profile."""
+    """Get HPD housing violations and DOB building code violations for a property.
+
+    HPD Class C violations are immediately hazardous. Returns both summary
+    counts and violation details. Use this to assess a building's regulatory
+    risk profile.
+    """
     # ── Validate inputs ──────────────────────────────────────────────
     try:
         validate_bbl(bbl)
     except ValueError as exc:
-        raise ToolError(str(exc))
+        raise ToolError(str(exc)) from exc
 
     if limit < 1 or limit > 200:
         raise ToolError("limit must be between 1 and 200.")
@@ -81,11 +86,11 @@ async def get_property_issues(
     if since_date is not None:
         try:
             since = datetime.date.fromisoformat(since_date)
-        except ValueError:
+        except ValueError as exc:
             raise ToolError(
                 f"Invalid date format: {since_date!r}. "
                 "Please use ISO 8601 format: YYYY-MM-DD."
-            )
+            ) from exc
 
     # ── Summary from materialized view ───────────────────────────────
     summary: dict[str, Any] | None = None

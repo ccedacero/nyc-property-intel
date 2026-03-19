@@ -17,7 +17,7 @@
   --bg-card-hover: #334155;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #7189a8; /* bumped from #64748b for WCAG AA contrast (≥4.5:1) */
   --accent: #3b82f6;
   --accent-hover: #2563eb;
   --accent-subtle: rgba(59, 130, 246, 0.15);
@@ -295,7 +295,6 @@ img {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -407,7 +406,6 @@ img {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
@@ -486,7 +484,6 @@ img {
 }
 
 .data-table tbody tr {
-  cursor: pointer;
   transition: background 0.15s;
 }
 
@@ -868,6 +865,11 @@ pre code {
   .query-examples {
     flex-direction: column;
     align-items: center;
+  }
+
+  .query-examples code {
+    white-space: normal;
+    text-align: center;
   }
 
   .footer-links {

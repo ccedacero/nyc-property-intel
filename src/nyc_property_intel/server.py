@@ -16,6 +16,8 @@ Or via the project script:
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
+from typing import Any
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.config import settings
@@ -35,8 +37,6 @@ logger = logging.getLogger(__name__)
 # ── Register lifespan ────────────────────────────────────────────────
 
 # Wrap the db lifespan to also clean up the geoclient httpx client.
-from contextlib import asynccontextmanager
-from typing import Any
 
 
 @asynccontextmanager
@@ -55,7 +55,7 @@ mcp.settings.lifespan = server_lifespan
 # Each tool module uses @mcp.tool() decorators that register themselves
 # when the module is imported. Add new tool module imports here.
 
-from nyc_property_intel.tools import (
+from nyc_property_intel.tools import (  # noqa: E402
     analysis,  # noqa: F401
     comps,  # noqa: F401
     history,  # noqa: F401

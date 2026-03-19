@@ -18,7 +18,7 @@ import asyncio
 import atexit
 import logging
 import signal
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -226,8 +226,6 @@ def _sync_cleanup() -> None:
 atexit.register(_sync_cleanup)
 
 # Handle SIGTERM gracefully (e.g., Docker stop, Railway shutdown).
-try:
+# signal.signal can fail in non-main threads or restricted environments.
+with suppress(OSError, ValueError):
     signal.signal(signal.SIGTERM, lambda *_: _sync_cleanup())
-except (OSError, ValueError):
-    # signal.signal can fail in non-main threads or restricted envs.
-    pass

@@ -328,12 +328,18 @@ def _generate_observations(
 
 @mcp.tool()
 async def analyze_property(bbl: str) -> dict:
-    """Generate a comprehensive due diligence summary for a NYC property. Combines data from multiple sources: property profile, violations, sales history, tax assessment, and comparable sales. This is the power tool — use it when the user wants a complete picture of a property for investment analysis."""
+    """Generate a comprehensive due diligence summary for a NYC property.
+
+    Combines data from multiple sources: property profile, violations, sales
+    history, tax assessment, and comparable sales. This is the power tool —
+    use it when the user wants a complete picture of a property for investment
+    analysis.
+    """
     # ── Validate BBL ──────────────────────────────────────────────────
     try:
         validate_bbl(bbl)
     except ValueError as exc:
-        raise ToolError(str(exc))
+        raise ToolError(str(exc)) from exc
 
     bbl_info = parse_bbl(bbl)
 
@@ -349,11 +355,11 @@ async def analyze_property(bbl: str) -> dict:
             ),
             timeout=45,
         )
-    except TimeoutError:
+    except TimeoutError as exc:
         raise ToolError(
             "Analysis timed out after 45 seconds. The database may be under "
             "heavy load. Please try again."
-        )
+        ) from exc
 
     # Unpack results. Re-raise ToolError (DB connection failures) immediately
     # since they indicate infrastructure failure, not missing data. Replace
@@ -432,7 +438,9 @@ async def analyze_property(bbl: str) -> dict:
     # ── Track data gaps ─────────────────────────────────────────────
     data_gaps: list[str] = []
     if violations is None:
-        data_gaps.append("Violation summary unavailable — mv_violation_summary may need to be created")
+        data_gaps.append(
+            "Violation summary unavailable — mv_violation_summary may need to be created"
+        )
     if not recent_sales:
         data_gaps.append("No DOF sales records found for this property")
     if ownership is None:

@@ -43,7 +43,12 @@ async def lookup_property(
     bbl: str | None = None,
     borough: str | None = None,
 ) -> dict:
-    """Look up a NYC property by address or BBL. Returns the full property profile including building details, zoning, assessed value, owner, and lot characteristics. This is always the first tool to call — you need a BBL before using other tools."""
+    """Look up a NYC property by address or BBL.
+
+    Returns the full property profile including building details, zoning,
+    assessed value, owner, and lot characteristics. This is always the first
+    tool to call — you need a BBL before using other tools.
+    """
     # ── Resolve BBL ──────────────────────────────────────────────────
     if address is None and bbl is None:
         raise ToolError(
@@ -56,7 +61,7 @@ async def lookup_property(
         try:
             validate_bbl(bbl)
         except ValueError as exc:
-            raise ToolError(str(exc))
+            raise ToolError(str(exc)) from exc
     else:
         # address is not None — resolve it.
         # Append borough to the address string if provided and not already
