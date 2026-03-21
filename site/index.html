@@ -363,6 +363,8 @@
       <div class="container">
         <h2>Installation</h2>
 
+        <p class="section-intro">Use the <strong>Hosted (SSE)</strong> tab below to connect without any local setup, or follow steps 1–3 to run the server yourself.</p>
+
         <div class="install-steps">
           <div class="install-step">
             <h3>1. Clone and install dependencies</h3>
@@ -388,6 +390,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
             <div class="install-tabs" role="tablist" aria-label="Installation method">
               <button class="tab-btn active" data-tab="claude-desktop" role="tab" aria-selected="true" aria-controls="claude-desktop" id="tab-claude-desktop">Claude Desktop</button>
               <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code">Claude Code</button>
+              <button class="tab-btn" data-tab="hosted-sse" role="tab" aria-selected="false" aria-controls="hosted-sse" id="tab-hosted-sse">Hosted (SSE)</button>
             </div>
 
             <div class="tab-content active" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop">
@@ -417,6 +420,21 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     }
   }
 }</code></pre>
+            </div>
+
+            <div class="tab-content" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse">
+              <p>No local setup required — connect directly to the hosted server via SSE.</p>
+              <p><strong>Claude Desktop</strong> — add to <code>claude_desktop_config.json</code>:</p>
+              <pre><code>{
+  "mcpServers": {
+    "nyc-property-intel": {
+      "url": "https://nyc-property-intel-production.up.railway.app/sse"
+    }
+  }
+}</code></pre>
+              <p><strong>Claude Code</strong> — one command:</p>
+              <pre><code>claude mcp add --transport sse nyc-property-intel \
+  https://nyc-property-intel-production.up.railway.app/sse</code></pre>
             </div>
           </div>
         </div>

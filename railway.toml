@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "uv run nyc-property-intel"
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 3

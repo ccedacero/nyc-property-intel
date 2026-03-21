@@ -16,6 +16,7 @@ Or via the project script:
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -66,9 +67,27 @@ from nyc_property_intel.tools import (  # noqa: E402
 # ── Entry point ──────────────────────────────────────────────────────
 
 def main() -> None:
-    """Start the MCP server."""
-    logger.info("Starting NYC Property Intel MCP server v0.1.0")
-    mcp.run()
+    """Start the MCP server.
+
+    Transport is selected via the MCP_TRANSPORT environment variable:
+      - "stdio"  (default) — local mode for Claude Desktop / Claude Code
+      - "sse"              — hosted mode for Railway / cloud deployments
+    """
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
+
+    if transport == "sse":
+        port = int(os.getenv("PORT", "8000"))
+        mcp.settings.host = "0.0.0.0"
+        mcp.settings.port = port
+        logger.info(
+            "Starting NYC Property Intel MCP server v0.1.0 "
+            "(SSE transport on port %d)",
+            port,
+        )
+    else:
+        logger.info("Starting NYC Property Intel MCP server v0.1.0 (stdio)")
+
+    mcp.run(transport=transport)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":
