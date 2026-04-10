@@ -1,6 +1,6 @@
 # NYC Property Intel
 
-MCP server that gives Claude access to NYC public property data for real estate due diligence. Consolidates 22+ city data sources into five AI-callable tools — property lookup, violation history, sales history, comparable sales, and comprehensive analysis.
+MCP server that gives Claude access to NYC public property data for real estate due diligence. Consolidates 15+ city datasets into 13 AI-callable tools — violations, liens, permits, rent stabilization, HPD complaints & litigations, tax assessments, sales history, comparable sales, neighborhood stats, and comprehensive analysis.
 
 **This is a due diligence tool, not an appraisal tool.** It surfaces public record data; it does not estimate property values.
 
@@ -9,10 +9,18 @@ MCP server that gives Claude access to NYC public property data for real estate 
 | Tool | Description |
 |------|-------------|
 | `lookup_property` | Look up a property by address or BBL. Returns profile, zoning, assessed values, owner. Always call this first. |
-| `get_property_issues` | HPD housing violations + DOB building code violations. Filter by severity, status, date. |
+| `get_property_issues` | HPD + DOB + ECB violations. Filter by severity class (A/B/C), status, and date. |
 | `get_property_history` | DOF sales history + ACRIS deed transfers. Shows price trajectory and ownership changes. |
-| `search_comps` | Comparable sales in the same zip code. Filters by building class, date range, price. |
-| `analyze_property` | Full due diligence summary — runs all sub-queries concurrently. Property profile, financials, development potential (FAR), risk factors, comps, and key observations. |
+| `get_hpd_complaints` | Tenant-reported HPD complaints. Leading indicators of building distress before formal violations. |
+| `get_hpd_litigations` | HPD housing court cases, open judgements, and harassment findings. |
+| `get_hpd_registration` | Owner/agent/officer registration records for the building. |
+| `get_building_permits` | DOB job filings: new buildings, alterations, demolitions. Status, cost, applicant. |
+| `get_liens_and_encumbrances` | DOF tax lien sale list + ACRIS mortgage/lien records. Debt profile and lien exposure. |
+| `get_tax_info` | Tax assessments, market value, taxable value, and exemptions (421a, J-51, STAR). |
+| `get_rent_stabilization` | Rent-stabilized unit counts 2007–2017, trend, and destabilization signal. |
+| `search_comps` | Comparable sales by zip code. Filters by building class, price, date. Includes quarterly stats. |
+| `search_neighborhood_stats` | Area-level aggregates by zip or neighborhood: property stock, median prices, violation rates, rent stab share. |
+| `analyze_property` | Full due diligence summary — runs all sub-queries concurrently. Profile, financials, FAR, risk, tax, rent stab, comps, and key observations. |
 
 ## Quick Start
 

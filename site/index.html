@@ -268,7 +268,7 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="tools">
       <div class="container">
-        <h2>Five Tools for Complete Due Diligence</h2>
+        <h2>13 Tools for Complete Due Diligence</h2>
         <p class="section-intro">
           Each tool queries official NYC public record data. All building and property data &mdash; no demographic information, no tenant data.
         </p>
@@ -282,26 +282,74 @@
 
           <div class="tool-card">
             <h3><span class="tool-name">get_property_issues</span></h3>
-            <p>HPD housing violations and DOB building code violations. Filter by severity class (A/B/C), status (open/closed), and date range. Class C violations are immediately hazardous.</p>
-            <div class="tool-sources">HPD Violations &middot; DOB Violations</div>
+            <p>HPD housing violations, DOB building code violations, and ECB/OATH fines. Filter by severity class (A/B/C), status (open/closed), and date range. Class C violations are immediately hazardous.</p>
+            <div class="tool-sources">HPD Violations &middot; DOB Violations &middot; ECB Violations</div>
           </div>
 
           <div class="tool-card">
             <h3><span class="tool-name">get_property_history</span></h3>
-            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types.</p>
+            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types going back to 2003.</p>
             <div class="tool-sources">DOF Sales &middot; DOF Annual Sales &middot; ACRIS</div>
           </div>
 
           <div class="tool-card">
+            <h3><span class="tool-name">get_hpd_complaints</span></h3>
+            <p>Tenant-reported complaints from HPD. Complaints are leading indicators &mdash; they show what tenants are reporting before formal violations are issued. Filter by category, status, and date.</p>
+            <div class="tool-sources">HPD Complaints</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_hpd_litigations</span></h3>
+            <p>Housing court cases filed by HPD against building owners. Shows case types, open judgements, and harassment findings. A litigated building is a serious red flag.</p>
+            <div class="tool-sources">HPD Litigations</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_hpd_registration</span></h3>
+            <p>Building owner and agent registration records. Who is legally registered as the owner, managing agent, and head officer? Useful for identifying bad actors and LLC ownership structures.</p>
+            <div class="tool-sources">HPD Registrations</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_building_permits</span></h3>
+            <p>DOB permit and job filings: new buildings, alterations, demolitions, and sign permits. See scope of work, estimated cost, job status, and applicant name.</p>
+            <div class="tool-sources">DOB Jobs (BIS)</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_liens_and_encumbrances</span></h3>
+            <p>DOF tax lien sale list entries and ACRIS mortgage records. Shows outstanding liens, lender names, amounts, and satisfactions. Essential for assessing a property&rsquo;s debt profile.</p>
+            <div class="tool-sources">DOF Tax Liens &middot; ACRIS</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_tax_info</span></h3>
+            <p>Property tax assessments, market value estimates, and active exemptions. Shows tax class, assessed values (land and total), taxable value, and programs like 421a, J-51, or STAR.</p>
+            <div class="tool-sources">DOF Assessments &middot; DOF Exemptions</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_rent_stabilization</span></h3>
+            <p>Rent-stabilized unit counts by year (2007&ndash;2017). See how many units were stabilized, the trend over time, and whether the building appears to have destabilized units.</p>
+            <div class="tool-sources">Rent Stabilization (HCR/RGB)</div>
+          </div>
+
+          <div class="tool-card">
             <h3><span class="tool-name">search_comps</span></h3>
-            <p>Find comparable sales in the same zip code. Filter by building class, date range, and price. Returns price per square foot and building details.</p>
+            <p>Find comparable sales in the same zip code. Filter by building class, date range, and price. Returns price per square foot, building details, and quarterly market trend statistics.</p>
             <div class="tool-sources">DOF Sales</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">search_neighborhood_stats</span></h3>
+            <p>Area-level aggregates by zip code or neighborhood name. Property stock counts, median sale prices, violation rates, rent stabilization share, and quarterly price trends.</p>
+            <div class="tool-sources">PLUTO &middot; DOF Sales &middot; HPD &middot; Rent Stabilization</div>
           </div>
 
           <div class="tool-card tool-card-featured">
             <h3><span class="tool-name">analyze_property</span></h3>
-            <p>The full picture. Runs all sub-queries concurrently and returns a comprehensive summary: property profile, financial snapshot, development potential (FAR analysis), risk factors (violations), comparable market data, and key observations.</p>
-            <div class="tool-sources">PLUTO &middot; HPD &middot; DOB &middot; DOF &middot; ACRIS</div>
+            <p>The full picture. Runs all sub-queries concurrently and returns a comprehensive summary: property profile, financial snapshot, development potential (FAR analysis), risk factors, tax status, rent stabilization, comparable market data, and key observations flagging anything unusual.</p>
+            <div class="tool-sources">PLUTO &middot; HPD &middot; DOB &middot; DOF &middot; ACRIS &middot; Rent Stabilization</div>
           </div>
         </div>
       </div>
