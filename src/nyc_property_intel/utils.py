@@ -230,6 +230,22 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
 }
 
 
+def escape_like(value: str) -> str:
+    """Escape LIKE/ILIKE metacharacters in a user-supplied string.
+
+    Replaces backslash, ``%``, and ``_`` with their escaped equivalents so
+    that they are treated as literals rather than wildcards in PostgreSQL
+    LIKE/ILIKE patterns. PostgreSQL uses backslash as the default LIKE escape.
+
+    Args:
+        value: Raw user-supplied string.
+
+    Returns:
+        String safe for use as a LIKE pattern fragment.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def data_freshness_note(table_name: str) -> str:
     """Return a human-readable note about the freshness of a data table.
 

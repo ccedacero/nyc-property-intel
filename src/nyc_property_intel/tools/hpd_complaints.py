@@ -16,7 +16,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all
-from nyc_property_intel.utils import data_freshness_note, validate_bbl
+from nyc_property_intel.utils import data_freshness_note, escape_like, validate_bbl
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ async def get_hpd_complaints(
                 f"Invalid date format: {since_date!r}. Use YYYY-MM-DD."
             ) from exc
 
+    safe_category = escape_like(category) if category else None
     result: dict[str, Any] = {"bbl": bbl}
 
     try:
@@ -97,7 +98,7 @@ async def get_hpd_complaints(
 
         # Detail records
         complaints = await fetch_all(
-            _SQL_COMPLAINTS, bbl, status, category, since, limit
+            _SQL_COMPLAINTS, bbl, status, safe_category, since, limit
         )
         result["complaints"] = complaints
         result["total_returned"] = len(complaints)

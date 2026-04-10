@@ -16,6 +16,7 @@ from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
 from nyc_property_intel.utils import (
     data_freshness_note,
+    escape_like,
     format_currency,
     validate_bbl,
 )
@@ -159,6 +160,9 @@ async def search_comps(
     if limit < 1 or limit > 100:
         raise ToolError("limit must be between 1 and 100.")
 
+    # Escape LIKE metacharacters so user input can't broaden the pattern.
+    safe_building_class = escape_like(building_class) if building_class else None
+
     result: dict = {
         "search_criteria": {
             "zip_code": effective_zip,
@@ -184,27 +188,27 @@ async def search_comps(
         if bbl is not None:
             comps = await fetch_all(
                 _SQL_COMPS_WITH_REF,
-                bbl,              # $1
-                zip_code,         # $2 (explicit zip; NULL falls back to ref)
-                building_class,   # $3
-                min_sqft,         # $4
-                months,           # $5
-                min_price,        # $6
-                max_sqft,         # $7
-                max_price,        # $8
-                limit,            # $9
+                bbl,                   # $1
+                zip_code,              # $2 (explicit zip; NULL falls back to ref)
+                safe_building_class,   # $3
+                min_sqft,              # $4
+                months,                # $5
+                min_price,             # $6
+                max_sqft,              # $7
+                max_price,             # $8
+                limit,                 # $9
             )
         else:
             comps = await fetch_all(
                 _SQL_COMPS_NO_REF,
-                effective_zip,    # $1
-                building_class,   # $2
-                min_sqft,         # $3
-                months,           # $4
-                min_price,        # $5
-                max_sqft,         # $6
-                max_price,        # $7
-                limit,            # $8
+                effective_zip,         # $1
+                safe_building_class,   # $2
+                min_sqft,              # $3
+                months,                # $4
+                min_price,             # $5
+                max_sqft,              # $6
+                max_price,             # $7
+                limit,                 # $8
             )
 
         for comp in comps:
@@ -234,10 +238,10 @@ async def search_comps(
 
             stats = await fetch_all(
                 _SQL_STATS,
-                effective_zip,       # $1
-                neighborhood_filter, # $2
-                building_class,      # $3
-                months,              # $4
+                effective_zip,         # $1
+                neighborhood_filter,   # $2
+                safe_building_class,   # $3
+                months,                # $4
             )
 
             for row in stats:

@@ -14,7 +14,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
-from nyc_property_intel.utils import data_freshness_note, format_currency
+from nyc_property_intel.utils import data_freshness_note, escape_like, format_currency
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +154,9 @@ async def search_neighborhood_stats(
     if months < 1 or months > 120:
         raise ToolError("months must be between 1 and 120.")
 
+    safe_neighborhood = escape_like(neighborhood) if neighborhood else None
+    safe_building_class = escape_like(building_class) if building_class else None
+
     result: dict = {
         "search_criteria": {
             "zip_code": zip_code,
@@ -182,9 +185,9 @@ async def search_neighborhood_stats(
     try:
         if zip_code:
             sales_summary = await fetch_one(_SQL_SALES_SUMMARY, zip_code, months)
-        elif neighborhood:
+        elif safe_neighborhood:
             sales_summary = await fetch_one(
-                _SQL_NEIGHBORHOOD_SALES_SUMMARY, neighborhood, months
+                _SQL_NEIGHBORHOOD_SALES_SUMMARY, safe_neighborhood, months
             )
         else:
             sales_summary = None
@@ -224,8 +227,8 @@ async def search_neighborhood_stats(
                 _SQL_SALES_QUARTERLY,
                 zip_code,
                 months,
-                neighborhood,
-                building_class,
+                safe_neighborhood,
+                safe_building_class,
             )
             for row in quarterly:
                 row["median_price_formatted"] = format_currency(
