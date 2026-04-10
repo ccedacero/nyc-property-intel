@@ -475,8 +475,10 @@ async def analyze_property(bbl: str) -> dict:
             )
         except TimeoutError:
             logger.error("Comp sales query timed out")
-        except Exception as exc:
+        except (ToolError, asyncpg.PostgresError) as exc:
             logger.error("Comp sales query failed: %s", exc)
+        except Exception as exc:
+            logger.exception("Unexpected error in comp sales query: %s", exc)
 
     # ── Build analysis sections ───────────────────────────────────────
     property_summary = _build_property_summary(profile, bbl_info)

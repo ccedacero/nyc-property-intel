@@ -6,7 +6,10 @@ import settings from here rather than reading os.environ directly.
 
 from __future__ import annotations
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 
 class Settings(BaseSettings):
@@ -33,6 +36,31 @@ class Settings(BaseSettings):
 
     # ── Logging ───────────────────────────────────────────────────────
     log_level: str = "INFO"
+
+    # ── SSE transport auth (optional, for hosted/Railway deployment) ──
+    # Set MCP_SERVER_TOKEN to require a bearer token on the SSE endpoint.
+    # Leave empty to allow unauthenticated access (fine for local stdio use).
+    mcp_server_token: str = ""
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        if not v.startswith("postgresql://") and not v.startswith("postgres://"):
+            raise ValueError(
+                "DATABASE_URL must be a PostgreSQL connection string "
+                "(starts with postgresql:// or postgres://)"
+            )
+        return v
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        normalized = v.upper()
+        if normalized not in _VALID_LOG_LEVELS:
+            raise ValueError(
+                f"LOG_LEVEL must be one of: {', '.join(sorted(_VALID_LOG_LEVELS))}"
+            )
+        return normalized
 
     @property
     def geoclient_configured(self) -> bool:

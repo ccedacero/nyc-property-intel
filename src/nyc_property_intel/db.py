@@ -143,6 +143,11 @@ async def fetch_one(
             return row_to_dict(record)
     except asyncpg.UndefinedTableError:
         raise  # Let callers handle missing tables via graceful degradation.
+    except asyncpg.TooManyConnectionsError as exc:
+        logger.error("Connection pool exhausted in fetch_one: %s", exc)
+        raise ToolError(
+            "Database is under heavy load. Please try again in a moment."
+        ) from exc
     except asyncpg.PostgresConnectionError as exc:
         logger.error("Database connection error in fetch_one: %s", exc)
         raise ToolError(
@@ -154,6 +159,9 @@ async def fetch_one(
         raise ToolError(
             "Lost connection to the property database. Please try again."
         ) from exc
+    except asyncpg.PostgresError as exc:
+        logger.error("Database error in fetch_one: %s", exc)
+        raise ToolError("A database error occurred. Please try again.") from exc
 
 
 async def fetch_all(
@@ -176,6 +184,11 @@ async def fetch_all(
             return [row_to_dict(r) for r in records]
     except asyncpg.UndefinedTableError:
         raise  # Let callers handle missing tables via graceful degradation.
+    except asyncpg.TooManyConnectionsError as exc:
+        logger.error("Connection pool exhausted in fetch_all: %s", exc)
+        raise ToolError(
+            "Database is under heavy load. Please try again in a moment."
+        ) from exc
     except asyncpg.PostgresConnectionError as exc:
         logger.error("Database connection error in fetch_all: %s", exc)
         raise ToolError(
@@ -187,6 +200,9 @@ async def fetch_all(
         raise ToolError(
             "Lost connection to the property database. Please try again."
         ) from exc
+    except asyncpg.PostgresError as exc:
+        logger.error("Database error in fetch_all: %s", exc)
+        raise ToolError("A database error occurred. Please try again.") from exc
 
 
 # ── Lifespan for FastMCP ──────────────────────────────────────────────

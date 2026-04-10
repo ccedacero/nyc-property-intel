@@ -87,6 +87,13 @@ def main() -> None:
         port = int(os.getenv("PORT", "8000"))
         mcp.settings.host = "0.0.0.0"
         mcp.settings.port = port
+        if settings.mcp_server_token:
+            logger.info("SSE transport: bearer token auth enabled")
+        else:
+            logger.warning(
+                "SSE transport: MCP_SERVER_TOKEN is not set — "
+                "endpoint is unauthenticated. Set MCP_SERVER_TOKEN for production."
+            )
         logger.info(
             "Starting NYC Property Intel MCP server v0.1.0 "
             "(SSE transport on port %d)",
