@@ -1,0 +1,12 @@
+# nixpacks.toml — Railway build configuration
+# Pins Python 3.12 and uv explicitly so the build is stable across
+# nixpacks versions that may not auto-detect uv from pyproject.toml.
+
+[phases.setup]
+nixPkgs = ["python312", "uv"]
+
+[phases.install]
+cmds = ["uv sync --frozen --no-dev"]
+
+[start]
+cmd = "uv run nyc-property-intel"

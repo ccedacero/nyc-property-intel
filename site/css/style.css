@@ -566,9 +566,12 @@ pre code {
   border-radius: var(--radius) 0 0 var(--radius);
 }
 
+.tab-btn:not(:first-child) {
+  border-left: none;
+}
+
 .tab-btn:last-child {
   border-radius: 0 var(--radius) var(--radius) 0;
-  border-left: none;
 }
 
 .tab-btn.active {

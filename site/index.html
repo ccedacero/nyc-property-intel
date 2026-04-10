@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>NYC Property Intel — NYC Property Due Diligence</title>
-  <meta name="description" content="Free MCP server giving Claude AI access to 15+ NYC public record databases for property due diligence. Violations, sales, ownership, zoning in one query.">
+  <meta name="description" content="Free MCP server for NYC property due diligence. Give Claude AI access to ACRIS, HPD, DOB, DOF &amp; 15+ public databases. Open source — get started in minutes.">
   <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude AI real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
   <meta name="author" content="NYC Property Intel">
@@ -28,6 +28,8 @@
   <meta name="twitter:title" content="NYC Property Intel — Due Diligence from Public Records">
   <meta name="twitter:description" content="Free MCP server giving Claude AI access to 15+ NYC public record databases for property due diligence.">
   <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
+  <meta name="twitter:creator" content="@nycpropertyintel">
+  <meta name="twitter:site" content="@nycpropertyintel">
 
   <!-- JSON-LD Structured Data (consolidated @graph) -->
   <script type="application/ld+json">
@@ -132,6 +134,38 @@
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "Yes. NYC Property Intel is an MCP (Model Context Protocol) server that gives Claude AI direct access to 15+ NYC public record databases loaded into a local PostgreSQL database. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due diligence reports — all from public city records."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I check NYC property tax liens?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NYC property tax liens are publicly listed by the Department of Finance (DOF) on the annual tax lien sale list. Using NYC Property Intel's get_liens_and_encumbrances tool, you can query outstanding DOF tax liens and ACRIS mortgage records for any property by address or BBL. The tool shows lender names, outstanding amounts, and satisfaction status — essential for understanding a property's full debt profile before purchase."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I find NYC rent stabilized buildings?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "You can check whether an NYC building has rent-stabilized units using NYC Property Intel's get_rent_stabilization tool. It returns unit counts by year from 2007 to 2017 sourced from HCR/RGB registration data. A declining count over time may indicate deregulation. You can also ask: 'Is [address] rent stabilized?' and Claude will pull the data automatically."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I look up building permits in NYC?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "NYC building permits are filed with the Department of Buildings (DOB) and recorded in the BIS (Building Information System). Using NYC Property Intel's get_building_permits tool, you can retrieve all DOB job filings for a property — new buildings, alterations, demolitions, and sign permits — including scope of work, estimated cost, job status, and applicant name. Ask Claude: 'What permits have been filed at [address]?'"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is ACRIS in NYC?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ACRIS (Automated City Register Information System) is the NYC Department of Finance's online database of recorded property documents, including deeds, mortgages, liens, satisfactions, and UCC filings. NYC Property Intel queries ACRIS data to show ownership transfer history, recorded mortgages, and lien satisfactions. ACRIS records go back to 1966 and are a primary source for establishing chain of title in NYC real estate transactions."
             }
           }
         ]
@@ -258,6 +292,12 @@
             <code>"Show me the sales history for 170 West 85th Street"</code>
             <code>"Find comparable sales near zip 11215"</code>
             <code>"Give me a full due diligence report on BBL 3010060055"</code>
+            <code>"Do any properties on this block have open HPD litigations?"</code>
+            <code>"What permits have been filed at 100 Gold Street, Manhattan?"</code>
+            <code>"Is 123 Atlantic Ave Brooklyn rent stabilized?"</code>
+            <code>"What tax exemptions does BBL 1008350001 have?"</code>
+            <code>"Show me neighborhood stats for zip 11215"</code>
+            <code>"What complaints have tenants filed at this address?"</code>
           </div>
         </div>
       </div>
@@ -436,12 +476,12 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <div class="install-step">
             <h3>3. Add to Claude</h3>
             <div class="install-tabs" role="tablist" aria-label="Installation method">
-              <button class="tab-btn active" data-tab="claude-desktop" role="tab" aria-selected="true" aria-controls="claude-desktop" id="tab-claude-desktop">Claude Desktop</button>
-              <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code">Claude Code</button>
-              <button class="tab-btn" data-tab="hosted-sse" role="tab" aria-selected="false" aria-controls="hosted-sse" id="tab-hosted-sse">Hosted (SSE)</button>
+              <button class="tab-btn active" data-tab="claude-desktop" role="tab" aria-selected="true" aria-controls="claude-desktop" id="tab-claude-desktop" tabindex="0">Claude Desktop</button>
+              <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code" tabindex="-1">Claude Code</button>
+              <button class="tab-btn" data-tab="hosted-sse" role="tab" aria-selected="false" aria-controls="hosted-sse" id="tab-hosted-sse" tabindex="-1">Hosted (SSE)</button>
             </div>
 
-            <div class="tab-content active" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop">
+            <div class="tab-content active" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop" tabindex="0">
               <p>Add to <code>claude_desktop_config.json</code> (Settings &gt; Developer &gt; Edit Config):</p>
               <pre><code>{
   "mcpServers": {
@@ -457,7 +497,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 }</code></pre>
             </div>
 
-            <div class="tab-content" id="claude-code" role="tabpanel" aria-labelledby="tab-claude-code">
+            <div class="tab-content" id="claude-code" role="tabpanel" aria-labelledby="tab-claude-code" tabindex="0">
               <p>The <code>.mcp.json</code> file auto-registers when you open the project directory. Or add manually to <code>~/.claude.json</code>:</p>
               <pre><code>{
   "mcpServers": {
@@ -470,7 +510,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 }</code></pre>
             </div>
 
-            <div class="tab-content" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse">
+            <div class="tab-content" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse" tabindex="0">
               <p>No local setup required — connect directly to the hosted server via SSE.</p>
               <p><strong>Claude Desktop</strong> — add to <code>claude_desktop_config.json</code>:</p>
               <pre><code>{
