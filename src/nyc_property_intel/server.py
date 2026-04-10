@@ -60,8 +60,16 @@ from nyc_property_intel.tools import (  # noqa: E402
     analysis,  # noqa: F401
     comps,  # noqa: F401
     history,  # noqa: F401
+    hpd_complaints,  # noqa: F401
+    hpd_litigations,  # noqa: F401
+    hpd_registration,  # noqa: F401
     issues,  # noqa: F401
+    liens,  # noqa: F401
     lookup,  # noqa: F401
+    neighborhood,  # noqa: F401
+    permits,  # noqa: F401
+    rentstab,  # noqa: F401
+    tax,  # noqa: F401
 )
 
 # ── Entry point ──────────────────────────────────────────────────────

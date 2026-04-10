@@ -72,9 +72,24 @@ ORDER BY saledate DESC
 LIMIT 10;"""
 
 _SQL_OWNERSHIP = """\
-SELECT bbl, documentid, doctype, docdate, amount,
-    grantor_names, grantee_names, recorded_datetime
+SELECT bbl, documentid, doctype, doc_type_description, docdate, docamount,
+    owner_name, address1, city, state, zip, recordedfiled
 FROM mv_current_ownership WHERE bbl = $1;"""
+
+_SQL_TAX_LIENS = """\
+SELECT bbl, cycle, reportdate, waterdebtonly
+FROM dof_tax_lien_sale_list WHERE bbl = $1
+ORDER BY reportdate DESC NULLS LAST LIMIT 1;"""
+
+_SQL_RENTSTAB = """\
+SELECT ucbbl, uc2017, uc2016, uc2015, uc2014, est2017, unitsres
+FROM rentstab WHERE ucbbl = $1;"""
+
+_SQL_EXEMPTIONS = """\
+SELECT exmpcode, exname, curexmptot
+FROM dof_exemptions
+WHERE bbl = $1
+ORDER BY curexmptot DESC NULLS LAST LIMIT 5;"""
 
 
 # ── Sub-query runners ────────────────────────────────────────────────
@@ -125,6 +140,30 @@ async def _fetch_ownership(bbl: str) -> dict[str, Any] | None:
     except asyncpg.UndefinedTableError:
         logger.info("mv_current_ownership not available (Phase B)")
         return None
+
+
+async def _fetch_tax_lien(bbl: str) -> dict[str, Any] | None:
+    """Fetch most recent tax lien record."""
+    try:
+        return await fetch_one(_SQL_TAX_LIENS, bbl)
+    except asyncpg.UndefinedTableError:
+        return None
+
+
+async def _fetch_rentstab(bbl: str) -> dict[str, Any] | None:
+    """Fetch rent stabilization data."""
+    try:
+        return await fetch_one(_SQL_RENTSTAB, bbl)
+    except asyncpg.UndefinedTableError:
+        return None
+
+
+async def _fetch_exemptions(bbl: str) -> list[dict[str, Any]]:
+    """Fetch top tax exemptions."""
+    try:
+        return await fetch_all(_SQL_EXEMPTIONS, bbl)
+    except asyncpg.UndefinedTableError:
+        return []
 
 
 # ── Helper functions ─────────────────────────────────────────────────
@@ -352,6 +391,9 @@ async def analyze_property(bbl: str) -> dict:
                 _fetch_violation_summary(bbl),
                 _fetch_recent_sales(bbl),
                 _fetch_ownership(bbl),
+                _fetch_tax_lien(bbl),
+                _fetch_rentstab(bbl),
+                _fetch_exemptions(bbl),
                 return_exceptions=True,
             ),
             timeout=45,
@@ -366,7 +408,8 @@ async def analyze_property(bbl: str) -> dict:
     # since they indicate infrastructure failure, not missing data. Replace
     # other exceptions (e.g. UndefinedTableError for unloaded datasets) with
     # None / empty list so the analysis degrades gracefully.
-    profile_result, violations_result, sales_result, ownership_result = results
+    (profile_result, violations_result, sales_result, ownership_result,
+     tax_lien_result, rentstab_result, exemptions_result) = results
 
     profile: dict[str, Any] | None = None
     if isinstance(profile_result, ToolError):
@@ -400,6 +443,18 @@ async def analyze_property(bbl: str) -> dict:
     else:
         ownership = ownership_result
 
+    tax_lien: dict[str, Any] | None = None
+    if not isinstance(tax_lien_result, BaseException):
+        tax_lien = tax_lien_result
+
+    rentstab_row: dict[str, Any] | None = None
+    if not isinstance(rentstab_result, BaseException):
+        rentstab_row = rentstab_result
+
+    exemptions: list[dict[str, Any]] = []
+    if not isinstance(exemptions_result, BaseException):
+        exemptions = exemptions_result  # type: ignore[assignment]
+
     # Profile is required — can't build an analysis without it.
     if profile is None:
         raise ToolError(
@@ -428,7 +483,28 @@ async def analyze_property(bbl: str) -> dict:
     financial_snapshot = _build_financial_snapshot(profile, recent_sales)
     development_potential = _build_development_potential(profile)
     risk_factors = _build_risk_factors(violations)
+    risk_factors["has_tax_lien"] = tax_lien is not None
+    if tax_lien:
+        risk_factors["tax_lien_cycle"] = tax_lien.get("cycle")
+        risk_factors["tax_lien_water_debt_only"] = tax_lien.get("waterdebtonly")
     comparable_market = _build_comparable_market(zip_code, comp_sales)
+
+    # Rent stabilization
+    rent_stabilization: dict[str, Any] | None = None
+    if rentstab_row:
+        latest_count = rentstab_row.get("uc2017") or rentstab_row.get("uc2016") or rentstab_row.get("uc2015")
+        rent_stabilization = {
+            "is_rent_stabilized": True,
+            "latest_stabilized_units": latest_count,
+            "total_residential_units": rentstab_row.get("unitsres"),
+            "is_estimated": bool(rentstab_row.get("est2017")),
+        }
+
+    # Exemptions
+    exemption_list = [
+        {"code": e.get("exmpcode"), "name": (e.get("exname") or "").strip(), "value": e.get("curexmptot")}
+        for e in exemptions
+    ] if exemptions else []
 
     key_observations = _generate_observations(
         risk_factors,
@@ -449,6 +525,18 @@ async def analyze_property(bbl: str) -> dict:
     if not comp_sales:
         data_gaps.append("No comparable sales found in this zip code within the last 12 months")
 
+    # Add rent stab / tax lien observations
+    if tax_lien:
+        key_observations.append(
+            "Property appeared on DOF tax lien sale list — indicates delinquent taxes or charges"
+        )
+    if rent_stabilization:
+        units = rent_stabilization.get("latest_stabilized_units")
+        if units:
+            key_observations.append(
+                f"Building has {units} rent-stabilized units"
+            )
+
     return {
         "property_summary": property_summary,
         "financial_snapshot": financial_snapshot,
@@ -457,6 +545,8 @@ async def analyze_property(bbl: str) -> dict:
         "comparable_market": comparable_market,
         "recent_sales": recent_sales,
         "ownership": ownership,
+        "rent_stabilization": rent_stabilization,
+        "tax_exemptions": exemption_list if exemption_list else None,
         "key_observations": key_observations,
         "data_gaps": data_gaps if data_gaps else None,
         "data_as_of": (

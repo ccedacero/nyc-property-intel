@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────────
 
-GEOCLIENT_BASE_URL = "https://api.nyc.gov/geo/geoclient/v2"
+GEOCLIENT_BASE_URL = "https://api.nyc.gov/geoclient/v2"
 
 # Cache resolved addresses for 24 hours (addresses don't change often).
 _address_cache: TTLCache[str, str] = TTLCache(maxsize=2048, ttl=86400)
@@ -243,21 +243,38 @@ async def _pad_fallback(
     # Normalize street name for matching.
     street_upper = street.upper().strip()
 
+    # Try exact match first (handles Queens-style "37-10"), then numeric fallback
     row = await fetch_one(
         """
         SELECT bbl
-        FROM pad
-        WHERE borough_code = $1
-          AND street_name = $2
-          AND low_house_number <= $3
-          AND high_house_number >= $3
-        ORDER BY low_house_number
+        FROM pad_adr
+        WHERE boro = $1
+          AND TRIM(stname) ILIKE '%' || $2 || '%'
+          AND TRIM(lhnd) = $3
         LIMIT 1
         """,
         borough_code,
         street_upper,
-        house_num_int,
+        house_number,
     )
+
+    if row is None:
+        # Numeric range fallback for non-hyphenated addresses
+        row = await fetch_one(
+            """
+            SELECT bbl
+            FROM pad_adr
+            WHERE boro = $1
+              AND TRIM(stname) ILIKE '%' || $2 || '%'
+              AND TRIM(lhnd) <= $3
+              AND TRIM(hhnd) >= $3
+            ORDER BY lhnd
+            LIMIT 1
+            """,
+            borough_code,
+            street_upper,
+            house_num_clean,
+        )
 
     if row:
         return row["bbl"]

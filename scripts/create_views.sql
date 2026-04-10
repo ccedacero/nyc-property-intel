@@ -202,7 +202,7 @@ CREATE MATERIALIZED VIEW mv_current_ownership AS
 SELECT DISTINCT ON (computed_bbl)
     computed_bbl AS bbl,
     m.doctype,
-    dcc.doctypedescription AS doc_type_description,
+    m.doctype AS doc_type_description,
     m.docdate,
     m.docamount,
     p.name AS owner_name,
@@ -212,23 +212,21 @@ SELECT DISTINCT ON (computed_bbl)
     p.zip,
     m.documentid,
     m.recordedfiled
-FROM acris_real_property_legals l
+FROM real_property_legals l
 CROSS JOIN LATERAL (
     -- Compute BBL with NULL guards; skip rows where block or lot is NULL
     SELECT
         l.borough || lpad(l.block::text, 5, '0') || lpad(l.lot::text, 4, '0')
         AS computed_bbl
 ) bbl_calc
-JOIN acris_real_property_master m
+JOIN real_property_master m
     ON l.documentid = m.documentid
-JOIN acris_document_control_codes dcc
-    ON m.doctype = dcc.doctype
 LEFT JOIN LATERAL (
     -- Get the grantee (new owner). Use LEFT JOIN + LATERAL so we still get
     -- the row even if party data is missing. If multiple grantees, pick first
     -- alphabetically for determinism.
     SELECT p2.name, p2.address1, p2.city, p2.state, p2.zip
-    FROM acris_real_property_parties p2
+    FROM real_property_parties p2
     WHERE p2.documentid = m.documentid
       AND p2.partytype = 2  -- grantee (buyer/new owner)
     ORDER BY p2.name

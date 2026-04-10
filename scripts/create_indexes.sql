@@ -135,26 +135,26 @@ CREATE INDEX IF NOT EXISTS idx_ecb_violations_bbl
 -- ACRIS Real Property Legals — the BBL join table (millions of rows)
 -- This is the primary entry point for all ACRIS queries by property
 CREATE INDEX IF NOT EXISTS idx_acris_legals_bbl
-    ON acris_real_property_legals (borough, block, lot);
+    ON real_property_legals (borough, block, lot);
 CREATE INDEX IF NOT EXISTS idx_acris_legals_documentid
-    ON acris_real_property_legals (documentid);
+    ON real_property_legals (documentid);
 
 -- ACRIS Real Property Master — document metadata
 CREATE INDEX IF NOT EXISTS idx_acris_master_documentid
-    ON acris_real_property_master (documentid);
+    ON real_property_master (documentid);
 CREATE INDEX IF NOT EXISTS idx_acris_master_docdate
-    ON acris_real_property_master (docdate DESC);
+    ON real_property_master (docdate DESC);
 CREATE INDEX IF NOT EXISTS idx_acris_master_doctype
-    ON acris_real_property_master (doctype);
+    ON real_property_master (doctype);
 -- Composite: ownership view build (doctype + date)
 CREATE INDEX IF NOT EXISTS idx_acris_master_doctype_date
-    ON acris_real_property_master (doctype, docdate DESC);
+    ON real_property_master (doctype, docdate DESC);
 
 -- ACRIS Real Property Parties — grantor/grantee info
 CREATE INDEX IF NOT EXISTS idx_acris_parties_documentid
-    ON acris_real_property_parties (documentid);
+    ON real_property_parties (documentid);
 CREATE INDEX IF NOT EXISTS idx_acris_parties_docid_type
-    ON acris_real_property_parties (documentid, partytype);
+    ON real_property_parties (documentid, partytype);
 
 -- ACRIS Document Control Codes — doc type reference
 CREATE INDEX IF NOT EXISTS idx_acris_dcc_doctype
@@ -162,25 +162,25 @@ CREATE INDEX IF NOT EXISTS idx_acris_dcc_doctype
 
 -- ACRIS Real Property References
 CREATE INDEX IF NOT EXISTS idx_acris_refs_documentid
-    ON acris_real_property_references (documentid);
+    ON real_property_references (documentid);
 
 -- ACRIS Real Property Remarks
 CREATE INDEX IF NOT EXISTS idx_acris_remarks_documentid
-    ON acris_real_property_remarks (documentid);
+    ON real_property_remarks (documentid);
 
 -- ACRIS Personal Property Legals (UCC filings)
 CREATE INDEX IF NOT EXISTS idx_acris_personal_legals_documentid
-    ON acris_personal_property_legals (documentid);
+    ON personal_property_legals (documentid);
 
 -- ACRIS Personal Property Master
 CREATE INDEX IF NOT EXISTS idx_acris_personal_master_documentid
-    ON acris_personal_property_master (documentid);
+    ON personal_property_master (documentid);
 CREATE INDEX IF NOT EXISTS idx_acris_personal_master_doctype
-    ON acris_personal_property_master (doctype);
+    ON personal_property_master (doctype);
 
 -- ACRIS Personal Property Parties
 CREATE INDEX IF NOT EXISTS idx_acris_personal_parties_documentid
-    ON acris_personal_property_parties (documentid);
+    ON personal_property_parties (documentid);
 
 -- DOB Jobs (legacy BIS system, ~1M rows)
 CREATE INDEX IF NOT EXISTS idx_dobjobs_bbl

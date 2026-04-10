@@ -53,20 +53,19 @@ LIMIT $2;
 """
 
 _SQL_OWNERSHIP = """\
-SELECT m.documentid, m.doctype, dcc.doctypedescription AS doc_type_description,
+SELECT m.documentid, m.doctype, m.doctype AS doc_type_description,
     m.docdate, m.docamount, m.recordedfiled,
     sellers.names AS seller_names, buyers.names AS buyer_names
-FROM acris_real_property_legals l
-JOIN acris_real_property_master m ON l.documentid = m.documentid
-JOIN acris_document_control_codes dcc ON m.doctype = dcc.doctype
+FROM real_property_legals l
+JOIN real_property_master m ON l.documentid = m.documentid
 LEFT JOIN LATERAL (
     SELECT array_agg(p.name ORDER BY p.name) AS names
-    FROM acris_real_property_parties p
+    FROM real_property_parties p
     WHERE p.documentid = m.documentid AND p.partytype = 1
 ) sellers ON true
 LEFT JOIN LATERAL (
     SELECT array_agg(p.name ORDER BY p.name) AS names
-    FROM acris_real_property_parties p
+    FROM real_property_parties p
     WHERE p.documentid = m.documentid AND p.partytype = 2
 ) buyers ON true
 WHERE l.borough = $1 AND l.block = $2::int AND l.lot = $3::int
@@ -76,19 +75,18 @@ LIMIT $4;
 """
 
 _SQL_TRANSACTIONS = """\
-SELECT m.documentid, m.doctype, dcc.doctypedescription AS doc_type_description,
+SELECT m.documentid, m.doctype, m.doctype AS doc_type_description,
     m.docdate, m.docamount, m.recordedfiled,
     (
         SELECT jsonb_agg(jsonb_build_object(
             'name', p.name, 'party_type',
             CASE p.partytype WHEN 1 THEN 'seller' WHEN 2 THEN 'buyer' ELSE 'other' END
         ) ORDER BY p.partytype, p.name)
-        FROM acris_real_property_parties p
+        FROM real_property_parties p
         WHERE p.documentid = m.documentid
     ) AS parties
-FROM acris_real_property_legals l
-JOIN acris_real_property_master m ON l.documentid = m.documentid
-JOIN acris_document_control_codes dcc ON m.doctype = dcc.doctype
+FROM real_property_legals l
+JOIN real_property_master m ON l.documentid = m.documentid
 WHERE l.borough = $1 AND l.block = $2::int AND l.lot = $3::int
   AND ($4::text IS NULL OR m.doctype = $4)
   AND ($5::date IS NULL OR m.docdate >= $5)
@@ -131,7 +129,8 @@ async def get_property_history(
 
     # ── Validate inputs ───────────────────────────────────────────────
     try:
-        borough, block, lot = validate_bbl(bbl)
+        borough_str, block_str, lot_str = validate_bbl(bbl)
+        borough, block, lot = int(borough_str), int(block_str), int(lot_str)
     except ValueError as exc:
         raise ToolError(str(exc)) from exc
 

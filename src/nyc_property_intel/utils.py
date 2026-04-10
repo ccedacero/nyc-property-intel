@@ -199,6 +199,34 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
         "source": "NYC DCP PAD (Property Address Directory)",
         "cadence": "updated quarterly",
     },
+    "rentstab": {
+        "source": "Rent Stabilization Unit Counts (taxbills.nyc)",
+        "cadence": "updated annually",
+    },
+    "hpd_registrations": {
+        "source": "NYC HPD Building Registrations",
+        "cadence": "updated daily",
+    },
+    "hpd_complaints": {
+        "source": "NYC HPD Complaints and Problems",
+        "cadence": "updated daily",
+    },
+    "hpd_litigations": {
+        "source": "NYC HPD Litigations",
+        "cadence": "updated monthly",
+    },
+    "dof_tax_liens": {
+        "source": "NYC DOF Tax Lien Sale List",
+        "cadence": "updated annually (prior to lien sale)",
+    },
+    "dof_valuation": {
+        "source": "NYC DOF Property Valuation & Assessments (RPAD)",
+        "cadence": "updated annually (tentative roll in January, final in May)",
+    },
+    "dof_exemptions": {
+        "source": "NYC DOF Tax Exemptions",
+        "cadence": "updated annually with assessment roll",
+    },
 }
 
 

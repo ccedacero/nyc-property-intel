@@ -87,7 +87,11 @@ async def lookup_property(
         row = None
 
     if row is None:
-        row = await fetch_one(_SQL_FALLBACK, bbl)
+        try:
+            row = await fetch_one(_SQL_FALLBACK, bbl)
+        except asyncpg.UndefinedTableError:
+            logger.info("pluto_latest table not found either")
+            row = None
 
     if row is None:
         raise ToolError(

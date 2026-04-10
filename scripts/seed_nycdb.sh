@@ -44,6 +44,13 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 MAX_RETRIES=3
 RETRY_BACKOFF_BASE=10  # seconds; retry 1 = 10s, retry 2 = 20s, retry 3 = 30s
 
+# Find nycdb binary
+NYCDB_BIN="${NYCDB_BIN:-$(command -v nycdb 2>/dev/null || echo "$HOME/Library/Python/3.9/bin/nycdb")}"
+if [ ! -x "$NYCDB_BIN" ]; then
+    echo "ERROR: nycdb not found. Install with: pip3 install nycdb" >&2
+    exit 1
+fi
+
 # NYCDB common flags
 NYCDB_FLAGS="-U $DB_USER -D $DB_NAME -P $DB_PASS -H $DB_HOST --port $DB_PORT --root-dir $DATA_DIR"
 
@@ -149,7 +156,7 @@ load_dataset() {
 
     while [ $attempt -le $MAX_RETRIES ]; do
         log "  Downloading $ds (attempt $attempt/$MAX_RETRIES)..."
-        if nycdb --download "$ds" $NYCDB_FLAGS 2>&1; then
+        if $NYCDB_BIN --download "$ds" $NYCDB_FLAGS 2>&1; then
             log "  Download complete."
         else
             err "Download failed for $ds (attempt $attempt/$MAX_RETRIES)"
@@ -166,7 +173,7 @@ load_dataset() {
         fi
 
         log "  Loading $ds into PostgreSQL..."
-        if nycdb --load "$ds" $NYCDB_FLAGS 2>&1; then
+        if $NYCDB_BIN --load "$ds" $NYCDB_FLAGS 2>&1; then
             log "  Load complete."
         else
             err "Load failed for $ds (attempt $attempt/$MAX_RETRIES)"
@@ -184,7 +191,7 @@ load_dataset() {
 
         # Verify
         log "  Verifying $ds..."
-        if nycdb --verify "$ds" $NYCDB_FLAGS 2>&1; then
+        if $NYCDB_BIN --verify "$ds" $NYCDB_FLAGS 2>&1; then
             log "  Verification passed."
             return 0
         else

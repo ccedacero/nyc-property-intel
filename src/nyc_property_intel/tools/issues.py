@@ -20,7 +20,7 @@ from nyc_property_intel.utils import data_freshness_note, validate_bbl
 
 logger = logging.getLogger(__name__)
 
-_VALID_SOURCES = {"HPD", "DOB", "ALL"}
+_VALID_SOURCES = {"HPD", "DOB", "ECB", "ALL"}
 
 _SQL_SUMMARY = """\
 SELECT bbl, hpd_total, hpd_class_a, hpd_class_b, hpd_class_c, hpd_open,
@@ -49,6 +49,18 @@ WHERE bbl = $1
 ORDER BY issuedate DESC
 LIMIT $3;"""
 
+_SQL_ECB = """\
+SELECT ecbviolationnumber, ecbviolationstatus, dobviolationnumber,
+    issuedate, serveddate, hearingdate, severity, violationtype,
+    violationdescription, respondentname,
+    penalityimposed, amountpaid, balancedue,
+    sectionlawdescription1
+FROM ecb_violations
+WHERE bbl = $1
+  AND ($2::date IS NULL OR issuedate >= $2)
+ORDER BY issuedate DESC
+LIMIT $3;"""
+
 
 @mcp.tool()
 async def get_property_issues(
@@ -60,11 +72,11 @@ async def get_property_issues(
     limit: int = 25,
     include_summary: bool = True,
 ) -> dict:
-    """Get HPD housing violations and DOB building code violations for a property.
+    """Get HPD housing violations, DOB building code violations, and ECB/OATH violations for a property.
 
-    HPD Class C violations are immediately hazardous. Returns both summary
-    counts and violation details. Use this to assess a building's regulatory
-    risk profile.
+    HPD Class C violations are immediately hazardous. ECB violations include
+    penalties and balances due. Returns both summary counts and violation
+    details. Use this to assess a building's regulatory risk profile.
     """
     # ── Validate inputs ──────────────────────────────────────────────
     try:
@@ -78,7 +90,7 @@ async def get_property_issues(
     source_upper = source.upper()
     if source_upper not in _VALID_SOURCES:
         raise ToolError(
-            f"Invalid source: {source!r}. Must be one of: HPD, DOB, ALL."
+            f"Invalid source: {source!r}. Must be one of: HPD, DOB, ECB, ALL."
         )
 
     # Parse since_date if provided.
@@ -104,39 +116,61 @@ async def get_property_issues(
     # ── HPD violations ───────────────────────────────────────────────
     hpd_violations: list[dict[str, Any]] = []
     if source_upper in ("HPD", "ALL"):
-        hpd_violations = await fetch_all(
-            _SQL_HPD,
-            bbl,
-            severity,   # $2 — class filter (A/B/C)
-            status,     # $3 — currentstatus filter
-            since,      # $4 — date filter
-            limit,      # $5 — row limit
-        )
+        try:
+            hpd_violations = await fetch_all(
+                _SQL_HPD,
+                bbl,
+                severity,   # $2 — class filter (A/B/C)
+                status,     # $3 — currentstatus filter
+                since,      # $4 — date filter
+                limit,      # $5 — row limit
+            )
+        except asyncpg.UndefinedTableError:
+            logger.info("hpd_violations table not loaded, skipping HPD section")
 
     # ── DOB violations ───────────────────────────────────────────────
     dob_violations: list[dict[str, Any]] = []
     if source_upper in ("DOB", "ALL"):
-        dob_violations = await fetch_all(
-            _SQL_DOB,
-            bbl,
-            since,      # $2 — date filter
-            limit,      # $3 — row limit
-        )
+        try:
+            dob_violations = await fetch_all(
+                _SQL_DOB,
+                bbl,
+                since,      # $2 — date filter
+                limit,      # $3 — row limit
+            )
+        except asyncpg.UndefinedTableError:
+            logger.info("dob_violations table not loaded, skipping DOB section")
+
+    # ── ECB violations ──────────────────────────────────────────────
+    ecb_violations: list[dict[str, Any]] = []
+    if source_upper in ("ECB", "ALL"):
+        try:
+            ecb_violations = await fetch_all(
+                _SQL_ECB,
+                bbl,
+                since,      # $2 — date filter
+                limit,      # $3 — row limit
+            )
+        except asyncpg.UndefinedTableError:
+            logger.info("ecb_violations table not loaded, skipping ECB section")
 
     # ── Build response ───────────────────────────────────────────────
-    total_returned = len(hpd_violations) + len(dob_violations)
+    total_returned = len(hpd_violations) + len(dob_violations) + len(ecb_violations)
 
     freshness_parts: list[str] = []
     if source_upper in ("HPD", "ALL"):
         freshness_parts.append(data_freshness_note("hpd_violations"))
     if source_upper in ("DOB", "ALL"):
         freshness_parts.append(data_freshness_note("dob_violations"))
+    if source_upper in ("ECB", "ALL"):
+        freshness_parts.append(data_freshness_note("ecb_violations"))
 
     return {
         "bbl": bbl,
         "summary": summary,
         "hpd_violations": hpd_violations,
         "dob_violations": dob_violations,
+        "ecb_violations": ecb_violations,
         "total_returned": total_returned,
         "data_as_of": " | ".join(freshness_parts),
     }
