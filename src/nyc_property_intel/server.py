@@ -27,6 +27,11 @@ from nyc_property_intel.app import mcp
 from nyc_property_intel.config import settings
 from nyc_property_intel.db import db_lifespan
 from nyc_property_intel.geoclient import close_client
+from nyc_property_intel.tools.fdny import close_socrata_client as _close_fdny
+from nyc_property_intel.tools.complaints_311 import close_client as _close_311
+from nyc_property_intel.tools.evictions import close_client as _close_evictions
+from nyc_property_intel.tools.dob_complaints import close_client as _close_dob_complaints
+from nyc_property_intel.tools.nypd_crime import close_client as _close_nypd
 
 # ── Logging setup ─────────────────────────────────────────────────────
 
@@ -51,6 +56,11 @@ async def server_lifespan(server: Any):
             yield
         finally:
             await close_client()
+            await _close_fdny()
+            await _close_311()
+            await _close_evictions()
+            await _close_dob_complaints()
+            await _close_nypd()
 
 
 mcp.settings.lifespan = server_lifespan
@@ -96,6 +106,11 @@ class _BearerTokenMiddleware:
 from nyc_property_intel.tools import (  # noqa: E402
     analysis,  # noqa: F401
     comps,  # noqa: F401
+    complaints_311,  # noqa: F401
+    dob_complaints,  # noqa: F401
+    evictions,  # noqa: F401
+    fdny,  # noqa: F401
+    nypd_crime,  # noqa: F401
     history,  # noqa: F401
     hpd_complaints,  # noqa: F401
     hpd_litigations,  # noqa: F401

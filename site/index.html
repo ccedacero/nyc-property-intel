@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>NYC Property Intel — NYC Property Due Diligence</title>
-  <meta name="description" content="Free MCP server for NYC property due diligence. Give Claude AI access to ACRIS, HPD, DOB, DOF &amp; 15+ public databases. Open source — get started in minutes.">
+  <meta name="description" content="Free MCP server for NYC property due diligence. Give Claude AI access to ACRIS, HPD, DOB, DOF, FDNY, NYPD crime &amp; 20+ public databases. Open source — get started in minutes.">
   <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude AI real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
   <meta name="author" content="NYC Property Intel">
@@ -13,7 +13,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="NYC Property Intel — Due Diligence from Public Records">
-  <meta property="og:description" content="Free MCP server giving Claude AI access to 15+ NYC public record databases. Violations, sales, ownership, zoning — one query.">
+  <meta property="og:description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases. Violations, sales, ownership, zoning, fire history, crime data — one query.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="NYC Property Intel">
   <meta property="og:url" content="https://nycpropertyintel.com/">
@@ -26,7 +26,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="NYC Property Intel — Due Diligence from Public Records">
-  <meta name="twitter:description" content="Free MCP server giving Claude AI access to 15+ NYC public record databases for property due diligence.">
+  <meta name="twitter:description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases for property due diligence.">
   <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
   <meta name="twitter:creator" content="@nycpropertyintel">
   <meta name="twitter:site" content="@nycpropertyintel">
@@ -54,7 +54,7 @@
         "@type": "SoftwareApplication",
         "@id": "https://nycpropertyintel.com/#software",
         "name": "NYC Property Intel",
-        "description": "MCP server for NYC property due diligence — surfaces public record data from 15+ city datasets via Claude AI",
+        "description": "MCP server for NYC property due diligence — surfaces public record data from 20+ city datasets via Claude AI",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "macOS, Linux, Windows",
         "softwareVersion": "0.1.0",
@@ -77,7 +77,7 @@
             "name": "What data sources does NYC Property Intel use?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "NYC Property Intel aggregates data from 15+ official NYC public record datasets including PLUTO (property profiles), HPD violations, DOB violations, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, and more. All data is sourced from NYC Open Data and city agency databases."
+              "text": "NYC Property Intel aggregates data from 20+ official NYC public record datasets including PLUTO (property profiles), HPD violations, DOB violations, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incident records, NYPD crime complaints, 311 service requests, marshal eviction records, and DOB complaints. All data is sourced from NYC Open Data and city agency databases."
             }
           },
           {
@@ -202,6 +202,7 @@
         <li><a href="#tools">Tools</a></li>
         <li><a href="#data-sources">Data</a></li>
         <li><a href="#install">Install</a></li>
+        <li><a href="#hero-signup-form" class="btn btn-sm btn-accent">Get Access</a></li>
         <li><a href="#fair-housing">Fair Housing</a></li>
         <li><a href="legal.html">Legal</a></li>
         <li><a href="https://github.com/nycpropertyintel/nyc-property-intel" class="btn btn-sm" target="_blank" rel="noopener noreferrer">GitHub</a></li>
@@ -218,14 +219,42 @@
       <div class="container">
         <h1>NYC Property Due Diligence<br>from Public Records</h1>
         <p class="hero-sub">
-          An MCP server that gives Claude AI access to <strong>15+ NYC public record databases</strong>.
-          Violations, sales history, ownership transfers, zoning, tax assessments &mdash; from one query.
+          An MCP server that gives Claude AI access to <strong>20+ NYC public record databases</strong>.
+          Violations, sales history, ownership, zoning, fire history, crime data &mdash; from one query.
         </p>
-        <div class="hero-actions">
-          <a href="#install" class="btn btn-primary">Get Started</a>
-          <a href="https://github.com/nycpropertyintel/nyc-property-intel" class="btn btn-outline" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        <form class="hero-signup" id="hero-signup-form" action="https://app.loops.so/api/newsletter-form/cmntqdkqy00y20iycvyyxby0m" method="POST" novalidate>
+          <div class="hero-signup-fields">
+            <input
+              type="email"
+              name="email"
+              id="hero-email"
+              class="signup-input"
+              placeholder="your@email.com"
+              autocomplete="email"
+              required
+              aria-label="Email address"
+            >
+            <select name="role" id="hero-role" class="signup-select" aria-label="I am a...">
+              <option value="" disabled selected>I am a&hellip;</option>
+              <option value="investor">Investor</option>
+              <option value="attorney">RE Attorney</option>
+              <option value="broker">Broker</option>
+              <option value="developer">Developer</option>
+              <option value="other">Other</option>
+            </select>
+            <button type="submit" class="btn btn-primary signup-btn">Get Early Access</button>
+          </div>
+          <p class="signup-error" id="hero-signup-error" role="alert" aria-live="polite"></p>
+        </form>
+        <div class="hero-signup-success" id="hero-signup-success" hidden>
+          <p class="signup-success-msg">&#x2713; You&rsquo;re on the list. Check your inbox for the connection details.</p>
         </div>
-        <p class="hero-note">Free and open source &middot; MIT License &middot; Runs locally on your machine</p>
+        <p class="hero-note">Free &middot; No credit card &middot; Open source (MIT)</p>
+        <div class="hero-actions-secondary">
+          <a href="#how-it-works" class="link-subtle">See how it works &darr;</a>
+          <span class="hero-note-sep">&middot;</span>
+          <a href="https://github.com/nycpropertyintel/nyc-property-intel" class="link-subtle" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        </div>
       </div>
     </section>
 
@@ -242,9 +271,9 @@
         </p>
         <div class="grid grid-3">
           <div class="card">
-            <div class="card-number">15+</div>
+            <div class="card-number">20+</div>
             <div class="card-label">Separate city data sources</div>
-            <p>ACRIS, HPD, DOB, DOF, DHCR, ZoLa, PAD &mdash; each with its own interface and search patterns.</p>
+            <p>ACRIS, HPD, DOB, DOF, FDNY, NYPD, 311, DHCR &mdash; each with its own interface and search patterns.</p>
           </div>
           <div class="card">
             <div class="card-number">4&ndash;6 hrs</div>
@@ -298,6 +327,10 @@
             <code>"What tax exemptions does BBL 1008350001 have?"</code>
             <code>"Show me neighborhood stats for zip 11215"</code>
             <code>"What complaints have tenants filed at this address?"</code>
+            <code>"Has there been a fire at 37-06 80th Street, Queens?"</code>
+            <code>"What crimes happened within 2 blocks of 350 5th Ave?"</code>
+            <code>"Show me evictions at 123 Atlantic Ave, Brooklyn"</code>
+            <code>"What 311 complaints are open at this building?"</code>
           </div>
         </div>
       </div>
@@ -308,9 +341,9 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="tools">
       <div class="container">
-        <h2>13 Tools for Complete Due Diligence</h2>
+        <h2>18 Tools for Complete Due Diligence</h2>
         <p class="section-intro">
-          Each tool queries official NYC public record data. All building and property data &mdash; no demographic information, no tenant data.
+          Each tool queries official NYC public record data. Building and property data only &mdash; no demographic information, no tenant screening.
         </p>
 
         <div class="tools-grid">
@@ -386,6 +419,36 @@
             <div class="tool-sources">PLUTO &middot; DOF Sales &middot; HPD &middot; Rent Stabilization</div>
           </div>
 
+          <div class="tool-card">
+            <h3><span class="tool-name">get_fdny_fire_incidents</span></h3>
+            <p>FDNY fire and emergency incident history for a property address. Fire type, highest alarm level, spread description, units on scene, duration, and civilian/firefighter casualties. Queried live from NYC Open Data.</p>
+            <div class="tool-sources">FDNY NFIRS &middot; NYC Open Data 8m42-w767</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_311_complaints</span></h3>
+            <p>311 service request complaints at or near a property. Covers noise, rodents, illegal dumping, heat/hot water, graffiti, illegal parking, and ~200 other complaint types. Leading indicator of neighborhood quality and active building issues.</p>
+            <div class="tool-sources">NYC 311 &middot; NYC Open Data erm2-nwe9</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_evictions</span></h3>
+            <p>Marshal-executed evictions by address. Shows residential vs. commercial breakdown, apartment-level data, and marshal information. High eviction rates signal tenant instability and cash-flow risk. Data from 2017 onward.</p>
+            <div class="tool-sources">NYC Marshal Evictions &middot; NYC Open Data 6z8x-wfk4</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_dob_complaints</span></h3>
+            <p>Complaints filed directly with the Department of Buildings &mdash; the earliest public signal of construction or safety issues, before formal violations are issued. Includes category descriptions (illegal conversion, no permit, elevator defects, etc.).</p>
+            <div class="tool-sources">DOB Complaints &middot; NYC Open Data eabe-havv</div>
+          </div>
+
+          <div class="tool-card">
+            <h3><span class="tool-name">get_nypd_crime</span></h3>
+            <p>NYPD crime complaints within a configurable radius of the property (default 300 m &asymp; 3 blocks). Uses geospatial radius search on the property&rsquo;s exact coordinates. Returns felony/misdemeanor breakdown, top offense types, and year-over-year trend.</p>
+            <div class="tool-sources">NYPD Complaint Data &middot; NYC Open Data 5uac-w243</div>
+          </div>
+
           <div class="tool-card tool-card-featured">
             <h3><span class="tool-name">analyze_property</span></h3>
             <p>The full picture. Runs all sub-queries concurrently and returns a comprehensive summary: property profile, financial snapshot, development potential (FAR analysis), risk factors, tax status, rent stabilization, comparable market data, and key observations flagging anything unusual.</p>
@@ -402,9 +465,10 @@
       <div class="container">
         <h2>Data Sources</h2>
         <p class="section-intro">
-          All data is sourced from official <strong>NYC Open Data</strong> and city agency databases
-          via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project.
-          Approximately 19 million rows of public record data, loaded into your local PostgreSQL database.
+          Core data is sourced from official <strong>NYC Open Data</strong> and city agency databases
+          via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project
+          (~19 million rows loaded into PostgreSQL). Five additional datasets &mdash; FDNY, 311, evictions,
+          DOB complaints, and NYPD crime &mdash; are queried live via the Socrata Open Data API.
         </p>
 
         <div class="data-table-wrapper">
@@ -432,14 +496,19 @@
               <tr><td>DOF Tax Liens</td><td>DOF</td><td>Properties with outstanding tax liens</td></tr>
               <tr><td>Rent Stabilization</td><td>HCR/RGB</td><td>Rent-stabilized unit counts by building</td></tr>
               <tr><td>ACRIS</td><td>DOF/ACRIS</td><td>Deeds, mortgages, liens, satisfactions, UCC filings</td></tr>
+              <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by address (2013&ndash;present, real-time API)</td></tr>
+              <tr><td>311 Service Requests</td><td>311/DOITT</td><td>Noise, rodents, heat, dumping, and 200+ complaint types (real-time API)</td></tr>
+              <tr><td>Marshal Evictions</td><td>DOI</td><td>Executed eviction records by address, residential &amp; commercial (2017&ndash;present, real-time API)</td></tr>
+              <tr><td>DOB Complaints</td><td>DOB</td><td>Complaints filed with DOB before formal violations (real-time API)</td></tr>
+              <tr><td>NYPD Crime Data</td><td>NYPD</td><td>Complaint records by geospatial radius, felony/misdemeanor/violation (2006&ndash;present, real-time API)</td></tr>
             </tbody>
           </table>
         </div>
 
         <p class="data-note">
           NYC Property Intel is not affiliated with the City of New York or any city agency.
-          Data update frequency varies by source: PLUTO is updated quarterly, DOF sales monthly,
-          HPD/DOB violations near real-time.
+          Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
+          Real-time API datasets (FDNY, 311, evictions, DOB complaints, NYPD crime) reflect live NYC Open Data.
         </p>
       </div>
     </section>

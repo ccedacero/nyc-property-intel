@@ -227,6 +227,10 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
         "source": "NYC DOF Tax Exemptions",
         "cadence": "updated annually with assessment roll",
     },
+    "fdny_fire_incidents": {
+        "source": "FDNY Fire Incident Reporting System (NYC Open Data 8m42-w767)",
+        "cadence": "real-time via Socrata API (data from 2013)",
+    },
 }
 
 

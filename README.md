@@ -21,6 +21,11 @@ MCP server that gives Claude access to NYC public property data for real estate 
 | `search_comps` | Comparable sales by zip code. Filters by building class, price, date. Includes quarterly stats. |
 | `search_neighborhood_stats` | Area-level aggregates by zip or neighborhood: property stock, median prices, violation rates, rent stab share. |
 | `analyze_property` | Full due diligence summary — runs all sub-queries concurrently. Profile, financials, FAR, risk, tax, rent stab, comps, and key observations. |
+| `get_fdny_fire_incidents` | FDNY fire and emergency incident history from NYC Open Data (real-time Socrata API). Fire type, alarm level, spread, casualties, duration. 2013–present. |
+| `get_311_complaints` | 311 service request complaints at a property. Noise, rodents, illegal dumping, heat, graffiti, and ~200 other types. Leading neighborhood-quality indicator. |
+| `get_evictions` | Marshal-executed evictions by address. Residential and commercial. Signals tenant instability and cash-flow risk. 2017–present. |
+| `get_dob_complaints` | DOB complaints filed before formal violations — earliest public signal of construction, safety, or code issues. Triggers DOB inspections. |
+| `get_nypd_crime` | NYPD crime complaints within a configurable radius of the property (default 300 m ≈ 3 blocks). Felony/misdemeanor breakdown, top offenses, year trend. |
 
 ## Quick Start
 

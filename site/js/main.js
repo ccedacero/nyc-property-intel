@@ -59,6 +59,68 @@
     });
   });
 
+  // ── Email signup form ───────────────────────────────────────────
+  //
+  // Uses Loops.so newsletter form API.
+  // Setup: create a free account at loops.so, create an Audience form,
+  // copy your Form ID, and paste it below as LOOPS_FORM_ID.
+  //
+  var LOOPS_FORM_ID = "cmntqdkqy00y20iycvyyxby0m";
+
+  var signupForm = document.getElementById("hero-signup-form");
+  var signupSuccess = document.getElementById("hero-signup-success");
+  var signupError = document.getElementById("hero-signup-error");
+
+  if (signupForm) {
+    signupForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      var email = signupForm.querySelector('input[name="email"]').value.trim();
+      var role = signupForm.querySelector('select[name="role"]').value;
+      var btn = signupForm.querySelector(".signup-btn");
+
+      signupError.textContent = "";
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        signupError.textContent = "Please enter a valid email address.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Sending\u2026";
+
+      var body = new URLSearchParams({ email: email });
+      if (role) body.append("userGroup", role);
+
+      fetch("https://app.loops.so/api/newsletter-form/" + LOOPS_FORM_ID, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error("server_error");
+          return res.json();
+        })
+        .then(function (data) {
+          if (data.success) {
+            signupForm.hidden = true;
+            signupSuccess.hidden = false;
+          } else {
+            throw new Error(data.message || "unknown_error");
+          }
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          btn.textContent = "Get Early Access";
+          if (err.message === "server_error") {
+            signupError.textContent = "Something went wrong. Try again in a moment.";
+          } else {
+            signupError.textContent = "Could not sign up. Please try again.";
+          }
+        });
+    });
+  }
+
   // ── Smooth scroll for anchor links ─────────────────────────────
   document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
     anchor.addEventListener("click", function (e) {
