@@ -56,6 +56,8 @@ async def lookup_property(
             "Example address: \"123 Main St, Brooklyn, NY 11201\". "
             "Example BBL: \"3012340001\"."
         )
+    if address is not None and bbl is not None:
+        raise ToolError("Provide either address or bbl, not both.")
 
     if bbl is not None:
         try:

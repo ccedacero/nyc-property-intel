@@ -103,7 +103,7 @@ async def _query_socrata(
         select=(
             "court_index_number,docket_number,eviction_address,eviction_apt_num,"
             "executed_date,marshal_first_name,marshal_last_name,"
-            "residential_commercial_ind,borough,zip"
+            "residential_commercial_ind,borough,eviction_zip"
         ),
     )
 
@@ -189,7 +189,9 @@ async def get_evictions(
             bbl,
         )
         if row:
-            resolved_address = f"{row['house_number']} {row['street_name']}"
+            hn = (row["house_number"] or "").strip()
+            sn = (row["street_name"] or "").strip()
+            resolved_address = f"{hn} {sn}"
 
         try:
             evictions = await _query_local_by_bbl(bbl, eviction_type, since_year, limit)
@@ -199,8 +201,8 @@ async def get_evictions(
             logger.warning(
                 "marshal_evictions_all not found locally — falling back to Socrata"
             )
-            house_number = row["house_number"] if row else ""
-            street_name = row["street_name"] if row else bbl
+            house_number = (row["house_number"] or "").strip() if row else ""
+            street_name = (row["street_name"] or "").strip() if row else bbl
             try:
                 evictions = await _query_socrata(
                     house_number, street_name, eviction_type, since_year, limit

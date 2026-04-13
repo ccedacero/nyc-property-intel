@@ -14,6 +14,7 @@ Update cadence: updated daily
 from __future__ import annotations
 
 import logging
+from datetime import date as _date
 from typing import Any
 
 import asyncpg
@@ -65,8 +66,8 @@ async def _query_local_by_bin(
     idx = 2
 
     if since_year:
-        conditions.append(f"dateentered >= ${idx}::date")
-        params.append(f"{since_year}-01-01")
+        conditions.append(f"dateentered >= ${idx}")
+        params.append(_date(since_year, 1, 1))
         idx += 1
     if category:
         conditions.append(f"complaintcategory = ${idx}")
@@ -112,8 +113,8 @@ async def _query_local_by_address(
         idx += 2
 
     if since_year:
-        conditions.append(f"dateentered >= ${idx}::date")
-        params.append(f"{since_year}-01-01")
+        conditions.append(f"dateentered >= ${idx}")
+        params.append(_date(since_year, 1, 1))
         idx += 1
     if category:
         conditions.append(f"complaintcategory = ${idx}")
@@ -304,20 +305,28 @@ async def get_dob_complaints(
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
 
-        row = await fetch_one(
+        pad_row = await fetch_one(
             "SELECT lhnd AS house_number, stname AS street_name, bin "
             "FROM pad_adr WHERE bbl = $1 LIMIT 1",
             bbl,
         )
-        if row is None:
+        if pad_row is None:
             raise ToolError(
                 f"Could not find an address for BBL {bbl}. "
                 "Try passing the street address directly."
             )
-        house_number = row["house_number"]
-        street_name = row["street_name"]
-        bin_val = str(row["bin"]).strip() if row.get("bin") else None
-        resolved_address = f"{house_number} {street_name}"
+        house_number = (pad_row["house_number"] or "").strip()
+        street_name = (pad_row["street_name"] or "").strip()
+        bin_val = str(pad_row["bin"]).strip() if pad_row.get("bin") else None
+
+        # Use PLUTO canonical address for display — PAD has multiple rows per BBL
+        # (one per entrance) and LIMIT 1 can pick a secondary address.
+        pluto_row = await fetch_one(
+            "SELECT address FROM pluto_latest WHERE bbl = $1",
+            bbl,
+        )
+        pluto_address = (pluto_row.get("address") or "").strip() if pluto_row else ""
+        resolved_address = pluto_address or f"{house_number} {street_name}"
     else:
         from nyc_property_intel.geoclient import parse_address
 

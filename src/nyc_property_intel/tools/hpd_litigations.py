@@ -34,8 +34,7 @@ SELECT
     COUNT(*) FILTER (WHERE casestatus = 'OPEN' OR casestatus = 'ACTIVE') AS open_cases,
     COUNT(*) FILTER (WHERE findingofharassment IS NOT NULL
         AND findingofharassment != '' AND findingofharassment != 'NO') AS harassment_findings,
-    COUNT(*) FILTER (WHERE openjudgement IS NOT NULL
-        AND openjudgement != '') AS open_judgements,
+    COUNT(*) FILTER (WHERE upper(openjudgement) = 'YES') AS open_judgements,
     MAX(caseopendate) AS most_recent_case,
     -- Case type distribution
     (SELECT jsonb_agg(row_to_json(t)) FROM (
