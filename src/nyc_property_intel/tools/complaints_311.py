@@ -15,46 +15,20 @@ Update cadence: real-time (updated daily)
 from __future__ import annotations
 
 import logging
-import urllib.parse
 from typing import Any
 
-import httpx
 from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
-from nyc_property_intel.config import settings
+from nyc_property_intel.socrata import SocrataError, query_socrata
 
 logger = logging.getLogger(__name__)
 
-_SOCRATA_BASE = "https://data.cityofnewyork.us/resource"
-_DATASET = "erm2-nwe9.json"
-
-_client: httpx.AsyncClient | None = None
-
-
-def _get_client() -> httpx.AsyncClient:
-    global _client
-    if _client is None or _client.is_closed:
-        headers = {"Accept": "application/json"}
-        if settings.socrata_app_token:
-            headers["X-App-Token"] = settings.socrata_app_token
-        _client = httpx.AsyncClient(
-            base_url=_SOCRATA_BASE,
-            timeout=httpx.Timeout(20.0, connect=5.0),
-            headers=headers,
-        )
-    return _client
-
-
-async def close_client() -> None:
-    global _client
-    if _client is not None and not _client.is_closed:
-        await _client.aclose()
-        _client = None
+_DATASET = "erm2-nwe9"
 
 
 def _soql_escape(value: str) -> str:
-    return value.replace("'", "''").replace("%", "\\%")
+    return value.replace("\\", "\\\\").replace("'", "''").replace("%", "\\%")
 
 
 @mcp.tool()
@@ -95,6 +69,10 @@ async def get_311_complaints(
         raise ToolError("limit must be between 1 and 100.")
     if since_year is not None and (since_year < 2010 or since_year > 2030):
         raise ToolError("since_year must be between 2010 and 2030.")
+    if status is not None and status.upper() not in ("OPEN", "CLOSED"):
+        raise ToolError("status must be 'Open' or 'Closed'.")
+    if complaint_type is not None and len(complaint_type) > 100:
+        raise ToolError("complaint_type must be 100 characters or fewer.")
 
     # ── Resolve to street address ─────────────────────────────────────
     house_number = ""
@@ -150,34 +128,23 @@ async def get_311_complaints(
             f"upper(complaint_type) like '%{_soql_escape(complaint_type.upper())}%'"
         )
     if since_year:
-        parts.append(f"created_date >= '{since_year}-01-01T00:00:00'")
+        parts.append(f"created_date >= '{int(since_year)}-01-01T00:00:00'")
     if status:
         parts.append(f"upper(status) = '{_soql_escape(status.upper())}'")
 
-    params: dict[str, str] = {
-        "$where": " AND ".join(parts),
-        "$order": "created_date DESC",
-        "$limit": str(limit),
-        "$select": (
-            "unique_key,created_date,closed_date,complaint_type,descriptor,"
-            "incident_address,borough,status,resolution_description,agency_name"
-        ),
-    }
-
-    client = _get_client()
-    url = f"/{_DATASET}?{urllib.parse.urlencode(params)}"
-
     try:
-        resp = await client.get(url)
-        resp.raise_for_status()
-    except httpx.TimeoutException as exc:
-        raise ToolError("NYC 311 / Socrata API timed out. Try again in a moment.") from exc
-    except httpx.HTTPStatusError as exc:
-        raise ToolError(
-            f"Socrata API error (HTTP {exc.response.status_code})."
-        ) from exc
-
-    complaints: list[dict[str, Any]] = resp.json()
+        complaints: list[dict[str, Any]] = await query_socrata(
+            _DATASET,
+            where=" AND ".join(parts),
+            limit=limit,
+            order="created_date DESC",
+            select=(
+                "unique_key,created_date,closed_date,complaint_type,descriptor,"
+                "incident_address,borough,status,resolution_description,agency_name"
+            ),
+        )
+    except SocrataError as exc:
+        raise ToolError(str(exc)) from exc
 
     # ── Summarize ─────────────────────────────────────────────────────
     open_count = sum(1 for c in complaints if (c.get("status") or "").upper() == "OPEN")

@@ -6,55 +6,22 @@ emergency responses reported by FDNY since 2013.
 
 Dataset: NYC Open Data `8m42-w767`
 Source: FDNY Fire Incident Reporting System
-Update cadence: updated daily
+Update cadence: updated annually
 """
 
 from __future__ import annotations
 
 import logging
-import urllib.parse
 from typing import Any
 
-import httpx
 from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
-from nyc_property_intel.config import settings
+from nyc_property_intel.socrata import SocrataError, query_socrata
 
 logger = logging.getLogger(__name__)
 
-# ── Socrata API ───────────────────────────────────────────────────────
-
-_SOCRATA_BASE = "https://data.cityofnewyork.us/resource"
-_FDNY_DATASET = "8m42-w767.json"
-
-# Lazy singleton HTTP client for Socrata queries.
-_socrata_client: httpx.AsyncClient | None = None
-
-
-def _get_socrata_client() -> httpx.AsyncClient:
-    global _socrata_client
-    if _socrata_client is None or _socrata_client.is_closed:
-        headers = {"Accept": "application/json"}
-        if settings.socrata_app_token:
-            headers["X-App-Token"] = settings.socrata_app_token
-        _socrata_client = httpx.AsyncClient(
-            base_url=_SOCRATA_BASE,
-            timeout=httpx.Timeout(20.0, connect=5.0),
-            headers=headers,
-        )
-    return _socrata_client
-
-
-async def close_socrata_client() -> None:
-    """Close the Socrata HTTP client. Called during server shutdown."""
-    global _socrata_client
-    if _socrata_client is not None and not _socrata_client.is_closed:
-        await _socrata_client.aclose()
-        _socrata_client = None
-
-
-# ── Borough name normalization ────────────────────────────────────────
+_DATASET = "8m42-w767"
 
 # FDNY uses "MANHATTAN", "BRONX", "BROOKLYN", "QUEENS", "RICHMOND" (Staten Island)
 _BOROUGH_CODE_TO_FDNY: dict[str, str] = {
@@ -66,19 +33,8 @@ _BOROUGH_CODE_TO_FDNY: dict[str, str] = {
 }
 
 
-# ── Address resolution ────────────────────────────────────────────────
-
-
 async def _resolve_to_address(bbl: str) -> dict[str, str]:
-    """Resolve a BBL to a street address + borough using the PLUTO/PAD tables.
-
-    Returns:
-        Dict with keys: house_number, street_name, borough_code, zip_code.
-
-    Raises:
-        ToolError: If no address can be found for the BBL.
-    """
-    # Lazy import to avoid circular dependency.
+    """Resolve a BBL to a street address + borough using the PLUTO/PAD tables."""
     from nyc_property_intel.db import fetch_one
 
     row = await fetch_one(
@@ -102,7 +58,8 @@ async def _resolve_to_address(bbl: str) -> dict[str, str]:
     return dict(row)
 
 
-# ── Socrata query helpers ─────────────────────────────────────────────
+def _soql_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("'", "''").replace("%", "\\%")
 
 
 def _build_soql_where(
@@ -112,26 +69,13 @@ def _build_soql_where(
     incident_type: str | None,
     since_year: int | None,
 ) -> str:
-    """Build a SoQL WHERE clause for the FDNY dataset.
-
-    The FDNY `incident_address` field stores addresses like:
-    "37-06  80 ST" or "350  5 AV". We match on street_name and
-    optionally house number using LIKE.
-    """
-    # Normalize street name: remove punctuation, uppercase, abbreviate common words.
+    """Build a SoQL WHERE clause for the FDNY dataset."""
     street_upper = street_name.upper().strip()
-
-    parts: list[str] = []
-
-    # Street match (case-insensitive via UPPER on both sides in SoQL).
-    # SoQL uses `upper()` function for case-insensitive comparison.
-    # Match street name anywhere in incident_address.
-    parts.append(
+    parts: list[str] = [
         f"upper(incident_address) like upper('%{_soql_escape(street_upper)}%')"
-    )
+    ]
 
     if house_number:
-        # FDNY pads house numbers and may use hyphens; match loosely.
         hn_clean = house_number.replace("-", "").lstrip("0") or house_number
         parts.append(
             f"(upper(incident_address) like '%{_soql_escape(house_number)}%' "
@@ -150,18 +94,9 @@ def _build_soql_where(
         )
 
     if since_year:
-        parts.append(f"incident_date_time >= '{since_year}-01-01T00:00:00'")
+        parts.append(f"incident_date_time >= '{int(since_year)}-01-01T00:00:00'")
 
     return " AND ".join(parts)
-
-
-def _soql_escape(value: str) -> str:
-    """Escape single quotes and percent signs for SoQL string literals."""
-    # In SoQL, escape single quote by doubling it.
-    return value.replace("'", "''").replace("%", "\\%")
-
-
-# ── Main tool ─────────────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -204,6 +139,8 @@ async def get_fdny_fire_incidents(
         raise ToolError("limit must be between 1 and 100.")
     if since_year is not None and (since_year < 2013 or since_year > 2030):
         raise ToolError("since_year must be between 2013 and 2030.")
+    if incident_type is not None and len(incident_type) > 100:
+        raise ToolError("incident_type must be 100 characters or fewer.")
 
     # ── Resolve BBL → address ─────────────────────────────────────────
     house_number = ""
@@ -215,7 +152,7 @@ async def get_fdny_fire_incidents(
         from nyc_property_intel.utils import validate_bbl
 
         try:
-            borough_code, _, _ = validate_bbl(bbl)
+            validate_bbl(bbl)
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
 
@@ -226,14 +163,11 @@ async def get_fdny_fire_incidents(
         resolved_address = f"{house_number} {street_name}"
 
     else:
-        # Parse the provided address string.
-        # We'll use geoclient's parser for structured components.
         from nyc_property_intel.geoclient import parse_address
 
         try:
             parsed = parse_address(address)  # type: ignore[arg-type]
         except ToolError:
-            # If parse fails, fall back to using the raw address as street name.
             resolved_address = address
             street_name = address
         else:
@@ -247,45 +181,26 @@ async def get_fdny_fire_incidents(
         house_number, street_name, borough_fdny, incident_type, since_year
     )
 
-    params: dict[str, str] = {
-        "$where": where,
-        "$order": "incident_date_time DESC",
-        "$limit": str(limit),
-        "$select": (
-            "incident_date_time,incident_type_desc,incident_address,"
-            "borough_desc,zip_code,highest_level_desc,property_use_desc,"
-            "action_taken1_desc,total_incident_duration,units_onscene,"
-            "fire_spread_desc,deaths_firefighter,deaths_civilian,"
-            "injuries_firefighter,injuries_civilian"
-        ),
-    }
-
-    client = _get_socrata_client()
-    url = f"/{_FDNY_DATASET}?{urllib.parse.urlencode(params)}"
-
     try:
-        resp = await client.get(url)
-        resp.raise_for_status()
-    except httpx.TimeoutException as exc:
-        raise ToolError(
-            "FDNY / Socrata API timed out. Try again in a moment."
-        ) from exc
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 403:
-            raise ToolError(
-                "Socrata API returned 403. Set SOCRATA_APP_TOKEN in .env for "
-                "higher rate limits."
-            ) from exc
-        raise ToolError(
-            f"Socrata API error (HTTP {exc.response.status_code})."
-        ) from exc
-
-    incidents: list[dict[str, Any]] = resp.json()
+        incidents: list[dict[str, Any]] = await query_socrata(
+            _DATASET,
+            where=where,
+            limit=limit,
+            order="incident_date_time DESC",
+            select=(
+                "incident_date_time,incident_type_desc,incident_address,"
+                "borough_desc,zip_code,highest_level_desc,property_use_desc,"
+                "action_taken1_desc,total_incident_duration,units_onscene,"
+                "fire_spread_desc,deaths_firefighter,deaths_civilian,"
+                "injuries_firefighter,injuries_civilian"
+            ),
+        )
+    except SocrataError as exc:
+        raise ToolError(str(exc)) from exc
 
     # ── Summarize results ─────────────────────────────────────────────
     total = len(incidents)
 
-    # Count fatalities / injuries across all returned incidents.
     total_deaths = sum(
         int(r.get("deaths_civilian") or 0) + int(r.get("deaths_firefighter") or 0)
         for r in incidents

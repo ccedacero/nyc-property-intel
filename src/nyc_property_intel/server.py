@@ -26,12 +26,8 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from nyc_property_intel.app import mcp
 from nyc_property_intel.config import settings
 from nyc_property_intel.db import db_lifespan
-from nyc_property_intel.geoclient import close_client
-from nyc_property_intel.tools.fdny import close_socrata_client as _close_fdny
-from nyc_property_intel.tools.complaints_311 import close_client as _close_311
-from nyc_property_intel.tools.evictions import close_client as _close_evictions
-from nyc_property_intel.tools.dob_complaints import close_client as _close_dob_complaints
-from nyc_property_intel.tools.nypd_crime import close_client as _close_nypd
+from nyc_property_intel.geoclient import close_client as _close_geoclient
+from nyc_property_intel.socrata import close_client as _close_socrata
 
 # ── Logging setup ─────────────────────────────────────────────────────
 
@@ -55,12 +51,14 @@ async def server_lifespan(server: Any):
         try:
             yield
         finally:
-            await close_client()
-            await _close_fdny()
-            await _close_311()
-            await _close_evictions()
-            await _close_dob_complaints()
-            await _close_nypd()
+            try:
+                await _close_geoclient()
+            except Exception:
+                logger.exception("Error closing geoclient HTTP client")
+            try:
+                await _close_socrata()
+            except Exception:
+                logger.exception("Error closing Socrata HTTP client")
 
 
 mcp.settings.lifespan = server_lifespan
@@ -133,6 +131,14 @@ def main() -> None:
       - "stdio"  (default) — local mode for Claude Desktop / Claude Code
       - "sse"              — hosted mode for Railway / cloud deployments
     """
+    if not settings.socrata_app_token:
+        logger.warning(
+            "SOCRATA_APP_TOKEN is not set — Socrata-backed tools (311 complaints, "
+            "NYPD crime, FDNY incidents) will use anonymous API access and may hit "
+            "strict rate limits after ~100 requests/day. Register at "
+            "https://data.cityofnewyork.us/profile/edit/developer_settings"
+        )
+
     transport = os.getenv("MCP_TRANSPORT", "stdio")
 
     if transport == "sse":

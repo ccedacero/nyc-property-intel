@@ -16,46 +16,20 @@ Update cadence: updated annually (prior calendar year)
 from __future__ import annotations
 
 import logging
-import urllib.parse
 from typing import Any
 
-import httpx
 from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
-from nyc_property_intel.config import settings
+from nyc_property_intel.socrata import SocrataError, query_socrata
 
 logger = logging.getLogger(__name__)
 
-_SOCRATA_BASE = "https://data.cityofnewyork.us/resource"
-_DATASET = "5uac-w243.json"
-
-_client: httpx.AsyncClient | None = None
-
-
-def _get_client() -> httpx.AsyncClient:
-    global _client
-    if _client is None or _client.is_closed:
-        headers = {"Accept": "application/json"}
-        if settings.socrata_app_token:
-            headers["X-App-Token"] = settings.socrata_app_token
-        _client = httpx.AsyncClient(
-            base_url=_SOCRATA_BASE,
-            timeout=httpx.Timeout(25.0, connect=5.0),
-            headers=headers,
-        )
-    return _client
-
-
-async def close_client() -> None:
-    global _client
-    if _client is not None and not _client.is_closed:
-        await _client.aclose()
-        _client = None
+_DATASET = "5uac-w243"
 
 
 def _soql_escape(value: str) -> str:
-    return value.replace("'", "''").replace("%", "\\%")
+    return value.replace("\\", "\\\\").replace("'", "''").replace("%", "\\%")
 
 
 async def _resolve_lat_lon(
@@ -82,7 +56,10 @@ async def _resolve_lat_lon(
         )
         if row and row["latitude"] and row["longitude"]:
             label = row.get("address") or bbl
-            return float(row["latitude"]), float(row["longitude"]), str(label)
+            try:
+                return float(row["latitude"]), float(row["longitude"]), str(label)
+            except (ValueError, TypeError):
+                pass  # Fall through to geoclient fallback
 
         # Fallback: PAD address → geoclient
         pad_row = await fetch_one(
@@ -118,7 +95,10 @@ async def _resolve_lat_lon(
             resolved_bbl,
         )
         if row and row["latitude"] and row["longitude"]:
-            return float(row["latitude"]), float(row["longitude"]), address
+            try:
+                return float(row["latitude"]), float(row["longitude"]), address
+            except (ValueError, TypeError):
+                pass
     except ToolError:
         pass
 
@@ -192,6 +172,10 @@ async def get_nypd_crime(
         raise ToolError("limit must be between 1 and 200.")
     if since_year is not None and (since_year < 2006 or since_year > 2030):
         raise ToolError("since_year must be between 2006 and 2030.")
+    if law_category is not None and law_category.upper() not in ("FELONY", "MISDEMEANOR", "VIOLATION"):
+        raise ToolError("law_category must be 'FELONY', 'MISDEMEANOR', or 'VIOLATION'.")
+    if offense is not None and len(offense) > 100:
+        raise ToolError("offense must be 100 characters or fewer.")
 
     # ── Resolve coordinates ───────────────────────────────────────────
     lat, lon, label = await _resolve_lat_lon(bbl, address)
@@ -210,33 +194,22 @@ async def get_nypd_crime(
             f"upper(ofns_desc) like '%{_soql_escape(offense.upper())}%'"
         )
     if since_year:
-        parts.append(f"cmplnt_fr_dt >= '{since_year}-01-01T00:00:00'")
-
-    params: dict[str, str] = {
-        "$where": " AND ".join(parts),
-        "$order": "cmplnt_fr_dt DESC",
-        "$limit": str(limit),
-        "$select": (
-            "cmplnt_num,cmplnt_fr_dt,ofns_desc,pd_desc,law_cat_cd,"
-            "crm_atpt_cptd_cd,prem_typ_desc,boro_nm,addr_pct_cd,"
-            "loc_of_occur_desc,latitude,longitude"
-        ),
-    }
-
-    client = _get_client()
-    url = f"/{_DATASET}?{urllib.parse.urlencode(params)}"
+        parts.append(f"cmplnt_fr_dt >= '{int(since_year)}-01-01T00:00:00'")
 
     try:
-        resp = await client.get(url)
-        resp.raise_for_status()
-    except httpx.TimeoutException as exc:
-        raise ToolError("NYPD Crime / Socrata API timed out. Try again in a moment.") from exc
-    except httpx.HTTPStatusError as exc:
-        raise ToolError(
-            f"Socrata API error (HTTP {exc.response.status_code})."
-        ) from exc
-
-    incidents: list[dict[str, Any]] = resp.json()
+        incidents: list[dict[str, Any]] = await query_socrata(
+            _DATASET,
+            where=" AND ".join(parts),
+            limit=limit,
+            order="cmplnt_fr_dt DESC",
+            select=(
+                "cmplnt_num,cmplnt_fr_dt,ofns_desc,pd_desc,law_cat_cd,"
+                "crm_atpt_cptd_cd,prem_typ_desc,boro_nm,addr_pct_cd,"
+                "loc_of_occur_desc,latitude,longitude"
+            ),
+        )
+    except SocrataError as exc:
+        raise ToolError(str(exc)) from exc
 
     # ── Summarize ─────────────────────────────────────────────────────
     felonies = sum(1 for i in incidents if (i.get("law_cat_cd") or "").upper() == "FELONY")

@@ -35,8 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_pad_adr_boro
 -- Composite: the full address lookup pattern (boro + street + house number range)
 CREATE INDEX IF NOT EXISTS idx_pad_adr_boro_stname
     ON pad_adr (boro, stname);
-CREATE INDEX IF NOT EXISTS idx_pad_bbl_bbl
-    ON pad_bbl (bbl);
+-- pad_bbl is not created by nycdb --load pad; index omitted.
 
 -- HPD Violations (~4M rows)
 CREATE INDEX IF NOT EXISTS idx_hpd_violations_bbl
@@ -202,3 +201,29 @@ CREATE INDEX IF NOT EXISTS idx_dob_now_jobs_date
     ON dob_now_jobs (filingdate DESC);
 CREATE INDEX IF NOT EXISTS idx_dob_now_jobs_bbl_type
     ON dob_now_jobs (bbl, jobtype);
+
+-- ---------------------------------------------------------------------------
+-- PHASE D: dob_complaints, marshal_evictions
+-- (nycdb already creates bin idx on dob_complaints and bbl idx on
+--  marshal_evictions_all; these add the address-lookup indexes)
+-- ---------------------------------------------------------------------------
+
+-- DOB Complaints (~3M rows) — nycdb creates bin idx; add street search
+CREATE INDEX IF NOT EXISTS idx_dob_complaints_housestreet
+    ON dob_complaints (upper(housestreet));
+CREATE INDEX IF NOT EXISTS idx_dob_complaints_dateentered
+    ON dob_complaints (dateentered DESC);
+CREATE INDEX IF NOT EXISTS idx_dob_complaints_category
+    ON dob_complaints (complaintcategory);
+-- Composite: most common filter (bin + date)
+CREATE INDEX IF NOT EXISTS idx_dob_complaints_bin_date
+    ON dob_complaints (bin, dateentered DESC);
+
+-- Marshal Evictions All (~109K rows) — nycdb creates bbl idx; add date + type
+CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_date
+    ON marshal_evictions_all (executeddate DESC);
+CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_type
+    ON marshal_evictions_all (residentialcommercialind);
+-- Composite: primary tool query (bbl + date)
+CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_bbl_date
+    ON marshal_evictions_all (bbl, executeddate DESC);
