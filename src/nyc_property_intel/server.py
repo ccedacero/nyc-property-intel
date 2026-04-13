@@ -144,10 +144,18 @@ def main() -> None:
     if transport in ("sse", "http"):
         import anyio
         import uvicorn
+        from mcp.server.transport_security import TransportSecuritySettings
 
         port = int(os.getenv("PORT", "8000"))
         mcp.settings.host = "0.0.0.0"
         mcp.settings.port = port
+        # Disable DNS rebinding protection for hosted transport.
+        # FastMCP defaults to localhost-only allowlist when initialized without
+        # an explicit host; that blocks Railway's forwarded Host header.
+        # Bearer token auth (below) protects the endpoint instead.
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False
+        )
 
         # "http" = Streamable HTTP (MCP spec 2025-03-26, single POST /mcp endpoint)
         # "sse"  = legacy SSE transport (GET /sse + POST /messages)
