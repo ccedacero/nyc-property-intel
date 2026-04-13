@@ -149,12 +149,16 @@ def main() -> None:
         port = int(os.getenv("PORT", "8000"))
         mcp.settings.host = "0.0.0.0"
         mcp.settings.port = port
-        # Disable DNS rebinding protection for hosted transport.
-        # FastMCP defaults to localhost-only allowlist when initialized without
-        # an explicit host; that blocks Railway's forwarded Host header.
-        # Bearer token auth (below) protects the endpoint instead.
+        # FastMCP defaults to localhost-only allowed_hosts when initialized
+        # without an explicit host, blocking Railway's forwarded Host header.
+        # Explicitly allowlist the public hostname(s) via MCP_ALLOWED_HOSTS
+        # (comma-separated). Falls back to disabling protection only if the
+        # env var is not set.
+        raw_hosts = os.getenv("MCP_ALLOWED_HOSTS", "")
+        allowed_hosts = [h.strip() for h in raw_hosts.split(",") if h.strip()]
         mcp.settings.transport_security = TransportSecuritySettings(
-            enable_dns_rebinding_protection=False
+            enable_dns_rebinding_protection=bool(allowed_hosts),
+            allowed_hosts=allowed_hosts,
         )
 
         # "http" = Streamable HTTP (MCP spec 2025-03-26, single POST /mcp endpoint)
