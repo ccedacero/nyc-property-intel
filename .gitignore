@@ -47,3 +47,6 @@ htmlcov/
 
 # ruff
 .ruff_cache/
+
+# Local ops scripts — never commit
+scripts/*.sh
