@@ -173,6 +173,8 @@ def main() -> None:
                 host="0.0.0.0",
                 port=port,
                 log_level=settings.log_level.lower(),
+                proxy_headers=True,
+                forwarded_allow_ips="*",
             )
             await uvicorn.Server(config).serve()
 
