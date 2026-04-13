@@ -141,7 +141,7 @@ def main() -> None:
 
     transport = os.getenv("MCP_TRANSPORT", "stdio")
 
-    if transport == "sse":
+    if transport in ("sse", "http"):
         import anyio
         import uvicorn
 
@@ -149,25 +149,32 @@ def main() -> None:
         mcp.settings.host = "0.0.0.0"
         mcp.settings.port = port
 
+        # "http" = Streamable HTTP (MCP spec 2025-03-26, single POST /mcp endpoint)
+        # "sse"  = legacy SSE transport (GET /sse + POST /messages)
+        # Streamable HTTP works through Railway/Fastly CDN; SSE does not (421).
+        use_streamable = transport == "http"
+        transport_name = "Streamable HTTP" if use_streamable else "SSE"
+
         if settings.mcp_server_token:
-            logger.info("SSE transport: bearer token auth enabled")
-            starlette_app = _BearerTokenMiddleware(
-                mcp.sse_app(), settings.mcp_server_token
-            )
+            logger.info("%s transport: bearer token auth enabled", transport_name)
+            raw_app = mcp.streamable_http_app() if use_streamable else mcp.sse_app()
+            starlette_app = _BearerTokenMiddleware(raw_app, settings.mcp_server_token)
         else:
             logger.warning(
-                "SSE transport: MCP_SERVER_TOKEN is not set — "
-                "endpoint is unauthenticated. Set MCP_SERVER_TOKEN for production."
+                "%s transport: MCP_SERVER_TOKEN is not set — "
+                "endpoint is unauthenticated. Set MCP_SERVER_TOKEN for production.",
+                transport_name,
             )
-            starlette_app = mcp.sse_app()
+            starlette_app = mcp.streamable_http_app() if use_streamable else mcp.sse_app()
 
         logger.info(
             "Starting NYC Property Intel MCP server v0.1.0 "
-            "(SSE transport on port %d)",
+            "(%s transport on port %d)",
+            transport_name,
             port,
         )
 
-        async def _run_sse() -> None:
+        async def _run() -> None:
             config = uvicorn.Config(
                 starlette_app,
                 host="0.0.0.0",
@@ -178,7 +185,7 @@ def main() -> None:
             )
             await uvicorn.Server(config).serve()
 
-        anyio.run(_run_sse)
+        anyio.run(_run)
     else:
         logger.info("Starting NYC Property Intel MCP server v0.1.0 (stdio)")
         mcp.run(transport=transport)  # type: ignore[arg-type]
