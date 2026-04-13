@@ -21,8 +21,9 @@ import traceback
 from typing import Any
 
 os.environ.setdefault("DATABASE_URL", "postgresql://nycdb:nycdb@localhost:5432/nycdb")
-os.environ.setdefault("SOCRATA_APP_TOKEN", "REDACTED_SOCRATA_TOKEN")
-os.environ.setdefault("NYC_GEOCLIENT_SUBSCRIPTION_KEY", "REDACTED_GEOCLIENT_KEY")
+# Set these via environment variables before running — never hardcode secrets here:
+#   export SOCRATA_APP_TOKEN=<your_token>
+#   export NYC_GEOCLIENT_SUBSCRIPTION_KEY=<your_key>
 
 import asyncpg  # noqa: E402
 import nyc_property_intel.db as _db  # noqa: E402
