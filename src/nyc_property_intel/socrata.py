@@ -92,6 +92,9 @@ async def query_socrata(
     }
     if select:
         params["$select"] = select
+    # Also pass token as URL param — proxies (e.g. Railway) may strip custom headers
+    if settings.socrata_app_token:
+        params["$$app_token"] = settings.socrata_app_token
 
     url = f"{SOCRATA_BASE}/{dataset_id}.json"
     client = _get_client()
