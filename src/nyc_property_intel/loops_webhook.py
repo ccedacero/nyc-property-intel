@@ -102,9 +102,8 @@ def make_webhook_handler(auth: TokenAuth):
 
         # ── Signature check ───────────────────────────────────────────
         headers_lower = {k.lower(): v for k, v in request.headers.items()}
-        # Debug: log which Svix headers arrived (keys only, no values)
-        svix_keys = [k for k in headers_lower if k.startswith("svix-") or k.startswith("x-loops")]
-        logger.info("Loops webhook headers present: %s", svix_keys)
+        # Debug: log ALL header keys to identify Loops' signature header
+        logger.info("Loops webhook all header keys: %s", list(headers_lower.keys()))
         if settings.loops_webhook_secret:
             if not _verify_signature(body, headers_lower, settings.loops_webhook_secret):
                 logger.warning(
