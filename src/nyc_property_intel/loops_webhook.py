@@ -101,10 +101,18 @@ def make_webhook_handler(auth: TokenAuth):
         body = await request.body()
 
         # ── Signature check ───────────────────────────────────────────
+        headers_lower = {k.lower(): v for k, v in request.headers.items()}
+        # Debug: log which Svix headers arrived (keys only, no values)
+        svix_keys = [k for k in headers_lower if k.startswith("svix-") or k.startswith("x-loops")]
+        logger.info("Loops webhook headers present: %s", svix_keys)
         if settings.loops_webhook_secret:
-            headers_lower = {k.lower(): v for k, v in request.headers.items()}
             if not _verify_signature(body, headers_lower, settings.loops_webhook_secret):
-                logger.warning("Loops webhook: invalid signature — rejected")
+                logger.warning(
+                    "Loops webhook: invalid signature — svix-id=%s svix-timestamp=%s sig-prefix=%s",
+                    headers_lower.get("svix-id", "MISSING"),
+                    headers_lower.get("svix-timestamp", "MISSING"),
+                    headers_lower.get("svix-signature", "MISSING")[:20] if headers_lower.get("svix-signature") else "MISSING",
+                )
                 return JSONResponse({"error": "Invalid signature"}, status_code=401)
 
         # ── Parse payload ─────────────────────────────────────────────
