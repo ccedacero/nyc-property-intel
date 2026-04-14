@@ -15,8 +15,11 @@ Or via the project script:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -24,6 +27,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from nyc_property_intel.app import mcp
+from nyc_property_intel.auth import TokenAuth
 from nyc_property_intel.config import settings
 from nyc_property_intel.db import db_lifespan
 from nyc_property_intel.geoclient import close_client as _close_geoclient
@@ -64,38 +68,154 @@ async def server_lifespan(server: Any):
 mcp.settings.lifespan = server_lifespan
 
 
-# ── Bearer token middleware (SSE transport only) ─────────────────────
+# ── Auth middleware ───────────────────────────────────────────────────
+
+def _json_response(scope: Scope, status: int, body: dict, extra_headers: dict | None = None) -> Response:
+    headers = {"Content-Type": "application/json"}
+    if extra_headers:
+        headers.update(extra_headers)
+    return Response(json.dumps(body), status_code=status, headers=headers)
 
 
-class _BearerTokenMiddleware:
-    """Pure-ASGI middleware that enforces a static bearer token.
+async def _read_body(receive: Receive) -> bytes:
+    """Buffer the full HTTP request body from the ASGI receive channel."""
+    chunks: list[bytes] = []
+    more = True
+    while more:
+        message = await receive()
+        chunks.append(message.get("body", b""))
+        more = message.get("more_body", False)
+    return b"".join(chunks)
 
-    Unlike Starlette's BaseHTTPMiddleware this does NOT buffer the response
-    body, so it is safe to wrap SSE (streaming) endpoints.
+
+def _make_receive(body: bytes) -> Receive:
+    """Return a receive callable that replays the already-buffered body."""
+    consumed = False
+
+    async def receive() -> dict:
+        nonlocal consumed
+        if not consumed:
+            consumed = True
+            return {"type": "http.request", "body": body, "more_body": False}
+        # Body already consumed — park indefinitely (request is done).
+        await asyncio.sleep(3600)
+        return {"type": "http.disconnect"}  # unreachable in practice
+
+    return receive
+
+
+def _extract_tool_name(body: bytes) -> str | None:
+    """Best-effort extraction of the tool name from an MCP JSON-RPC body."""
+    try:
+        data = json.loads(body)
+        # MCP tools/call: {"method": "tools/call", "params": {"name": "lookup_property", ...}}
+        if data.get("method") == "tools/call":
+            return data.get("params", {}).get("name")
+    except Exception:
+        pass
+    return None
+
+
+class _TokenAuthMiddleware:
+    """Per-customer token auth middleware with rate limiting and usage logging.
+
+    On every HTTP request:
+      1. Extract Bearer token from Authorization header.
+      2. Validate against DB (with in-memory TTL cache).
+      3. Check daily rate limit.
+      4. Buffer request body to extract MCP tool name.
+      5. Forward request to the MCP app.
+      6. Fire-and-forget: record call (increment counter + write log row).
+
+    Returns 401 for missing/invalid tokens, 429 for rate limit exceeded.
+    Auth DB errors fail open (allow the request) to avoid blocking legitimate
+    users during transient DB hiccups.
     """
 
-    def __init__(self, app: ASGIApp, token: str) -> None:
+    def __init__(self, app: ASGIApp, auth: TokenAuth) -> None:
         self._app = app
-        self._token = token
+        self._auth = auth
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] in ("http", "websocket"):
-            headers = {k.lower(): v for k, v in scope.get("headers", [])}
-            auth = headers.get(b"authorization", b"").decode("utf-8", errors="replace")
-            expected = f"Bearer {self._token}"
-            if auth != expected:
-                if scope["type"] == "http":
-                    response = Response(
-                        '{"error":"Unauthorized"}',
-                        status_code=401,
-                        media_type="application/json",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-                    await response(scope, receive, send)
-                else:
-                    await send({"type": "websocket.close", "code": 1008})
-                return
-        await self._app(scope, receive, send)
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        headers = {k.lower(): v for k, v in scope.get("headers", [])}
+        auth_header = headers.get(b"authorization", b"").decode("utf-8", errors="replace")
+
+        if not auth_header.startswith("Bearer "):
+            resp = _json_response(
+                scope, 401,
+                {"error": "Missing bearer token"},
+                {"WWW-Authenticate": "Bearer"},
+            )
+            await resp(scope, receive, send)
+            return
+
+        token = auth_header[7:]  # strip "Bearer "
+
+        # ── Validate token ────────────────────────────────────────────
+        token_info = await self._auth.validate(token)
+        if token_info is None:
+            resp = _json_response(
+                scope, 401,
+                {"error": "Invalid or revoked token"},
+                {"WWW-Authenticate": "Bearer"},
+            )
+            await resp(scope, receive, send)
+            return
+
+        # ── Rate limit check ──────────────────────────────────────────
+        allowed, current_count = await self._auth.check_rate_limit(
+            token_info.token_hash, token_info.daily_limit
+        )
+        if not allowed:
+            resp = _json_response(
+                scope, 429,
+                {
+                    "error": "Daily rate limit exceeded",
+                    "limit": token_info.daily_limit,
+                    "used": current_count,
+                    "resets": "midnight UTC",
+                },
+                {"Retry-After": "86400"},
+            )
+            logger.warning(
+                "Rate limit hit: %s (%s plan, %d/%d calls today)",
+                token_info.customer_email,
+                token_info.plan,
+                current_count,
+                token_info.daily_limit,
+            )
+            await resp(scope, receive, send)
+            return
+
+        # ── Buffer body & extract tool name ──────────────────────────
+        body = await _read_body(receive)
+        tool_name = _extract_tool_name(body)
+
+        # ── Forward request, track response ──────────────────────────
+        start = time.monotonic()
+        status_code: list[int] = [200]
+
+        async def send_wrapper(message: dict) -> None:
+            if message.get("type") == "http.response.start":
+                status_code[0] = message.get("status", 200)
+            await send(message)
+
+        try:
+            await self._app(scope, _make_receive(body), send_wrapper)
+        finally:
+            elapsed_ms = int((time.monotonic() - start) * 1000)
+            asyncio.create_task(
+                self._auth.record_call(
+                    token_info.token_hash,
+                    tool_name,
+                    elapsed_ms,
+                    status_code[0],
+                )
+            )
 
 # ── Import tool modules ──────────────────────────────────────────────
 # Each tool module uses @mcp.tool() decorators that register themselves
@@ -167,17 +287,19 @@ def main() -> None:
         use_streamable = transport == "http"
         transport_name = "Streamable HTTP" if use_streamable else "SSE"
 
-        if settings.mcp_server_token:
-            logger.info("%s transport: bearer token auth enabled", transport_name)
-            raw_app = mcp.streamable_http_app() if use_streamable else mcp.sse_app()
-            starlette_app = _BearerTokenMiddleware(raw_app, settings.mcp_server_token)
-        else:
+        raw_app = mcp.streamable_http_app() if use_streamable else mcp.sse_app()
+
+        if settings.mcp_auth_disabled:
             logger.warning(
-                "%s transport: MCP_SERVER_TOKEN is not set — "
-                "endpoint is unauthenticated. Set MCP_SERVER_TOKEN for production.",
+                "%s transport: MCP_AUTH_DISABLED=true — endpoint is UNAUTHENTICATED. "
+                "Never use this in production.",
                 transport_name,
             )
-            starlette_app = mcp.streamable_http_app() if use_streamable else mcp.sse_app()
+            starlette_app = raw_app
+        else:
+            logger.info("%s transport: per-customer token auth enabled", transport_name)
+            auth = TokenAuth(settings.database_url)
+            starlette_app = _TokenAuthMiddleware(raw_app, auth)
 
         logger.info(
             "Starting NYC Property Intel MCP server v0.1.0 "

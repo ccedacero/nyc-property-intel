@@ -37,10 +37,14 @@ class Settings(BaseSettings):
     # ── Logging ───────────────────────────────────────────────────────
     log_level: str = "INFO"
 
-    # ── SSE transport auth (optional, for hosted/Railway deployment) ──
-    # Set MCP_SERVER_TOKEN to require a bearer token on the SSE endpoint.
-    # Leave empty to allow unauthenticated access (fine for local stdio use).
+    # ── Auth (HTTP/SSE transport only) ───────────────────────────────
+    # Legacy single-token mode — kept for local dev convenience.
+    # In production (Railway) this is superseded by DB-backed per-customer auth.
     mcp_server_token: str = ""
+
+    # Set MCP_AUTH_DISABLED=true to bypass all auth checks (local dev only).
+    # Never set this in production.
+    mcp_auth_disabled: bool = False
 
     @field_validator("database_url")
     @classmethod
