@@ -7,7 +7,7 @@ Retries indefinitely with long waits when the API goes unresponsive.
 import os, csv, time, requests, subprocess
 from datetime import datetime
 
-APP_TOKEN  = "REDACTED"
+APP_TOKEN  = os.environ["SOCRATA_APP_TOKEN"]
 DATASET_ID = "erm2-nwe9"
 WHERE      = "created_date >= '2021-01-01T00:00:00.000'"
 ORDER      = "created_date"
