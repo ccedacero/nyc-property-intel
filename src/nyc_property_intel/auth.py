@@ -156,6 +156,47 @@ class TokenAuth:
         """Force re-validation on next request (e.g., after revocation)."""
         self._cache.pop(token_hash, None)
 
+    async def create_token(
+        self,
+        email: str,
+        plan: str = "trial",
+        notes: str = "",
+    ) -> tuple[str, bool]:
+        """Provision a new token for a customer email.
+
+        Returns (token_plaintext, True) on success.
+        Returns ("", False) if the email already has an active token
+        (idempotent — safe to call on duplicate webhook deliveries).
+        """
+        from datetime import datetime, timedelta, timezone
+
+        pool = await self._get_pool()
+
+        existing = await pool.fetchval(
+            "SELECT COUNT(*) FROM mcp_tokens WHERE customer_email = $1 AND revoked_at IS NULL",
+            email,
+        )
+        if existing:
+            return "", False
+
+        token = generate_token()
+        token_hash = hash_token(token)
+        token_prefix = token[:15] + "..."
+        daily_limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["trial"])
+        expires_at: datetime | None = None
+        if plan == "trial":
+            expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+
+        await pool.execute(
+            """
+            INSERT INTO mcp_tokens
+                (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            """,
+            token_hash, token_prefix, email, plan, daily_limit, expires_at, notes,
+        )
+        return token, True
+
     # ── Rate limiting ─────────────────────────────────────────────────
 
     async def check_rate_limit(self, token_hash: str, daily_limit: int) -> tuple[bool, int]:

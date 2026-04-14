@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     # Never set this in production.
     mcp_auth_disabled: bool = False
 
+    # ── Loops.so integration ─────────────────────────────────────────────
+    # API key from https://app.loops.so/settings?page=api
+    loops_api_key: str = ""
+    # Signing secret from your Loops webhook settings (optional but recommended)
+    loops_webhook_secret: str = ""
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

@@ -23,12 +23,16 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any
 
+from starlette.applications import Starlette
+from starlette.requests import Request
 from starlette.responses import Response
+from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import TokenAuth
 from nyc_property_intel.config import settings
+from nyc_property_intel.loops_webhook import make_webhook_handler
 from nyc_property_intel.db import db_lifespan
 from nyc_property_intel.geoclient import close_client as _close_geoclient
 from nyc_property_intel.socrata import close_client as _close_socrata
@@ -295,11 +299,27 @@ def main() -> None:
                 "Never use this in production.",
                 transport_name,
             )
-            starlette_app = raw_app
+            mcp_app = raw_app
+            auth = TokenAuth(settings.database_url)
         else:
             logger.info("%s transport: per-customer token auth enabled", transport_name)
             auth = TokenAuth(settings.database_url)
-            starlette_app = _TokenAuthMiddleware(raw_app, auth)
+            mcp_app = _TokenAuthMiddleware(raw_app, auth)
+
+        # ── Combined app: webhook route (no auth) + MCP (auth) ───────
+        webhook_handler = make_webhook_handler(auth)
+        starlette_app = Starlette(routes=[
+            Route("/webhook/loops", webhook_handler, methods=["POST"]),
+            Mount("/", mcp_app),
+        ])
+
+        if settings.loops_api_key:
+            logger.info("Loops webhook enabled at /webhook/loops")
+        else:
+            logger.warning(
+                "LOOPS_API_KEY not set — webhook endpoint is live but will not push "
+                "tokens to Loops contacts. Set LOOPS_API_KEY in Railway env vars."
+            )
 
         logger.info(
             "Starting NYC Property Intel MCP server v0.1.0 "
