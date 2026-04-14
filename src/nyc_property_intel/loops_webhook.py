@@ -22,6 +22,7 @@ Setup checklist (one-time, in Loops dashboard):
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -41,17 +42,37 @@ _LOOPS_API_BASE = "https://app.loops.so/api/v1"
 
 # ── Signature verification ────────────────────────────────────────────
 
-def _verify_signature(body: bytes, signature_header: str, secret: str) -> bool:
-    """Verify Loops HMAC-SHA256 webhook signature.
+def _verify_signature(body: bytes, request_headers: dict, secret: str) -> bool:
+    """Verify Loops/Svix HMAC-SHA256 webhook signature.
 
-    Loops sends:  X-Loops-Signature: sha256=<hex>
+    Loops uses Svix for webhook delivery. Svix signs:
+        {svix-id}.{svix-timestamp}.{raw_body}
+    with a key derived by base64-decoding the part after "whsec_".
+    The result is compared against the base64 value in svix-signature header
+    (format: "v1,<base64_sig>" — may contain multiple space-separated entries).
     """
-    if not signature_header.startswith("sha256="):
+    try:
+        secret_bytes = base64.b64decode(secret.removeprefix("whsec_"))
+        svix_id        = request_headers.get("svix-id", "")
+        svix_timestamp = request_headers.get("svix-timestamp", "")
+        svix_signature = request_headers.get("svix-signature", "")
+
+        if not all([svix_id, svix_timestamp, svix_signature]):
+            return False
+
+        signed = f"{svix_id}.{svix_timestamp}.{body.decode()}".encode()
+        expected = base64.b64encode(
+            hmac.new(secret_bytes, signed, hashlib.sha256).digest()
+        ).decode()
+
+        # Header may contain multiple sigs: "v1,aaa v1,bbb"
+        for entry in svix_signature.split(" "):
+            if entry.startswith("v1,"):
+                if hmac.compare_digest(expected, entry[3:]):
+                    return True
         return False
-    expected = "sha256=" + hmac.new(
-        secret.encode(), body, hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(expected, signature_header)
+    except Exception:
+        return False
 
 
 # ── Loops API ─────────────────────────────────────────────────────────
@@ -81,8 +102,8 @@ def make_webhook_handler(auth: TokenAuth):
 
         # ── Signature check ───────────────────────────────────────────
         if settings.loops_webhook_secret:
-            sig = request.headers.get("x-loops-signature", "")
-            if not _verify_signature(body, sig, settings.loops_webhook_secret):
+            headers_lower = {k.lower(): v for k, v in request.headers.items()}
+            if not _verify_signature(body, headers_lower, settings.loops_webhook_secret):
                 logger.warning("Loops webhook: invalid signature — rejected")
                 return JSONResponse({"error": "Invalid signature"}, status_code=401)
 
