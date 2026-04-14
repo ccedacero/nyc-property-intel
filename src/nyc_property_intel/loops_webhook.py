@@ -92,13 +92,13 @@ def make_webhook_handler(auth: TokenAuth):
         except json.JSONDecodeError:
             return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
-        event_type = payload.get("type", "")
-        # Loops may send other events (contactUpdated, etc.) — ignore them
-        if event_type not in ("contactCreated", "contact.created"):
-            logger.debug("Loops webhook: ignoring event type '%s'", event_type)
-            return JSONResponse({"ok": True, "skipped": event_type})
+        # Loops uses "eventName" field (e.g. "contact.created", "testing.testEvent")
+        event_name = payload.get("eventName", payload.get("type", ""))
+        if event_name not in ("contact.created", "contactCreated"):
+            logger.debug("Loops webhook: ignoring event '%s'", event_name)
+            return JSONResponse({"ok": True, "skipped": event_name})
 
-        contact = payload.get("contact", {})
+        contact = payload.get("contact", payload.get("data", {}).get("contact", {}))
         email = contact.get("email", "").strip().lower()
         if not email:
             logger.warning("Loops webhook: contactCreated payload missing email")
