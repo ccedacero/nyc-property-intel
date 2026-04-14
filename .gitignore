@@ -48,5 +48,6 @@ htmlcov/
 # ruff
 .ruff_cache/
 
-# Local ops scripts — never commit
+# Local ops scripts — never commit (exclude safe ones below)
 scripts/*.sh
+!scripts/issue_token.sh
