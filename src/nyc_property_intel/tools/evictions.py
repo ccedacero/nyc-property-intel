@@ -23,6 +23,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.socrata import SocrataError, query_socrata
+from nyc_property_intel.utils import normalize_filter
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,9 @@ async def _query_local_by_bbl(
         params.append(eviction_type.upper())
         idx += 1
     if since_year:
-        conditions.append(f"executeddate >= ${idx}::date")
+        # Cast both sides to text for a safe ISO-string comparison that works
+        # whether executeddate is stored as date or text in the loaded table.
+        conditions.append(f"executeddate::text >= ${idx}")
         params.append(f"{since_year}-01-01")
         idx += 1
 
@@ -168,6 +171,7 @@ async def get_evictions(
     if since_year is not None and (since_year < 2017 or since_year > 2030):
         raise ToolError("since_year must be between 2017 and 2030.")
 
+    normalized_eviction_type = normalize_filter(eviction_type)
     evictions: list[dict[str, Any]]
     resolved_address: str | None = None
     data_source_used: str
@@ -194,7 +198,7 @@ async def get_evictions(
             resolved_address = f"{hn} {sn}"
 
         try:
-            evictions = await _query_local_by_bbl(bbl, eviction_type, since_year, limit)
+            evictions = await _query_local_by_bbl(bbl, normalized_eviction_type, since_year, limit)
             data_source_used = "local"
         except asyncpg.UndefinedTableError:
             # Local table not yet loaded — fall back to Socrata
@@ -205,7 +209,7 @@ async def get_evictions(
             street_name = (row["street_name"] or "").strip() if row else bbl
             try:
                 evictions = await _query_socrata(
-                    house_number, street_name, eviction_type, since_year, limit
+                    house_number, street_name, normalized_eviction_type, since_year, limit
                 )
             except SocrataError as exc:
                 raise ToolError(str(exc)) from exc
@@ -228,7 +232,7 @@ async def get_evictions(
 
         try:
             evictions = await _query_socrata(
-                house_number, street_name, eviction_type, since_year, limit
+                house_number, street_name, normalized_eviction_type, since_year, limit
             )
         except SocrataError as exc:
             raise ToolError(str(exc)) from exc

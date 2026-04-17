@@ -46,6 +46,9 @@ CREATE INDEX IF NOT EXISTS idx_hpd_violations_class
     ON hpd_violations (class);
 CREATE INDEX IF NOT EXISTS idx_hpd_violations_status
     ON hpd_violations (currentstatus);
+-- Functional index for case-insensitive status filtering (upper(currentstatus) = upper($3))
+CREATE INDEX IF NOT EXISTS idx_hpd_violations_status_upper
+    ON hpd_violations (upper(currentstatus));
 -- Composite: the most common filter pattern (bbl + class + status)
 CREATE INDEX IF NOT EXISTS idx_hpd_violations_bbl_class_status
     ON hpd_violations (bbl, class, currentstatus);
@@ -220,10 +223,32 @@ CREATE INDEX IF NOT EXISTS idx_dob_complaints_bin_date
     ON dob_complaints (bin, dateentered DESC);
 
 -- Marshal Evictions All (~109K rows) — nycdb creates bbl idx; add date + type
+-- Note: executeddate may be date or text depending on nycdb load version.
+-- The tool uses executeddate::text comparisons to handle both safely.
 CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_date
     ON marshal_evictions_all (executeddate DESC);
 CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_type
     ON marshal_evictions_all (residentialcommercialind);
+-- Functional upper() index supports case-insensitive eviction_type filter
+CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_type_upper
+    ON marshal_evictions_all (upper(residentialcommercialind));
 -- Composite: primary tool query (bbl + date)
 CREATE INDEX IF NOT EXISTS idx_marshal_evictions_all_bbl_date
     ON marshal_evictions_all (bbl, executeddate DESC);
+
+-- ---------------------------------------------------------------------------
+-- PHASE E: 311 complaints — trigram indexes for address substring search
+-- Requires pg_trgm extension: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Build CONCURRENTLY in production to avoid locking: CREATE INDEX CONCURRENTLY
+-- ---------------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Trigram GIN index on incident_address (upper) — enables fast LIKE '%...%' scans
+CREATE INDEX IF NOT EXISTS idx_311_incident_address_trgm
+    ON nyc_311_complaints USING gin (upper(incident_address) gin_trgm_ops);
+-- Trigram index on complaint_type (upper) — fast filter on complaint_type keyword
+CREATE INDEX IF NOT EXISTS idx_311_complaint_type_trgm
+    ON nyc_311_complaints USING gin (upper(complaint_type) gin_trgm_ops);
+-- BBL + date index — primary path when BBL is known
+CREATE INDEX IF NOT EXISTS idx_311_bbl_date
+    ON nyc_311_complaints (bbl, created_date DESC);

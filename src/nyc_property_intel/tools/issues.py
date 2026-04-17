@@ -16,7 +16,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
-from nyc_property_intel.utils import data_freshness_note, validate_bbl
+from nyc_property_intel.utils import data_freshness_note, normalize_filter, validate_bbl
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ SELECT violationid, class, inspectiondate, approveddate, currentstatus,
     violationstatus, novdescription, novissueddate, apartment, story, rentimpairing
 FROM hpd_violations
 WHERE bbl = $1
-  AND ($2::text IS NULL OR class = $2)
-  AND ($3::text IS NULL OR currentstatus = $3)
+  AND ($2::text IS NULL OR upper(class) = upper($2))
+  AND ($3::text IS NULL OR upper(currentstatus) = upper($3))
   AND ($4::date IS NULL OR inspectiondate >= $4)
 ORDER BY inspectiondate DESC
 LIMIT $5;"""
@@ -93,6 +93,11 @@ async def get_property_issues(
             f"Invalid source: {source!r}. Must be one of: HPD, DOB, ECB, ALL."
         )
 
+    # Normalize optional filters — DB stores uppercase values ('OPEN', 'CLOSE', 'A', 'B', 'C').
+    # Accepting mixed-case from callers prevents silent empty-result bugs.
+    normalized_status = normalize_filter(status)
+    normalized_severity = normalize_filter(severity)
+
     # Parse since_date if provided.
     since: datetime.date | None = None
     if since_date is not None:
@@ -120,10 +125,10 @@ async def get_property_issues(
             hpd_violations = await fetch_all(
                 _SQL_HPD,
                 bbl,
-                severity,   # $2 — class filter (A/B/C)
-                status,     # $3 — currentstatus filter
-                since,      # $4 — date filter
-                limit,      # $5 — row limit
+                normalized_severity,  # $2 — class filter (A/B/C), uppercased
+                normalized_status,    # $3 — currentstatus filter, uppercased
+                since,                # $4 — date filter
+                limit,                # $5 — row limit
             )
         except asyncpg.UndefinedTableError:
             logger.info("hpd_violations table not loaded, skipping HPD section")
@@ -153,6 +158,23 @@ async def get_property_issues(
             )
         except asyncpg.UndefinedTableError:
             logger.info("ecb_violations table not loaded, skipping ECB section")
+
+    # ── Cross-validation guard ───────────────────────────────────────
+    # Warn if summary says open violations exist but filter returned nothing —
+    # catches future regressions where filter normalization silently drops data.
+    if (
+        summary
+        and normalized_status == "OPEN"
+        and source_upper in ("HPD", "ALL")
+        and (summary.get("hpd_open") or 0) > 0
+        and len(hpd_violations) == 0
+    ):
+        logger.warning(
+            "get_property_issues: summary reports %d open HPD violations for BBL %s "
+            "but query returned 0 rows (status=%r, severity=%r, since=%r) — "
+            "possible filter mismatch or stale materialized view",
+            summary["hpd_open"], bbl, normalized_status, normalized_severity, since,
+        )
 
     # ── Build response ───────────────────────────────────────────────
     total_returned = len(hpd_violations) + len(dob_violations) + len(ecb_violations)

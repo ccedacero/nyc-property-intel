@@ -160,7 +160,11 @@ async def fetch_one(
             "Lost connection to the property database. Please try again."
         ) from exc
     except asyncpg.PostgresError as exc:
-        logger.error("Database error in fetch_one: %s", exc)
+        logger.error(
+            "Database error in fetch_one: %s (sqlstate=%s)",
+            exc,
+            getattr(exc, "sqlstate", "unknown"),
+        )
         raise ToolError("A database error occurred. Please try again.") from exc
 
 
@@ -201,7 +205,11 @@ async def fetch_all(
             "Lost connection to the property database. Please try again."
         ) from exc
     except asyncpg.PostgresError as exc:
-        logger.error("Database error in fetch_all: %s", exc)
+        logger.error(
+            "Database error in fetch_all: %s (sqlstate=%s)",
+            exc,
+            getattr(exc, "sqlstate", "unknown"),
+        )
         raise ToolError("A database error occurred. Please try again.") from exc
 
 

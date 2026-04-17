@@ -234,6 +234,23 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
 }
 
 
+def normalize_filter(value: str | None) -> str | None:
+    """Normalize an optional filter string to uppercase, treating empty string as None.
+
+    Used by tools that accept status/class/type filter params so that
+    'Open', 'open', and 'OPEN' all match the uppercase DB values.
+
+    Args:
+        value: Raw user-supplied filter string, or None.
+
+    Returns:
+        Uppercased string, or None if value is None or empty.
+    """
+    if not value or not value.strip():
+        return None
+    return value.strip().upper()
+
+
 def escape_like(value: str) -> str:
     """Escape LIKE/ILIKE metacharacters in a user-supplied string.
 

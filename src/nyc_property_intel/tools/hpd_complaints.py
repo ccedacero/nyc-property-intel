@@ -16,7 +16,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all
-from nyc_property_intel.utils import data_freshness_note, escape_like, validate_bbl
+from nyc_property_intel.utils import data_freshness_note, escape_like, normalize_filter, validate_bbl
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ SELECT complaintid, receiveddate, complaintstatus, complaintstatusdate,
     problemcode, problemstatus, problemstatusdate, statusdescription
 FROM hpd_complaints_and_problems
 WHERE bbl = $1
-  AND ($2::text IS NULL OR complaintstatus = $2)
+  AND ($2::text IS NULL OR upper(complaintstatus) = upper($2))
   AND ($3::text IS NULL OR majorcategory ILIKE '%' || $3 || '%')
   AND ($4::date IS NULL OR receiveddate >= $4)
   AND problemduplicateflag IS NOT TRUE
@@ -85,6 +85,7 @@ async def get_hpd_complaints(
             ) from exc
 
     safe_category = escape_like(category) if category else None
+    normalized_status = normalize_filter(status)
     result: dict[str, Any] = {"bbl": bbl}
 
     try:
@@ -98,7 +99,7 @@ async def get_hpd_complaints(
 
         # Detail records
         complaints = await fetch_all(
-            _SQL_COMPLAINTS, bbl, status, safe_category, since, limit
+            _SQL_COMPLAINTS, bbl, normalized_status, safe_category, since, limit
         )
         result["complaints"] = complaints
         result["total_returned"] = len(complaints)

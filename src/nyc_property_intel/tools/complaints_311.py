@@ -257,7 +257,41 @@ async def get_311_complaints(
             resolved_address = address
             street_name = address or ""
 
-    # ── Local address search ──────────────────────────────────────────
+        # Attempt to resolve the address to a BBL so we can use the fast
+        # indexed BBL path instead of the slow full-table LIKE scan.
+        try:
+            resolved_bbl_row = await fetch_one(
+                "SELECT bbl FROM pad_adr "
+                "WHERE upper(stname) = upper($1) AND lhnd = $2 LIMIT 1",
+                street_name,
+                house_number or "",
+            )
+            if resolved_bbl_row and resolved_bbl_row.get("bbl"):
+                bbl = resolved_bbl_row["bbl"]
+                logger.debug(
+                    "get_311_complaints: resolved address %r to BBL %s, using fast path",
+                    resolved_address, bbl,
+                )
+                complaints = await _query_local_by_bbl(
+                    bbl, complaint_type, since_year, status, limit
+                )
+                return {
+                    "address_queried": resolved_address,
+                    "bbl": bbl,
+                    "total_returned": len(complaints),
+                    "summary": _summarize(complaints),
+                    "complaints": [dict(c) for c in complaints],
+                    "data_source": data_source,
+                    "data_note": data_note,
+                }
+        except asyncpg.UndefinedTableError:
+            pass
+        except Exception as exc:
+            logger.debug("BBL resolution for address %r failed: %s", resolved_address, exc)
+
+    # ── Local address LIKE scan (fallback for unresolvable addresses) ──
+    # Warning: this is a full-table LIKE scan on a large dataset.
+    # It may time out if pg_trgm indexes are not installed.
     try:
         complaints = await _query_local_by_address(
             street_name, house_number or None,
@@ -274,6 +308,12 @@ async def get_311_complaints(
         }
     except asyncpg.UndefinedTableError:
         logger.info("nyc_311_complaints not found — falling back to Socrata")
+    except ToolError:
+        # Re-raise ToolErrors (e.g. timeout) with a more actionable message.
+        raise ToolError(
+            f"311 complaint search for {resolved_address!r} timed out or failed. "
+            "Try using a BBL instead of an address for faster results."
+        )
 
     # ── Socrata fallback ──────────────────────────────────────────────
     try:
