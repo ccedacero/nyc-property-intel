@@ -151,7 +151,7 @@ FROM
             COUNT(*) FILTER (WHERE class = 'A')                   AS hpd_class_a,
             COUNT(*) FILTER (WHERE class = 'B')                   AS hpd_class_b,
             COUNT(*) FILTER (WHERE class = 'C')                   AS hpd_class_c,
-            COUNT(*) FILTER (WHERE currentstatus = 'OPEN')        AS hpd_open,
+            COUNT(*) FILTER (WHERE violationstatus = 'Open')       AS hpd_open,
             MAX(inspectiondate)                                   AS hpd_most_recent
         FROM hpd_violations
         GROUP BY bbl

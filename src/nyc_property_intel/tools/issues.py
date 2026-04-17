@@ -34,7 +34,7 @@ SELECT violationid, class, inspectiondate, approveddate, currentstatus,
 FROM hpd_violations
 WHERE bbl = $1
   AND ($2::text IS NULL OR upper(class) = upper($2))
-  AND ($3::text IS NULL OR upper(currentstatus) = upper($3))
+  AND ($3::text IS NULL OR upper(violationstatus) = upper($3))
   AND ($4::date IS NULL OR inspectiondate >= $4)
 ORDER BY inspectiondate DESC
 LIMIT $5;"""
