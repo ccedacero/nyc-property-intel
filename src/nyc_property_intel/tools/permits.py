@@ -27,7 +27,8 @@ _JOB_TYPE_DESCRIPTIONS: dict[str, str] = {
 }
 
 _SQL_PERMITS = """\
-SELECT job, doc, borough, house, streetname, block, lot, bin,
+SELECT DISTINCT ON (job, doc)
+    job, doc, borough, house, streetname, block, lot, bin,
     jobtype, jobstatus, jobstatusdescrp, latestactiondate,
     buildingtype, prefilingdate, fullypaid, fullypermitted,
     initialcost, totalestfee, existingzoningsqft, proposedzoningsqft,
@@ -38,7 +39,7 @@ SELECT job, doc, borough, house, streetname, block, lot, bin,
 FROM dobjobs
 WHERE bbl = $1
   AND ($2::text IS NULL OR jobtype = $2)
-ORDER BY prefilingdate DESC NULLS LAST, latestactiondate DESC NULLS LAST
+ORDER BY job, doc, prefilingdate DESC NULLS LAST, latestactiondate DESC NULLS LAST
 LIMIT $3;"""
 
 

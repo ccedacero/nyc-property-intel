@@ -90,7 +90,9 @@ SELECT
     COUNT(*) AS num_sales,
     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY saleprice) AS median_price,
     AVG(saleprice) AS avg_price,
-    AVG(CASE WHEN grosssquarefeet > 0 THEN saleprice::numeric / grosssquarefeet END) AS avg_ppsf,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY CASE WHEN grosssquarefeet > 0 THEN saleprice::numeric / grosssquarefeet END
+    ) AS median_ppsf,
     MIN(saleprice) AS min_price,
     MAX(saleprice) AS max_price
 FROM dof_sales
@@ -211,15 +213,23 @@ async def search_comps(
                 limit,                 # $8
             )
 
+        null_sqft_count = 0
         for comp in comps:
             comp["saleprice_formatted"] = format_currency(comp.get("saleprice"))
             ppsf = comp.get("price_per_sqft")
             comp["price_per_sqft_formatted"] = (
                 f"${ppsf:,.2f}" if ppsf is not None else "N/A"
             )
+            if not comp.get("grosssquarefeet"):
+                null_sqft_count += 1
 
         result["comps"] = comps
         result["num_comps_found"] = len(comps)
+        if null_sqft_count > 0:
+            result["sqft_note"] = (
+                f"{null_sqft_count} comp(s) have no gross sqft recorded — "
+                "common for condo/co-op unit sales. Price per sqft is N/A for those records."
+            )
     except asyncpg.UndefinedTableError:
         logger.info("dof_sales table not loaded yet — skipping comps")
         result["comps"] = []
@@ -249,9 +259,9 @@ async def search_comps(
                     row.get("median_price")
                 )
                 row["avg_price_formatted"] = format_currency(row.get("avg_price"))
-                avg_ppsf = row.get("avg_ppsf")
-                row["avg_ppsf_formatted"] = (
-                    f"${avg_ppsf:,.2f}" if avg_ppsf is not None else "N/A"
+                median_ppsf = row.get("median_ppsf")
+                row["median_ppsf_formatted"] = (
+                    f"${median_ppsf:,.2f}" if median_ppsf is not None else "N/A"
                 )
 
             result["quarterly_stats"] = stats

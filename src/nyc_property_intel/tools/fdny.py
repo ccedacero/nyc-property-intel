@@ -93,32 +93,26 @@ async def _resolve_to_address(bbl: str) -> dict[str, str]:
 
 
 def _build_soql_where(
-    house_number: str,
-    street_name: str,
+    zip_code: str | None,
     borough_fdny: str | None,
     incident_type: str | None,
     since_year: int | None,
 ) -> str:
-    street_upper = street_name.upper().strip()
-    parts: list[str] = [
-        f"upper(incident_address) like upper('%{_soql_escape(street_upper)}%')"
-    ]
-    if house_number:
-        hn_clean = house_number.replace("-", "").lstrip("0") or house_number
-        parts.append(
-            f"(upper(incident_address) like '%{_soql_escape(house_number)}%' "
-            f"OR upper(incident_address) like '%{_soql_escape(hn_clean)}%')"
-        )
+    # FDNY dataset (8m42-w767) has no street address field — filter by zip/borough only.
+    parts: list[str] = []
+    if zip_code:
+        parts.append(f"zipcode = '{_soql_escape(zip_code)}'")
     if borough_fdny:
-        parts.append(f"upper(borough_desc) = '{_soql_escape(borough_fdny)}'")
+        parts.append(f"upper(incident_borough) = upper('{_soql_escape(borough_fdny)}')")
     if incident_type:
         t = incident_type.upper()
         parts.append(
-            f"upper(incident_type_desc) like '%{_soql_escape(t)}%'"
+            f"(upper(incident_classification) like '%{_soql_escape(t)}%' "
+            f"OR upper(incident_classification_group) like '%{_soql_escape(t)}%')"
         )
     if since_year:
-        parts.append(f"incident_date_time >= '{int(since_year)}-01-01T00:00:00'")
-    return " AND ".join(parts)
+        parts.append(f"incident_datetime >= '{int(since_year)}-01-01T00:00:00'")
+    return " AND ".join(parts) if parts else "starfire_incident_id IS NOT NULL"
 
 
 def _summarize_local(incidents: list[dict[str, Any]]) -> dict[str, Any]:
@@ -275,23 +269,21 @@ async def get_fdny_fire_incidents(
         except asyncpg.UndefinedTableError:
             logger.info("fdny_incidents table not found — falling back to Socrata")
 
-    # ── Socrata fallback (address-level precision) ────────────────────
+    # ── Socrata fallback (zip/borough-level, no street address in dataset) ──
     logger.info("FDNY: using Socrata fallback (no zip resolved or table missing)")
-    where = _build_soql_where(
-        house_number, street_name, borough_fdny, incident_type, since_year
-    )
+    where = _build_soql_where(zip_code, borough_fdny, incident_type, since_year)
     try:
         incidents_raw: list[dict[str, Any]] = await query_socrata(
             _SOCRATA_DATASET,
             where=where,
             limit=limit,
-            order="incident_date_time DESC",
+            order="incident_datetime DESC",
             select=(
-                "incident_date_time,incident_type_desc,incident_address,"
-                "borough_desc,zip_code,highest_level_desc,property_use_desc,"
-                "action_taken1_desc,total_incident_duration,units_onscene,"
-                "fire_spread_desc,deaths_firefighter,deaths_civilian,"
-                "injuries_firefighter,injuries_civilian"
+                "starfire_incident_id,incident_datetime,incident_borough,"
+                "zipcode,alarm_box_location,incident_classification,"
+                "incident_classification_group,highest_alarm_level,"
+                "engines_assigned_quantity,ladders_assigned_quantity,"
+                "other_units_assigned_quantity"
             ),
         )
     except SocrataError as exc:
@@ -300,9 +292,13 @@ async def get_fdny_fire_incidents(
     return {
         "address_queried": resolved_address,
         "bbl": bbl,
+        "zip_code": zip_code,
         "total_returned": len(incidents_raw),
-        "summary": _summarize_socrata(incidents_raw),
+        "summary": _summarize_local(incidents_raw),
         "incidents": incidents_raw,
         "data_source": "FDNY Fire Incident Reporting System via Socrata API (8m42-w767)",
-        "data_note": "Real-time via Socrata API. Coverage from 2013. Address matching approximate.",
+        "data_note": (
+            "Socrata API fallback. The FDNY dataset has no street address field — "
+            "results are filtered by zip code and/or borough, not exact address."
+        ),
     }

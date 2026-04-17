@@ -57,8 +57,10 @@ SELECT
     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY saleprice)
         FILTER (WHERE saleprice > 10000) AS median_price,
     AVG(saleprice) FILTER (WHERE saleprice > 10000) AS avg_price,
-    AVG(CASE WHEN grosssquarefeet > 0 AND saleprice > 10000
-        THEN saleprice::numeric / grosssquarefeet END) AS avg_ppsf,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY CASE WHEN grosssquarefeet > 0 AND saleprice > 10000
+            THEN saleprice::numeric / grosssquarefeet END
+    ) AS median_ppsf,
     MIN(saleprice) FILTER (WHERE saleprice > 10000) AS min_price,
     MAX(saleprice) FILTER (WHERE saleprice > 10000) AS max_price
 FROM dof_sales
@@ -70,8 +72,10 @@ SELECT
     DATE_TRUNC('quarter', saledate) AS quarter,
     COUNT(*) AS num_sales,
     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY saleprice) AS median_price,
-    AVG(CASE WHEN grosssquarefeet > 0
-        THEN saleprice::numeric / grosssquarefeet END) AS avg_ppsf
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY CASE WHEN grosssquarefeet > 0
+            THEN saleprice::numeric / grosssquarefeet END
+    ) AS median_ppsf
 FROM dof_sales
 WHERE saleprice > 10000
   AND saledate >= CURRENT_DATE - make_interval(months => $2)
@@ -118,8 +122,10 @@ SELECT
     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY saleprice)
         FILTER (WHERE saleprice > 10000) AS median_price,
     AVG(saleprice) FILTER (WHERE saleprice > 10000) AS avg_price,
-    AVG(CASE WHEN grosssquarefeet > 0 AND saleprice > 10000
-        THEN saleprice::numeric / grosssquarefeet END) AS avg_ppsf,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY CASE WHEN grosssquarefeet > 0 AND saleprice > 10000
+            THEN saleprice::numeric / grosssquarefeet END
+    ) AS median_ppsf,
     MIN(saleprice) FILTER (WHERE saleprice > 10000) AS min_price,
     MAX(saleprice) FILTER (WHERE saleprice > 10000) AS max_price
 FROM dof_sales
@@ -199,9 +205,9 @@ async def search_neighborhood_stats(
             sales_summary["avg_price_formatted"] = format_currency(
                 sales_summary.get("avg_price")
             )
-            avg_ppsf = sales_summary.get("avg_ppsf")
-            sales_summary["avg_ppsf_formatted"] = (
-                f"${avg_ppsf:,.2f}" if avg_ppsf else "N/A"
+            median_ppsf = sales_summary.get("median_ppsf")
+            sales_summary["median_ppsf_formatted"] = (
+                f"${median_ppsf:,.2f}" if median_ppsf else "N/A"
             )
             result["sales_summary"] = sales_summary
 
@@ -234,9 +240,9 @@ async def search_neighborhood_stats(
                 row["median_price_formatted"] = format_currency(
                     row.get("median_price")
                 )
-                avg_ppsf = row.get("avg_ppsf")
-                row["avg_ppsf_formatted"] = (
-                    f"${avg_ppsf:,.2f}" if avg_ppsf else "N/A"
+                median_ppsf = row.get("median_ppsf")
+                row["median_ppsf_formatted"] = (
+                    f"${median_ppsf:,.2f}" if median_ppsf else "N/A"
                 )
             result["quarterly_trends"] = quarterly
         except asyncpg.UndefinedTableError:

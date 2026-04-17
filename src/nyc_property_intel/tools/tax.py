@@ -98,7 +98,15 @@ async def get_tax_info(bbl: str) -> dict:
                 }
         else:
             result["assessment"] = None
-            result["assessment_note"] = "No assessment records found for this BBL."
+            lot = int(bbl[-4:]) if len(bbl) == 10 and bbl.isdigit() else 0
+            if lot >= 7501:
+                result["assessment_note"] = (
+                    "No assessment found for this condo unit BBL. "
+                    "NYC DOF assesses condos at the building lot level — "
+                    "try the parent building BBL (same block, lot 0001 or similar)."
+                )
+            else:
+                result["assessment_note"] = "No assessment records found for this BBL."
         result["data_sources"].append(data_freshness_note("rpad"))
     except asyncpg.UndefinedTableError:
         result["assessment"] = None
