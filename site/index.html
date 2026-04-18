@@ -21,7 +21,7 @@
   <meta property="og:image" content="https://nycpropertyintel.com/assets/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="NYC Property Intel — Due Diligence from 15+ NYC Public Record Datasets">
+  <meta property="og:image:alt" content="NYC Property Intel — Due Diligence from 20+ NYC Public Record Datasets">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
@@ -101,7 +101,7 @@
             "name": "Is NYC Property Intel free?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. NYC Property Intel is free and open-source under the MIT license. It runs locally on your machine using Claude Desktop or Claude Code."
+              "text": "Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version offers a free trial — sign up and your token is emailed automatically. You can also self-host by cloning the repo and loading NYC public data into PostgreSQL."
             }
           },
           {
@@ -133,7 +133,7 @@
             "name": "Can AI access NYC public property records?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. NYC Property Intel is an MCP (Model Context Protocol) server that gives Claude AI direct access to 15+ NYC public record databases loaded into a local PostgreSQL database. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due diligence reports — all from public city records."
+              "text": "Yes. NYC Property Intel is an MCP (Model Context Protocol) server that gives Claude AI direct access to 20+ NYC public record datasets. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due diligence reports — all from public city records. Available as a hosted service or self-hosted via the open-source repo."
             }
           },
           {
@@ -404,7 +404,7 @@
             <div class="demo-query">"Full due diligence report on 250 West Street, Manhattan &mdash; I&rsquo;m considering making an offer"</div>
             <div class="demo-tools-row">
               <span class="demo-tool">analyze_property</span>
-              <span class="demo-tool-note">&mdash; runs 13 queries concurrently</span>
+              <span class="demo-tool-note">&mdash; runs all sub-queries concurrently</span>
             </div>
             <div class="demo-output">
               <p class="demo-output-label">You get back:</p>

@@ -42,7 +42,7 @@
     <div class="container">
 
       <h1>Legal</h1>
-      <p class="legal-updated">Last updated: March 18, 2026</p>
+      <p class="legal-updated">Last updated: April 18, 2026</p>
 
       <!-- ══════════════════════════════════════════════════════════ -->
       <!-- TERMS OF USE                                              -->
@@ -142,25 +142,49 @@
       <section id="privacy">
         <h2>Privacy Policy</h2>
 
-        <h3>The Software (MCP Server)</h3>
+        <h3>Self-Hosted Version</h3>
         <p>
-          NYC Property Intel runs <strong>entirely on your local machine</strong>. The MCP
-          server does not collect, store, transmit, or share any user data. All database
-          queries run against your own local PostgreSQL database. No telemetry, analytics,
-          or tracking is built into the software.
+          When you self-host NYC Property Intel, the MCP server runs entirely on your
+          own machine. All database queries run against your local PostgreSQL instance.
+          No usage data, queries, or personally identifiable information is transmitted
+          to any third party. No telemetry or tracking is included in the self-hosted
+          software.
         </p>
         <p>
-          When the GeoClient address resolution feature is used, address queries are sent
-          to the NYC GeoClient API (api.nyc.gov), which is operated by the City of New York
-          and subject to the City&rsquo;s own privacy policies.
+          When the optional GeoClient address resolution feature is used, address strings
+          are sent to the NYC GeoClient API (api.nyc.gov), operated by the City of New
+          York and subject to the City&rsquo;s own privacy policies.
+        </p>
+
+        <h3>Hosted Version</h3>
+        <p>
+          The hosted version of NYC Property Intel (nyc-property-intel-production.up.railway.app)
+          collects the following data to operate the service:
+        </p>
+        <ul>
+          <li><strong>Email address</strong> — collected when you sign up via the website form, processed by <a href="https://loops.so" target="_blank" rel="noopener noreferrer">Loops.so</a> for token delivery and product communications.</li>
+          <li><strong>API usage logs</strong> — each tool call is logged with a hashed token identifier (not your email), tool name, response duration, and HTTP status code. Raw tokens are never stored; only a SHA-256 hash is retained.</li>
+          <li><strong>IP addresses and request metadata</strong> — standard server logs collected by the hosting infrastructure (Railway) in accordance with their privacy policy.</li>
+        </ul>
+        <p>
+          Usage data is used solely for rate limiting, billing, and product analytics.
+          It is not sold or shared with third parties.
         </p>
 
         <h3>This Website</h3>
         <p>
-          This website does not use cookies, tracking scripts, or analytics services.
+          This website uses <a href="https://posthog.com" target="_blank" rel="noopener noreferrer">PostHog</a>
+          for product analytics (page views, CTA interactions, and signup events). PostHog
+          collects standard browser analytics data including anonymized IP addresses,
+          referring URLs, and interaction events. No personally identifiable information
+          is sent to PostHog unless you submit the signup form, at which point the
+          event is associated with your email address.
+        </p>
+        <p>
           Standard server logs (IP addresses, timestamps, user-agent strings) may be
-          collected by the hosting provider (GitHub Pages) in accordance with their
-          privacy policy.
+          collected by the hosting provider (Vercel) in accordance with their
+          <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">privacy policy</a>.
+          This website does not use cookies.
         </p>
 
         <h3>Property Owner Information</h3>
