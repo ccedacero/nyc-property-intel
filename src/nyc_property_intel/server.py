@@ -307,11 +307,27 @@ def main() -> None:
             mcp_app = _TokenAuthMiddleware(raw_app, auth)
 
         # ── Combined app: webhook route (no auth) + MCP (auth) ───────
+        # Streamable HTTP needs session_manager.run() entered via lifespan;
+        # Starlette does NOT auto-run a mounted sub-app's lifespan, so we
+        # propagate it here. SSE has no such requirement.
         webhook_handler = make_webhook_handler(auth)
-        starlette_app = Starlette(routes=[
-            Route("/webhook/loops", webhook_handler, methods=["POST"]),
-            Mount("/", mcp_app),
-        ])
+        if use_streamable:
+            @asynccontextmanager
+            async def _combined_lifespan(app):
+                async with mcp.session_manager.run():
+                    yield
+            starlette_app = Starlette(
+                routes=[
+                    Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                    Mount("/", mcp_app),
+                ],
+                lifespan=_combined_lifespan,
+            )
+        else:
+            starlette_app = Starlette(routes=[
+                Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                Mount("/", mcp_app),
+            ])
 
         if settings.loops_api_key:
             logger.info("Loops webhook enabled at /webhook/loops")
