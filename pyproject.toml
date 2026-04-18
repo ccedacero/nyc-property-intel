@@ -1,6 +1,6 @@
 [project]
 name = "nyc-property-intel"
-version = "0.1.0"
+version = "0.1.1"
 description = "NYC Real Estate Due Diligence MCP Server"
 requires-python = ">=3.12"
 dependencies = [
