@@ -277,6 +277,86 @@ class TestLookupPropertyPlutoDataGapMessage:
             "Error must direct users to other tools"
         )
 
+# =============================================================================
+# Bug 5 — PAD fallback fails for Queens hyphenated house numbers
+# Root cause 1: normalize_street_name("80th St") → "Eightieth Street" was
+#               passed to PAD, which stores numeric ordinals ("80 STREET").
+# Root cause 2: hyphen stripped from house number ("37-06" → "3706") before
+#               range comparison. Text comparison "37-06" >= "3706" is False
+#               because '-' (ASCII 45) < '0' (ASCII 48), so hhnd >= clause fails.
+# Fix: _pad_street_name() strips ordinal suffixes for PAD; range query uses
+#      original hyphenated form; resolve_address_to_bbl passes raw street to PAD.
+# =============================================================================
+
+class TestPadStreetName:
+    """_pad_street_name strips ordinal suffixes and expands abbreviations for PAD."""
+
+    def _pad(self, s: str) -> str:
+        from nyc_property_intel.geoclient import _pad_street_name
+        return _pad_street_name(s)
+
+    def test_ordinal_th_stripped(self):
+        assert self._pad("80th Street") == "80 STREET"
+
+    def test_ordinal_st_stripped(self):
+        assert self._pad("1st Avenue") == "1 AVENUE"
+
+    def test_ordinal_nd_stripped(self):
+        assert self._pad("2nd Street") == "2 STREET"
+
+    def test_ordinal_rd_stripped(self):
+        assert self._pad("3rd Place") == "3 PLACE"
+
+    def test_abbreviation_expanded(self):
+        assert self._pad("80th St") == "80 STREET"
+        assert self._pad("5th Ave") == "5 AVENUE"
+
+    def test_already_numeric_passthrough(self):
+        assert self._pad("80 STREET") == "80 STREET"
+
+    def test_spelled_out_unchanged(self):
+        # Spelled-out names that GeoClient accepted pass through intact
+        result = self._pad("Eightieth Street")
+        assert "80" not in result  # cannot reverse-map to a number
+
+
+@pytest.mark.integration
+class TestQueensHyphenatedAddressPADFallback:
+    """37-06 80th St (Queens) must resolve to BBL 4012900001 via PAD fallback.
+
+    GeoClient is disabled in these tests (mocked to raise) so we exercise the
+    PAD code path in isolation.
+    """
+
+    @pytest.fixture(autouse=True)
+    def disable_geoclient(self, monkeypatch):
+        from mcp.server.fastmcp.exceptions import ToolError
+        import nyc_property_intel.geoclient as gc
+        async def _fail(*a, **kw):
+            raise ToolError("GeoClient disabled in test")
+        monkeypatch.setattr(gc, "_call_geoclient", _fail)
+        # Clear address cache so each test runs the full resolution path.
+        gc._address_cache.clear()
+
+    async def test_queens_hyphenated_resolves_to_correct_bbl(self):
+        from nyc_property_intel.geoclient import resolve_address_to_bbl
+        bbl = await resolve_address_to_bbl("37-06 80th St, Queens")
+        assert bbl == "4012900001", (
+            f"Expected BBL 4012900001 for '37-06 80th St, Queens', got {bbl!r}"
+        )
+
+    async def test_queens_hyphenated_full_address(self):
+        from nyc_property_intel.geoclient import resolve_address_to_bbl
+        bbl = await resolve_address_to_bbl("37-06 80th Street, Queens, NY")
+        assert bbl == "4012900001"
+
+    async def test_queens_hyphenated_lookup_property(self):
+        from nyc_property_intel.tools.lookup import lookup_property
+        result = await lookup_property(address="37-06 80th St", borough="queens")
+        assert result["bbl"] == "4012900001"
+        assert result["address"] == "37-06 80 STREET"
+
+
     async def test_missing_bbl_message_contains_bbl_formatted(self):
         from unittest.mock import AsyncMock, patch
         from mcp.server.fastmcp.exceptions import ToolError

@@ -119,6 +119,7 @@ _STREET_SUFFIXES: list[tuple[re.Pattern[str], str]] = [
 ]
 
 _ORDINAL_RE = re.compile(r"\b(\d+)(st|nd|rd|th)\b", re.IGNORECASE)
+_ORDINAL_SUFFIX_RE = re.compile(r"\b(\d+)(?:st|nd|rd|th)\b", re.IGNORECASE)
 
 
 def _expand_ordinal(num: int, suffix: str) -> str:
@@ -150,6 +151,20 @@ def normalize_geoclient_bbl(raw: str) -> str | None:
     if clean.isdigit() and 1 <= len(clean) <= 10:
         return clean.zfill(10)
     return None
+
+
+def _pad_street_name(street: str) -> str:
+    """Prepare a street name for PAD ILIKE matching.
+
+    PAD stores numeric ordinals ('80 STREET', not 'Eightieth Street'), so
+    we strip ordinal suffixes and expand type abbreviations, then upper-case.
+    '80th St' → '80 STREET', 'Eightieth Street' → 'Eightieth Street' (unchanged,
+    but numeric forms are what PAD actually has so this handles user input).
+    """
+    stripped = _ORDINAL_SUFFIX_RE.sub(r"\1", street)
+    for pattern, replacement in _STREET_SUFFIXES:
+        stripped = pattern.sub(replacement, stripped)
+    return stripped.upper().strip()
 
 
 def normalize_street_name(street: str) -> str:
@@ -316,34 +331,47 @@ async def _pad_fallback(
     # Lazy import to avoid circular dependency at module load time.
     from nyc_property_intel.db import fetch_one
 
-    # Normalize house number: strip hyphens for Queens addresses.
-    # "45-67" → 4567 for PAD range comparison.
     house_num_clean = house_number.replace("-", "")
     try:
-        house_num_int = int(house_num_clean)
+        int(house_num_clean)
     except ValueError:
         return None
 
-    # Normalize street name for matching.
+    # PAD stores numeric ordinals ("80 STREET", not "Eightieth Street").
+    # Build a PAD-friendly form from the raw street name the user typed.
+    pad_street = _pad_street_name(street)
     street_upper = street.upper().strip()
+    # Try both forms so "Eightieth Street" (GeoClient-normalised) also works.
+    street_candidates = list(dict.fromkeys([pad_street, street_upper]))
 
-    # Try exact match first (handles Queens-style "37-10"), then numeric fallback
-    row = await fetch_one(
-        """
-        SELECT bbl
-        FROM pad_adr
-        WHERE boro = $1
-          AND TRIM(stname) ILIKE '%' || $2 || '%'
-          AND TRIM(lhnd) = $3
-        LIMIT 1
-        """,
-        borough_code,
-        street_upper,
-        house_number,
-    )
+    # For Queens hyphenated house numbers (e.g. "37-06") PAD stores lhnd/hhnd
+    # in the same hyphenated format. Using the hyphen-stripped integer "3706"
+    # breaks text range comparison because '-' (ASCII 45) < '0' (ASCII 48),
+    # so "37-06" < "3706" and the hhnd >= clause always fails.
+    # Use the original hyphenated form for range queries when present.
+    range_house = house_number if "-" in house_number else house_num_clean
 
-    if row is None:
-        # Numeric range fallback for non-hyphenated addresses
+    for street_q in street_candidates:
+        # Exact low-end match first (fast path).
+        row = await fetch_one(
+            """
+            SELECT bbl
+            FROM pad_adr
+            WHERE boro = $1
+              AND TRIM(stname) ILIKE '%' || $2 || '%'
+              AND TRIM(lhnd) = $3
+            LIMIT 1
+            """,
+            borough_code,
+            street_q,
+            house_number,
+        )
+        if row:
+            return row["bbl"]
+
+    for street_q in street_candidates:
+        # Range fallback — covers addresses that are the high end of a range
+        # (common in Queens where a single BBL spans e.g. 37-02 to 37-06).
         row = await fetch_one(
             """
             SELECT bbl
@@ -356,12 +384,12 @@ async def _pad_fallback(
             LIMIT 1
             """,
             borough_code,
-            street_upper,
-            house_num_clean,
+            street_q,
+            range_house,
         )
+        if row:
+            return row["bbl"]
 
-    if row:
-        return row["bbl"]
     return None
 
 
@@ -413,8 +441,10 @@ async def resolve_address_to_bbl(address: str) -> str:
                 address, street, street_normalized,
             )
 
-    # Fallback to local PAD table.
-    bbl = await _pad_fallback(house_number, street_normalized, borough_code)
+    # Fallback to local PAD table. Pass the original street name, not the
+    # GeoClient-normalised form: PAD uses numeric ordinals ("80 STREET"),
+    # while normalize_street_name produces spelled-out forms ("Eightieth Street").
+    bbl = await _pad_fallback(house_number, street, borough_code)
     if bbl:
         _address_cache[cache_key] = bbl
         logger.info("PAD fallback resolved %s → BBL %s", address, bbl)
