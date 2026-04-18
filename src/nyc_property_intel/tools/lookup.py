@@ -66,15 +66,11 @@ async def lookup_property(
             raise ToolError(str(exc)) from exc
     else:
         # address is not None — resolve it.
-        # Append borough to the address string if provided and not already
-        # present, so the geoclient parser can use it for disambiguation.
-        resolve_input = address
-        if borough:
-            addr_lower = address.lower()
-            boro_lower = borough.lower()
-            if boro_lower not in addr_lower:
-                resolve_input = f"{address}, {borough}"
-        bbl = await resolve_address_to_bbl(resolve_input)
+        # Pass borough as a separate hint so the geocoder can use it when the
+        # address has no embedded borough/zip. Never append it to the address
+        # string: "123 Main St, Jamaica, NY 11435, Queens" confuses the regex
+        # because the state/zip appear before the borough name.
+        bbl = await resolve_address_to_bbl(address, borough_hint=borough)
 
     # ── Query property profile ───────────────────────────────────────
     row: dict | None = None

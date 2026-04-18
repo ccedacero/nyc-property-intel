@@ -202,7 +202,15 @@ CREATE MATERIALIZED VIEW mv_current_ownership AS
 SELECT DISTINCT ON (computed_bbl)
     computed_bbl AS bbl,
     m.doctype,
-    m.doctype AS doc_type_description,
+    CASE m.doctype
+        WHEN 'DEED'  THEN 'Deed'
+        WHEN 'DEDL'  THEN 'Deed, Leasehold'
+        WHEN 'DEDC'  THEN 'Deed, Condo'
+        WHEN 'RPTT'  THEN 'Real Property Transfer Tax'
+        WHEN 'CTOR'  THEN 'Confirmatory Deed'
+        WHEN 'CORRD' THEN 'Corrective Deed'
+        ELSE m.doctype
+    END AS doc_type_description,
     m.docdate,
     m.docamount,
     p.name AS owner_name,
@@ -243,6 +251,19 @@ WHERE
     AND m.docdate IS NOT NULL
 ORDER BY
     computed_bbl,
+    -- Prefer actual deed instruments over RPTT tax filings. RPTT records can
+    -- represent partial-interest sales (unit transfers, minority stakes) that
+    -- are not whole-building ownership changes. Ranking them below true deeds
+    -- prevents a small floor sale from overwriting the building's canonical owner.
+    CASE m.doctype
+        WHEN 'DEED'  THEN 1
+        WHEN 'DEDC'  THEN 1
+        WHEN 'DEDL'  THEN 2
+        WHEN 'CTOR'  THEN 3
+        WHEN 'CORRD' THEN 3
+        WHEN 'RPTT'  THEN 4
+        ELSE 5
+    END,
     m.docdate DESC,
     m.recordedfiled DESC NULLS LAST
 WITH DATA;

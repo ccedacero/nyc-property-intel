@@ -41,6 +41,7 @@ PLAN_LIMITS: dict[str, int] = {
     "trial": 50,
     "pro": 500,
     "team": 2000,
+    "dev": 999999,  # internal testing — no practical daily limit
 }
 
 TRIAL_DAYS = 7

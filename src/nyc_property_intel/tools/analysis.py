@@ -86,10 +86,13 @@ SELECT ucbbl, uc2017, uc2016, uc2015, uc2014, est2017, unitsres
 FROM rentstab WHERE ucbbl = $1;"""
 
 _SQL_EXEMPTIONS = """\
-SELECT exmpcode, exname, curexmptot
-FROM dof_exemptions
-WHERE bbl = $1
-ORDER BY curexmptot DESC NULLS LAST LIMIT 5;"""
+SELECT e.exmpcode, e.exname, e.curexmptot,
+    c.description AS code_description
+FROM dof_exemptions e
+LEFT JOIN dof_exemption_classification_codes c
+    ON e.exmpcode = c.exemptcode
+WHERE e.bbl = $1
+ORDER BY e.curexmptot DESC NULLS LAST LIMIT 5;"""
 
 
 # ── Sub-query runners ────────────────────────────────────────────────
@@ -502,9 +505,13 @@ async def analyze_property(bbl: str) -> dict:
             "is_estimated": bool(rentstab_row.get("est2017")),
         }
 
-    # Exemptions
+    # Exemptions — prefer stored exname, fall back to classification table description
     exemption_list = [
-        {"code": e.get("exmpcode"), "name": (e.get("exname") or "").strip(), "value": e.get("curexmptot")}
+        {
+            "code": e.get("exmpcode"),
+            "name": (e.get("exname") or e.get("code_description") or "").strip(),
+            "value": e.get("curexmptot"),
+        }
         for e in exemptions
     ] if exemptions else []
 

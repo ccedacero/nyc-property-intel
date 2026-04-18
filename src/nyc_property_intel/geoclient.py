@@ -181,12 +181,20 @@ def normalize_street_name(street: str) -> str:
     return expanded
 
 
-def parse_address(address: str) -> dict[str, str]:
+def parse_address(
+    address: str,
+    borough_hint: str | None = None,
+) -> dict[str, str]:
     """Parse a free-form NYC address into structured components.
 
     Args:
         address: A string like "123 Main St, Brooklyn, NY 11201"
                  or "45-67 Queens Blvd, Queens".
+        borough_hint: Optional borough name supplied out-of-band (e.g. from
+                      the caller's ``borough`` parameter). Used as a last-resort
+                      fallback when the address itself contains no borough name
+                      or recognisable zip code — avoids the need to mangle the
+                      address string before parsing.
 
     Returns:
         Dict with keys: house_number, street, borough_code, borough_name.
@@ -213,7 +221,9 @@ def parse_address(address: str) -> dict[str, str]:
     borough_city = (match.group("borough_city") or "").strip()
     zip_code = match.group("zip")
 
-    # Determine borough: try city/borough name first, then zip code.
+    # Determine borough: address-embedded name → zip code → caller hint.
+    # The hint is intentionally last so an explicit borough/zip in the address
+    # always wins; the hint only fires when the address is ambiguous.
     borough_code: str | None = None
 
     if borough_city:
@@ -225,6 +235,9 @@ def parse_address(address: str) -> dict[str, str]:
             if zip_int in zip_range:
                 borough_code = code
                 break
+
+    if borough_code is None and borough_hint:
+        borough_code = BOROUGH_NAME_TO_CODE.get(borough_hint.strip().lower())
 
     if borough_code is None:
         raise ToolError(
@@ -395,7 +408,10 @@ async def _pad_fallback(
 
 # ── Public API ────────────────────────────────────────────────────────
 
-async def resolve_address_to_bbl(address: str) -> str:
+async def resolve_address_to_bbl(
+    address: str,
+    borough_hint: str | None = None,
+) -> str:
     """Resolve a free-form NYC address to a 10-digit BBL.
 
     Tries the GeoClient API first, then falls back to the local PAD
@@ -403,6 +419,10 @@ async def resolve_address_to_bbl(address: str) -> str:
 
     Args:
         address: A string like "123 Main St, Brooklyn, NY 11201".
+        borough_hint: Optional borough name to use when the address itself
+                      contains no borough or recognisable zip code. Passed
+                      directly to ``parse_address`` — do NOT append it to the
+                      address string, as that breaks the address regex.
 
     Returns:
         A 10-digit BBL string, e.g. "3012340001".
@@ -415,7 +435,7 @@ async def resolve_address_to_bbl(address: str) -> str:
         logger.debug("Address cache hit: %s", address)
         return _address_cache[cache_key]
 
-    parsed = parse_address(address)
+    parsed = parse_address(address, borough_hint=borough_hint)
     house_number = parsed["house_number"]
     street = parsed["street"]
     borough_code = parsed["borough_code"]
