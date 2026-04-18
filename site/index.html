@@ -553,10 +553,9 @@
       <div class="container">
         <h2>Data Sources</h2>
         <p class="section-intro">
-          Core data is sourced from official <strong>NYC Open Data</strong> and city agency databases
-          via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project
-          (~19 million rows loaded into PostgreSQL). Five additional datasets &mdash; FDNY, 311, evictions,
-          DOB complaints, and NYPD crime &mdash; are queried live via the Socrata Open Data API.
+          All data is sourced from official <strong>NYC Open Data</strong> and city agency databases,
+          loaded into PostgreSQL on Railway via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project
+          (~19 million rows). The NYC Open Data Socrata API is used as a fallback only when local tables are unavailable.
         </p>
 
         <div class="data-table-wrapper">
@@ -584,11 +583,11 @@
               <tr><td>DOF Tax Liens</td><td>DOF</td><td>Properties with outstanding tax liens</td></tr>
               <tr><td>Rent Stabilization</td><td>HCR/RGB</td><td>Rent-stabilized unit counts by building</td></tr>
               <tr><td>ACRIS</td><td>DOF/ACRIS</td><td>Deeds, mortgages, liens, satisfactions, UCC filings</td></tr>
-              <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by address (2013&ndash;present, real-time API)</td></tr>
-              <tr><td>311 Service Requests</td><td>311/DOITT</td><td>Noise, rodents, heat, dumping, and 200+ complaint types (real-time API)</td></tr>
-              <tr><td>Marshal Evictions</td><td>DOI</td><td>Executed eviction records by address, residential &amp; commercial (2017&ndash;present, real-time API)</td></tr>
-              <tr><td>DOB Complaints</td><td>DOB</td><td>Complaints filed with DOB before formal violations (real-time API)</td></tr>
-              <tr><td>NYPD Crime Data</td><td>NYPD</td><td>Complaint records by geospatial radius, felony/misdemeanor/violation (2006&ndash;present, real-time API)</td></tr>
+              <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by address (2013&ndash;present)</td></tr>
+              <tr><td>311 Service Requests</td><td>311/DOITT</td><td>Noise, rodents, heat, dumping, and 200+ complaint types</td></tr>
+              <tr><td>Marshal Evictions</td><td>DOI</td><td>Executed eviction records by address, residential &amp; commercial (2017&ndash;present)</td></tr>
+              <tr><td>DOB Complaints</td><td>DOB</td><td>Complaints filed with DOB before formal violations</td></tr>
+              <tr><td>NYPD Crime Data</td><td>NYPD</td><td>Complaint records by geospatial radius, felony/misdemeanor/violation (2006&ndash;present)</td></tr>
             </tbody>
           </table>
         </div>
@@ -596,7 +595,7 @@
         <p class="data-note">
           NYC Property Intel is not affiliated with the City of New York or any city agency.
           Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
-          Real-time API datasets (FDNY, 311, evictions, DOB complaints, NYPD crime) reflect live NYC Open Data.
+          All datasets are loaded into PostgreSQL. Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
         </p>
       </div>
     </section>
@@ -797,7 +796,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">What data sources does NYC Property Intel use?</summary>
             <div class="faq-a">
-              <p>NYC Property Intel aggregates data from 20+ official NYC public record datasets: PLUTO (property profiles), HPD violations and complaints, DOB violations and permits, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incidents, NYPD crime complaints, 311 service requests, marshal eviction records, and more. Core data is loaded from the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project (~19 million rows in PostgreSQL); five datasets are queried live from the NYC Open Data Socrata API.</p>
+              <p>NYC Property Intel aggregates data from 20+ official NYC public record datasets: PLUTO (property profiles), HPD violations and complaints, DOB violations and permits, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incidents, NYPD crime complaints, 311 service requests, marshal eviction records, and more. All data is loaded from NYC Open Data into PostgreSQL via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project (~19 million rows). The Socrata API is used as a fallback only.</p>
             </div>
           </details>
 

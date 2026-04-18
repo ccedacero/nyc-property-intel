@@ -149,18 +149,18 @@ The `.mcp.json` in the project root auto-registers when you open this directory.
 | `get_rent_stabilization` | Rent-stabilized unit counts by year (2007–2017). Trend analysis for deregulation signal. |
 | `search_comps` | Comparable sales by zip code. Filter by building class, price, date. Includes quarterly market stats. |
 | `search_neighborhood_stats` | Area-level aggregates: property stock, median sale prices, violation rates, rent stabilization share. |
-| `get_fdny_fire_incidents` | FDNY fire and emergency incident history. Fire type, alarm level, spread, casualties, duration. 2013–present via Socrata API. |
-| `get_311_complaints` | 311 service requests at or near a property. Noise, rodents, heat, illegal dumping, and 200+ types. 2010–present via Socrata API. |
-| `get_evictions` | Marshal-executed evictions by address. Residential and commercial. 2017–present via Socrata API. |
+| `get_fdny_fire_incidents` | FDNY fire and emergency incident history. Fire type, alarm level, spread, casualties, duration. 2013–present, loaded from NYC Open Data. |
+| `get_311_complaints` | 311 service requests at or near a property. Noise, rodents, heat, illegal dumping, and 200+ types. 2010–present, loaded from NYC Open Data. |
+| `get_evictions` | Marshal-executed evictions by address. Residential and commercial. 2017–present, loaded from NYC Open Data. |
 | `get_dob_complaints` | DOB complaints filed before formal violations — the earliest public signal of construction or safety issues. |
 | `get_nypd_crime` | NYPD crime complaints within a configurable radius (default 300 m ≈ 3 blocks). Felony/misdemeanor breakdown, top offenses, year-over-year trend. |
-| `analyze_property` | Full due diligence summary — runs 13 sub-queries concurrently. Property profile, FAR analysis, financials, risk factors, rent stabilization, comparable sales, and key observations. |
+| `analyze_property` | Full due diligence summary — runs all sub-queries concurrently. Property profile, FAR analysis, financials, risk factors, rent stabilization, comparable sales, and key observations. |
 
 ---
 
 ## Data Sources
 
-Core data (~19 million rows) is loaded from [nycdb](https://github.com/nycdb/nycdb). Five datasets are queried live from the NYC Open Data Socrata API.
+Core data (~19 million rows) is loaded from [nycdb](https://github.com/nycdb/nycdb). All datasets are loaded into PostgreSQL. Socrata API used as fallback only.
 
 | Dataset | Agency | Notes |
 |---------|--------|-------|
@@ -179,11 +179,11 @@ Core data (~19 million rows) is loaded from [nycdb](https://github.com/nycdb/nyc
 | DOF Tax Liens | DOF | Annual lien sale list |
 | Rent Stabilization | HCR/RGB | Stabilized unit counts by building |
 | ACRIS | DOF | Deeds, mortgages, liens, satisfactions, UCC filings |
-| FDNY Fire Incidents | FDNY | 2013–present, real-time Socrata API |
-| 311 Service Requests | 311/DOITT | 2010–present, real-time Socrata API |
-| Marshal Evictions | DOI | 2017–present, real-time Socrata API |
-| DOB Complaints | DOB | Real-time Socrata API |
-| NYPD Crime Data | NYPD | 2006–present, geospatial radius, real-time Socrata API |
+| FDNY Fire Incidents | FDNY | 2013–present |
+| 311 Service Requests | 311/DOITT | 2010–present |
+| Marshal Evictions | DOI | 2017–present |
+| DOB Complaints | DOB | Loaded from NYC Open Data |
+| NYPD Crime Data | NYPD | 2006–present, geospatial radius |
 
 ---
 
@@ -198,7 +198,7 @@ src/nyc_property_intel/
   auth.py             # Token validation, rate limiting, usage logging
   analytics.py        # PostHog event capture (fire-and-forget)
   geoclient.py        # NYC GeoClient API + PAD fallback for address resolution
-  socrata.py          # Socrata Open Data API client (FDNY, 311, NYPD, evictions)
+  socrata.py          # Socrata Open Data API client — fallback for FDNY, 311, NYPD, evictions
   loops_webhook.py    # Loops.so webhook → auto-provision trial tokens on signup
   tools/
     lookup.py         # lookup_property
