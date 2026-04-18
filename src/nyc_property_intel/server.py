@@ -152,7 +152,6 @@ class _TokenAuthMiddleware:
             resp = _json_response(
                 scope, 401,
                 {"error": "Missing bearer token"},
-                {"WWW-Authenticate": "Bearer"},
             )
             await resp(scope, receive, send)
             return
@@ -165,7 +164,6 @@ class _TokenAuthMiddleware:
             resp = _json_response(
                 scope, 401,
                 {"error": "Invalid or revoked token"},
-                {"WWW-Authenticate": "Bearer"},
             )
             await resp(scope, receive, send)
             return
