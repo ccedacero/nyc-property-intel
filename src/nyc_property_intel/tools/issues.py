@@ -195,4 +195,5 @@ async def get_property_issues(
         "ecb_violations": ecb_violations,
         "total_returned": total_returned,
         "data_as_of": " | ".join(freshness_parts),
+        "_filter_field": "violationstatus",
     }
