@@ -145,6 +145,13 @@ class _TokenAuthMiddleware:
             await self._app(scope, receive, send)
             return
 
+        # GET /mcp is used by Claude Code for initial connection/SSE discovery.
+        # Allow it through unauthenticated so the server shows as "connected";
+        # actual tool calls come in as POST and are always authenticated.
+        if scope.get("method") == "GET":
+            await self._app(scope, receive, send)
+            return
+
         headers = {k.lower(): v for k, v in scope.get("headers", [])}
         auth_header = headers.get(b"authorization", b"").decode("utf-8", errors="replace")
 
