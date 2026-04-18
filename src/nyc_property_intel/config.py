@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Signing secret from your Loops webhook settings (optional but recommended)
     loops_webhook_secret: str = ""
 
+    # ── PostHog analytics ────────────────────────────────────────────────
+    # Project API key from https://us.posthog.com/settings/project
+    posthog_api_key: str = ""
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

@@ -29,8 +29,13 @@
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
 
+  function ph(event, props) {
+    if (window.posthog) window.posthog.capture(event, props || {});
+  }
+
   function activateTab(btn) {
     var target = btn.getAttribute("data-tab");
+    ph("install_tab_viewed", { tab: target });
     tabBtns.forEach(function (b) {
       b.classList.remove("active");
       b.setAttribute("aria-selected", "false");
@@ -103,6 +108,7 @@
         })
         .then(function (data) {
           if (data.success) {
+            ph("signup_submitted", { role: role || "not_set" });
             signupForm.hidden = true;
             signupSuccess.hidden = false;
           } else {
@@ -118,6 +124,19 @@
             signupError.textContent = "Could not sign up. Please try again.";
           }
         });
+    });
+  }
+
+  // ── CTA click tracking ─────────────────────────────────────────
+  document.querySelectorAll('a[href*="github.com"]').forEach(function (el) {
+    el.addEventListener("click", function () {
+      ph("cta_clicked", { label: "github", href: el.getAttribute("href") });
+    });
+  });
+  var getAccessBtn = document.querySelector('a[href="#hero-signup-form"]');
+  if (getAccessBtn) {
+    getAccessBtn.addEventListener("click", function () {
+      ph("cta_clicked", { label: "get_access_nav" });
     });
   }
 

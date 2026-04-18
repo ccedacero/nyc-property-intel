@@ -1,45 +1,61 @@
 # NYC Property Intel
 
-MCP server that gives Claude access to NYC public property data for real estate due diligence. Consolidates 15+ city datasets into 13 AI-callable tools — violations, liens, permits, rent stabilization, HPD complaints & litigations, tax assessments, sales history, comparable sales, neighborhood stats, and comprehensive analysis.
+MCP server that gives Claude AI access to 20+ NYC public record datasets for real estate due diligence. Ask Claude about any NYC property in plain English — violations, liens, sales history, ownership, permits, rent stabilization, zoning, fire history, crime data, and more.
 
-**This is a due diligence tool, not an appraisal tool.** It surfaces public record data; it does not estimate property values.
+**This is a due diligence tool, not an appraisal tool.** It surfaces public record data only; it does not estimate property values.
 
-## Tools
+## Quickstart — Hosted (no local setup)
 
-| Tool | Description |
-|------|-------------|
-| `lookup_property` | Look up a property by address or BBL. Returns profile, zoning, assessed values, owner. Always call this first. |
-| `get_property_issues` | HPD + DOB + ECB violations. Filter by severity class (A/B/C), status, and date. |
-| `get_property_history` | DOF sales history + ACRIS deed transfers. Shows price trajectory and ownership changes. |
-| `get_hpd_complaints` | Tenant-reported HPD complaints. Leading indicators of building distress before formal violations. |
-| `get_hpd_litigations` | HPD housing court cases, open judgements, and harassment findings. |
-| `get_hpd_registration` | Owner/agent/officer registration records for the building. |
-| `get_building_permits` | DOB job filings: new buildings, alterations, demolitions. Status, cost, applicant. |
-| `get_liens_and_encumbrances` | DOF tax lien sale list + ACRIS mortgage/lien records. Debt profile and lien exposure. |
-| `get_tax_info` | Tax assessments, market value, taxable value, and exemptions (421a, J-51, STAR). |
-| `get_rent_stabilization` | Rent-stabilized unit counts 2007–2017, trend, and destabilization signal. |
-| `search_comps` | Comparable sales by zip code. Filters by building class, price, date. Includes quarterly stats. |
-| `search_neighborhood_stats` | Area-level aggregates by zip or neighborhood: property stock, median prices, violation rates, rent stab share. |
-| `analyze_property` | Full due diligence summary — runs all sub-queries concurrently. Profile, financials, FAR, risk, tax, rent stab, comps, and key observations. |
-| `get_fdny_fire_incidents` | FDNY fire and emergency incident history from NYC Open Data (real-time Socrata API). Fire type, alarm level, spread, casualties, duration. 2013–present. |
-| `get_311_complaints` | 311 service request complaints at a property. Noise, rodents, illegal dumping, heat, graffiti, and ~200 other types. Leading neighborhood-quality indicator. |
-| `get_evictions` | Marshal-executed evictions by address. Residential and commercial. Signals tenant instability and cash-flow risk. 2017–present. |
-| `get_dob_complaints` | DOB complaints filed before formal violations — earliest public signal of construction, safety, or code issues. Triggers DOB inspections. |
-| `get_nypd_crime` | NYPD crime complaints within a configurable radius of the property (default 300 m ≈ 3 blocks). Felony/misdemeanor breakdown, top offenses, year trend. |
+Sign up at [nycpropertyintel.com](https://nycpropertyintel.com) to get a free trial token. Then:
 
-## Quick Start
+**Claude Code** — run once in your terminal:
+
+```bash
+claude mcp add --transport http nyc-property-intel \
+  "https://nyc-property-intel-production.up.railway.app/mcp" \
+  --header "Authorization: Bearer YOUR_TOKEN" \
+  --scope user
+```
+
+**Claude Desktop** — add to `claude_desktop_config.json` (Settings → Developer → Edit Config):
+
+```json
+{
+  "mcpServers": {
+    "nyc-property-intel": {
+      "type": "http",
+      "url": "https://nyc-property-intel-production.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN"
+      }
+    }
+  }
+}
+```
+
+Then ask Claude:
+
+```
+"Look up 350 5th Ave, Manhattan"
+"What violations does 123 Atlantic Ave, Brooklyn have?"
+"Full due diligence on 123 Atlantic Ave, Brooklyn"
+```
+
+---
+
+## Self-Hosting
 
 ### Prerequisites
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
-- PostgreSQL 16+ running locally
+- PostgreSQL 16+
 - [nycdb](https://github.com/nycdb/nycdb) CLI (`pip install nycdb`)
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/nycpropertyintel/nyc-property-intel.git
+git clone https://github.com/ccedacero/nyc-property-intel.git
 cd nyc-property-intel
 uv sync
 ```
@@ -48,35 +64,34 @@ uv sync
 
 ```bash
 cp .env.example .env
-# Edit .env with your credentials:
+# Edit .env:
 #   DATABASE_URL=postgresql://nycdb:nycdb@localhost:5432/nycdb
-#   NYC_GEOCLIENT_SUBSCRIPTION_KEY=your_key  (optional, for address lookup)
+#   NYC_GEOCLIENT_SUBSCRIPTION_KEY=your_key  (optional, improves address resolution)
+#   SOCRATA_APP_TOKEN=your_token             (optional, higher rate limits for 311/FDNY/NYPD)
 ```
 
 ### 3. Set up the database
 
-**Option A: Load from dump (fast, ~10 min)**
-
-If you have a `data/nycdb.dump` file:
+**Option A: Restore from dump (~10 min)**
 
 ```bash
 createuser -s nycdb 2>/dev/null; createdb -O nycdb nycdb 2>/dev/null
 pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 ```
 
-**Option B: Load from source (slow, ~2.5 hours)**
+**Option B: Load from source (~2.5 hours)**
 
 ```bash
 createuser -s nycdb 2>/dev/null; createdb -O nycdb nycdb 2>/dev/null
 chmod +x scripts/seed_nycdb.sh
-./scripts/seed_nycdb.sh              # All phases
-# or load incrementally:
-./scripts/seed_nycdb.sh --phase A    # Core data (~30 min)
-./scripts/seed_nycdb.sh --phase B    # Sales + DOB (~45 min)
+./scripts/seed_nycdb.sh              # all phases
+# or incrementally:
+./scripts/seed_nycdb.sh --phase A    # core data (~30 min)
+./scripts/seed_nycdb.sh --phase B    # sales + DOB (~45 min)
 ./scripts/seed_nycdb.sh --phase C    # ACRIS + permits (~90 min)
 ```
 
-After loading, create indexes and materialized views:
+Then create indexes and materialized views:
 
 ```bash
 psql -U nycdb -d nycdb -f scripts/create_indexes.sql
@@ -84,8 +99,6 @@ psql -U nycdb -d nycdb -f scripts/create_views.sql
 ```
 
 ### 4. Add to Claude Desktop
-
-Add to your `claude_desktop_config.json` (Claude Desktop > Settings > Developer > Edit Config):
 
 ```json
 {
@@ -104,9 +117,7 @@ Add to your `claude_desktop_config.json` (Claude Desktop > Settings > Developer 
 
 ### 5. Add to Claude Code
 
-The `.mcp.json` file in the project root auto-registers the server when you open this directory in Claude Code.
-
-Or add manually to `~/.claude.json`:
+The `.mcp.json` in the project root auto-registers when you open this directory. Or add manually to `~/.claude.json`:
 
 ```json
 {
@@ -120,65 +131,117 @@ Or add manually to `~/.claude.json`:
 }
 ```
 
-## Example Queries
+---
 
-Once connected, ask Claude:
+## 18 Tools
 
-- "Look up 350 5th Ave, Manhattan"
-- "What violations does BBL 1012150061 have?"
-- "Show me the sales history for 170 West 85th Street, Manhattan"
-- "Find comparable sales near 11215"
-- "Give me a full due diligence report on BBL 3010060055"
+| Tool | Description |
+|------|-------------|
+| `lookup_property` | Resolve any NYC address or BBL to a full property profile: owner, building class, zoning, FAR, assessed value, lot dimensions. **Always call this first.** |
+| `get_property_issues` | HPD housing violations (Class A/B/C), DOB building code violations, and ECB/OATH monetary penalties. Filter by severity, status, and date. |
+| `get_property_history` | DOF sales records and ACRIS deed transfers. Price trajectory, buyer/seller names, document types going back to 2003. |
+| `get_hpd_complaints` | Tenant-reported HPD complaints — leading indicators of building distress before formal violations are issued. |
+| `get_hpd_litigations` | HPD housing court cases, open judgements, and harassment findings against building owners. |
+| `get_hpd_registration` | Legal owner, managing agent, and head officer registration records. |
+| `get_building_permits` | DOB job filings: new buildings, alterations, demolitions, sign permits. Status, cost estimate, applicant name. |
+| `get_liens_and_encumbrances` | DOF tax lien sale list entries and ACRIS mortgage records. Outstanding liens, lender names, amounts, satisfactions. |
+| `get_tax_info` | Tax assessments, market value estimates, taxable value, and active exemptions (421a, J-51, STAR). |
+| `get_rent_stabilization` | Rent-stabilized unit counts by year (2007–2017). Trend analysis for deregulation signal. |
+| `search_comps` | Comparable sales by zip code. Filter by building class, price, date. Includes quarterly market stats. |
+| `search_neighborhood_stats` | Area-level aggregates: property stock, median sale prices, violation rates, rent stabilization share. |
+| `get_fdny_fire_incidents` | FDNY fire and emergency incident history. Fire type, alarm level, spread, casualties, duration. 2013–present via Socrata API. |
+| `get_311_complaints` | 311 service requests at or near a property. Noise, rodents, heat, illegal dumping, and 200+ types. 2010–present via Socrata API. |
+| `get_evictions` | Marshal-executed evictions by address. Residential and commercial. 2017–present via Socrata API. |
+| `get_dob_complaints` | DOB complaints filed before formal violations — the earliest public signal of construction or safety issues. |
+| `get_nypd_crime` | NYPD crime complaints within a configurable radius (default 300 m ≈ 3 blocks). Felony/misdemeanor breakdown, top offenses, year-over-year trend. |
+| `analyze_property` | Full due diligence summary — runs 13 sub-queries concurrently. Property profile, FAR analysis, financials, risk factors, rent stabilization, comparable sales, and key observations. |
+
+---
 
 ## Data Sources
 
-All data comes from official NYC open data via [nycdb](https://github.com/nycdb/nycdb):
+Core data (~19 million rows) is loaded from [nycdb](https://github.com/nycdb/nycdb). Five datasets are queried live from the NYC Open Data Socrata API.
 
-- **PLUTO** — Property Land Use Tax Lot Output (lot dimensions, zoning, building class)
-- **PAD** — Property Address Directory (address-to-BBL resolution)
-- **HPD Violations** — Housing Preservation & Development violation records
-- **DOB Violations** — Department of Buildings violation records
-- **DOF Sales** — Department of Finance rolling and annual property sales
-- **ACRIS** — Automated City Register Information System (deeds, mortgages, liens)
-- **Rent Stabilization** — Rent stabilized unit counts by building
-- **DOF Assessments** — Tax assessments and exemptions
-- Plus: HPD complaints, HPD registrations, HPD litigations, ECB violations, DOB jobs, tax liens
+| Dataset | Agency | Notes |
+|---------|--------|-------|
+| PLUTO | DCP | Property profiles, zoning, FAR, building class |
+| PAD | DCP | Address-to-BBL resolution |
+| HPD Violations | HPD | Housing code violations by class and status |
+| HPD Complaints | HPD | Tenant complaint records |
+| HPD Registrations | HPD | Owner/agent/officer registration |
+| HPD Litigations | HPD | Housing court cases |
+| DOB Violations | DOB | Building code violations |
+| ECB Violations | OATH/ECB | Environmental Control Board penalties |
+| DOF Rolling Sales | DOF | Recent property sales |
+| DOF Annual Sales | DOF | Historical sales 2003–present |
+| DOF Assessments | DOF | Tax valuations and assessment rolls |
+| DOF Exemptions | DOF | Tax exemption records (421a, J-51, STAR) |
+| DOF Tax Liens | DOF | Annual lien sale list |
+| Rent Stabilization | HCR/RGB | Stabilized unit counts by building |
+| ACRIS | DOF | Deeds, mortgages, liens, satisfactions, UCC filings |
+| FDNY Fire Incidents | FDNY | 2013–present, real-time Socrata API |
+| 311 Service Requests | 311/DOITT | 2010–present, real-time Socrata API |
+| Marshal Evictions | DOI | 2017–present, real-time Socrata API |
+| DOB Complaints | DOB | Real-time Socrata API |
+| NYPD Crime Data | NYPD | 2006–present, geospatial radius, real-time Socrata API |
 
-## Development
-
-```bash
-# Run tests
-uv run pytest tests/test_utils.py -q              # Unit tests (no DB needed)
-uv run pytest tests/ -m integration -q             # Integration tests (needs DB)
-
-# Lint
-uv run ruff check src/
-
-# Run the server directly
-uv run nyc-property-intel
-```
+---
 
 ## Architecture
 
 ```
 src/nyc_property_intel/
-  app.py          # FastMCP instance + system instructions
-  server.py       # Entry point — wires lifespan, imports tools, starts server
-  config.py       # pydantic-settings config (reads .env)
-  db.py           # asyncpg connection pool + query helpers
-  geoclient.py    # NYC GeoClient API + PAD fallback for address resolution
-  utils.py        # BBL validation, borough mappings, formatting
+  app.py              # FastMCP instance + system prompt
+  server.py           # Entry point: lifespan, auth middleware, tool registration
+  config.py           # pydantic-settings (reads .env / environment variables)
+  db.py               # asyncpg connection pool + query helpers
+  auth.py             # Token validation, rate limiting, usage logging
+  analytics.py        # PostHog event capture (fire-and-forget)
+  geoclient.py        # NYC GeoClient API + PAD fallback for address resolution
+  socrata.py          # Socrata Open Data API client (FDNY, 311, NYPD, evictions)
+  loops_webhook.py    # Loops.so webhook → auto-provision trial tokens on signup
   tools/
-    lookup.py     # lookup_property
-    issues.py     # get_property_issues
-    history.py    # get_property_history
-    comps.py      # search_comps
-    analysis.py   # analyze_property
+    lookup.py         # lookup_property
+    issues.py         # get_property_issues
+    history.py        # get_property_history
+    hpd_complaints.py # get_hpd_complaints
+    hpd_litigations.py# get_hpd_litigations
+    hpd_registration.py# get_hpd_registration
+    permits.py        # get_building_permits
+    liens.py          # get_liens_and_encumbrances
+    tax.py            # get_tax_info
+    rentstab.py       # get_rent_stabilization
+    comps.py          # search_comps
+    neighborhood.py   # search_neighborhood_stats
+    fdny.py           # get_fdny_fire_incidents
+    complaints_311.py # get_311_complaints
+    evictions.py      # get_evictions
+    dob_complaints.py # get_dob_complaints
+    nypd_crime.py     # get_nypd_crime
+    analysis.py       # analyze_property
 scripts/
-  seed_nycdb.sh       # Data loader (downloads + loads all datasets)
-  create_indexes.sql   # Performance indexes
-  create_views.sql     # Materialized views for fast lookups
+  seed_nycdb.sh         # Downloads and loads all nycdb datasets
+  create_indexes.sql    # Performance indexes on critical columns
+  create_views.sql      # Materialized views for fast property lookup
+  manage_tokens.py      # CLI for provisioning and managing customer tokens
 ```
+
+---
+
+## Development
+
+```bash
+uv run pytest tests/test_utils.py -q          # unit tests (no DB needed)
+uv run pytest tests/ -m integration -q        # integration tests (needs live DB)
+uv run ruff check src/                         # lint
+uv run nyc-property-intel                      # run server locally (stdio)
+```
+
+---
+
+## Fair Housing
+
+NYC Property Intel provides building and property data from public city records only. It does not provide demographic data, tenant screening, or any analysis based on protected characteristics. See [nycpropertyintel.com/#fair-housing](https://nycpropertyintel.com/#fair-housing) for the full policy.
 
 ## License
 

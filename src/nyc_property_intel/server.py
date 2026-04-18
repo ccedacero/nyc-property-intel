@@ -29,6 +29,7 @@ from starlette.responses import Response
 from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import TokenAuth
 from nyc_property_intel.config import settings
@@ -156,6 +157,7 @@ class _TokenAuthMiddleware:
         auth_header = headers.get(b"authorization", b"").decode("utf-8", errors="replace")
 
         if not auth_header.startswith("Bearer "):
+            ph_capture("anonymous", "auth_failed", {"reason": "missing_token"})
             resp = _json_response(
                 scope, 401,
                 {"error": "Missing bearer token"},
@@ -168,6 +170,7 @@ class _TokenAuthMiddleware:
         # ── Validate token ────────────────────────────────────────────
         token_info = await self._auth.validate(token)
         if token_info is None:
+            ph_capture("anonymous", "auth_failed", {"reason": "invalid_token"})
             resp = _json_response(
                 scope, 401,
                 {"error": "Invalid or revoked token"},
@@ -180,6 +183,11 @@ class _TokenAuthMiddleware:
             token_info.token_hash, token_info.daily_limit
         )
         if not allowed:
+            ph_capture(token_info.token_hash, "rate_limit_hit", {
+                "plan": token_info.plan,
+                "daily_limit": token_info.daily_limit,
+                "used": current_count,
+            })
             resp = _json_response(
                 scope, 429,
                 {
@@ -225,6 +233,13 @@ class _TokenAuthMiddleware:
                     status_code[0],
                 )
             )
+            if tool_name:
+                ph_capture(token_info.token_hash, "tool_called", {
+                    "tool_name": tool_name,
+                    "duration_ms": elapsed_ms,
+                    "status_code": status_code[0],
+                    "plan": token_info.plan,
+                })
 
 # ── Import tool modules ──────────────────────────────────────────────
 # Each tool module uses @mcp.tool() decorators that register themselves

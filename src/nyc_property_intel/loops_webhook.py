@@ -32,6 +32,7 @@ import httpx
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.auth import TokenAuth
 from nyc_property_intel.config import settings
 
@@ -142,6 +143,8 @@ def make_webhook_handler(auth: TokenAuth):
         if not created:
             logger.info("Loops webhook: %s already has an active token — skipping", email)
             return JSONResponse({"ok": True, "skipped": "duplicate"})
+
+        ph_capture(email, "token_provisioned", {"plan": "trial", "source": "loops_webhook"})
 
         # ── Push token to Loops contact ───────────────────────────────
         if settings.loops_api_key:

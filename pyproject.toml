@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.0,<3.0",
     "cachetools>=5.3.0,<6.0",
     "urllib3>=2.0.0",
+    "posthog>=3.0.0",
 ]
 
 [dependency-groups]           # Fixed: Moved from tool.uv.dev-dependencies
