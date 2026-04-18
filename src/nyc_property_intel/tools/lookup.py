@@ -96,10 +96,22 @@ async def lookup_property(
             row = None
 
     if row is None:
+        # Format the BBL for display (B-BBBBB-LLLL) if it parses cleanly.
+        try:
+            bbl_display = parse_bbl(str(bbl))["bbl_formatted"]
+        except Exception:
+            bbl_display = bbl
         raise ToolError(
-            f"No property found for BBL {bbl}. "
-            "This BBL may not exist or may not yet be in the PLUTO dataset. "
-            "Double-check the address or BBL and try again."
+            f"BBL {bbl_display} is a valid lot identifier but was not found in "
+            "the PLUTO dataset (NYC DCP's primary property database). "
+            "This is a known data gap for certain property types:\n"
+            "  • Condo billing lots — the master lot record is aggregated and "
+            "individual unit lots often have no PLUTO row\n"
+            "  • Recently built, demolished, or reassigned lots — PLUTO lags "
+            "the NYC DTM (Digital Tax Map) by one annual release cycle\n"
+            "  • Large coops (tax class 2C) are sometimes excluded\n\n"
+            "You can still query violations, permits, sales history, and "
+            "complaints for this BBL using the other available tools."
         )
 
     # ── Enrich the result ────────────────────────────────────────────

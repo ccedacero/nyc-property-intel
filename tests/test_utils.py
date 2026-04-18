@@ -16,7 +16,7 @@ from nyc_property_intel.utils import (
     parse_bbl,
     validate_bbl,
 )
-from nyc_property_intel.geoclient import parse_address, _ZIP_TO_BOROUGH
+from nyc_property_intel.geoclient import parse_address, normalize_street_name, _ZIP_TO_BOROUGH
 
 
 # ── validate_bbl ─────────────────────────────────────────────────────
@@ -334,3 +334,44 @@ class TestZipToBorough:
         """A zip outside NYC should not match any borough."""
         for zip_range, code in _ZIP_TO_BOROUGH.items():
             assert 90210 not in zip_range
+
+
+# ── normalize_street_name ────────────────────────────────────────────
+
+
+class TestNormalizeStreetName:
+    """Tests for normalize_street_name from geoclient.py."""
+
+    @pytest.mark.parametrize("input_str,expected", [
+        # Ordinal expansion
+        ("5th Ave",          "Fifth Avenue"),
+        ("7th Ave",          "Seventh Avenue"),
+        ("1st Pl",           "First Place"),
+        ("30th St",          "Thirtieth Street"),
+        ("42nd St",          "Forty-Second Street"),
+        ("W 34th St",        "W Thirty-Fourth Street"),
+        # Suffix-only expansion (no ordinal)
+        ("Main St",          "Main Street"),
+        ("Queens Blvd",      "Queens Boulevard"),
+        ("Atlantic Ave",     "Atlantic Avenue"),
+        ("Ocean Pkwy",       "Ocean Parkway"),
+        # Already canonical — should pass through unchanged
+        ("Fifth Avenue",     "Fifth Avenue"),
+        ("Grand Concourse",  "Grand Concourse"),
+        # 100+ ordinals: pass through as-is (GeoClient handles them)
+        ("E 110th St",       "E 110th Street"),
+        ("W 125th St",       "W 125th Street"),
+        # Queens hyphenated address street component
+        ("30th Ave",         "Thirtieth Avenue"),
+    ])
+    def test_normalization(self, input_str: str, expected: str) -> None:
+        assert normalize_street_name(input_str) == expected
+
+    @pytest.mark.parametrize("address,expected_street", [
+        ("350 5th Ave, Manhattan, NY 10118",  "Fifth Avenue"),
+        ("37-10 30th Ave, Queens",            "Thirtieth Avenue"),
+        ("100 Gold Street, Manhattan",        "Gold Street"),
+    ])
+    def test_parse_then_normalize(self, address: str, expected_street: str) -> None:
+        parsed = parse_address(address)
+        assert normalize_street_name(parsed["street"]) == expected_street

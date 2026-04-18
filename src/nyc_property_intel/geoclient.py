@@ -81,6 +81,90 @@ _ZIP_TO_BOROUGH: dict[range, str] = {
     range(10301, 10315): "5",  # Staten Island
 }
 
+# ── Street name normalization ─────────────────────────────────────────────────
+
+_ORDINAL_ONES: dict[str, str] = {
+    "1st": "First", "2nd": "Second", "3rd": "Third", "4th": "Fourth",
+    "5th": "Fifth", "6th": "Sixth", "7th": "Seventh", "8th": "Eighth",
+    "9th": "Ninth", "10th": "Tenth", "11th": "Eleventh", "12th": "Twelfth",
+    "13th": "Thirteenth", "14th": "Fourteenth", "15th": "Fifteenth",
+    "16th": "Sixteenth", "17th": "Seventeenth", "18th": "Eighteenth",
+    "19th": "Nineteenth",
+}
+
+_ORDINAL_TENS: dict[str, str] = {
+    "20th": "Twentieth", "30th": "Thirtieth", "40th": "Fortieth",
+    "50th": "Fiftieth", "60th": "Sixtieth", "70th": "Seventieth",
+    "80th": "Eightieth", "90th": "Ninetieth",
+}
+
+_TENS_PREFIX: dict[str, str] = {
+    "2": "Twenty", "3": "Thirty", "4": "Forty", "5": "Fifty",
+    "6": "Sixty", "7": "Seventy", "8": "Eighty", "9": "Ninety",
+}
+
+_STREET_SUFFIXES: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bBlvd\b", re.IGNORECASE), "Boulevard"),
+    (re.compile(r"\bAv(?:e)?\b", re.IGNORECASE), "Avenue"),
+    (re.compile(r"\bSt\b", re.IGNORECASE), "Street"),
+    (re.compile(r"\bDr\b", re.IGNORECASE), "Drive"),
+    (re.compile(r"\bPl\b", re.IGNORECASE), "Place"),
+    (re.compile(r"\bLn\b", re.IGNORECASE), "Lane"),
+    (re.compile(r"\bCt\b", re.IGNORECASE), "Court"),
+    (re.compile(r"\bPkwy\b", re.IGNORECASE), "Parkway"),
+    (re.compile(r"\bExpy\b", re.IGNORECASE), "Expressway"),
+    (re.compile(r"\bHwy\b", re.IGNORECASE), "Highway"),
+    (re.compile(r"\bTerr?\b", re.IGNORECASE), "Terrace"),
+    (re.compile(r"\bRd\b", re.IGNORECASE), "Road"),
+]
+
+_ORDINAL_RE = re.compile(r"\b(\d+)(st|nd|rd|th)\b", re.IGNORECASE)
+
+
+def _expand_ordinal(num: int, suffix: str) -> str:
+    token = f"{num}{suffix.lower()}"
+    if token in _ORDINAL_ONES:
+        return _ORDINAL_ONES[token]
+    if token in _ORDINAL_TENS:
+        return _ORDINAL_TENS[token]
+    if 20 < num < 100:
+        tens_digit = str(num // 10)
+        ones = num % 10
+        if ones == 0:
+            return _ORDINAL_TENS.get(f"{num}th", token)
+        ones_token = f"{ones}{suffix.lower()}"
+        ones_word = _ORDINAL_ONES.get(ones_token, ones_token)
+        return _TENS_PREFIX.get(tens_digit, "") + "-" + ones_word
+    # 100+ (e.g. 110th): GeoClient handles these fine as-is.
+    return token
+
+
+def normalize_geoclient_bbl(raw: str) -> str | None:
+    """Normalize a BBL string from the GeoClient API to a 10-digit string.
+
+    GeoClient sometimes returns BBLs with hyphens ("1-00835-0001") or with
+    fewer digits than expected. Returns the normalized string, or None if
+    the value cannot be coerced to a valid 10-digit BBL.
+    """
+    clean = raw.replace("-", "").strip()
+    if clean.isdigit() and 1 <= len(clean) <= 10:
+        return clean.zfill(10)
+    return None
+
+
+def normalize_street_name(street: str) -> str:
+    """Expand ordinal abbreviations and street-type suffixes.
+
+    Converts "5th Ave" → "Fifth Avenue" to improve GeoClient resolution
+    and PAD ILIKE matching. Safe to call on already-canonical names.
+    """
+    expanded = _ORDINAL_RE.sub(
+        lambda m: _expand_ordinal(int(m.group(1)), m.group(2)), street
+    )
+    for pattern, replacement in _STREET_SUFFIXES:
+        expanded = pattern.sub(replacement, expanded)
+    return expanded
+
 
 def parse_address(address: str) -> dict[str, str]:
     """Parse a free-form NYC address into structured components.
@@ -308,22 +392,29 @@ async def resolve_address_to_bbl(address: str) -> str:
     street = parsed["street"]
     borough_code = parsed["borough_code"]
 
+    street_normalized = normalize_street_name(street)
+
     bbl: str | None = None
 
     # Try GeoClient first.
     if settings.geoclient_configured:
         try:
-            result = await _call_geoclient(house_number, street, borough_code)
+            result = await _call_geoclient(house_number, street_normalized, borough_code)
             bbl = result.get("bbl")
-            if bbl and len(bbl) == 10:
-                _address_cache[cache_key] = bbl
-                logger.info("GeoClient resolved %s → BBL %s", address, bbl)
-                return bbl
+            if bbl:
+                bbl_clean = normalize_geoclient_bbl(bbl)
+                if bbl_clean:
+                    _address_cache[cache_key] = bbl_clean
+                    logger.info("GeoClient resolved %s → BBL %s", address, bbl_clean)
+                    return bbl_clean
         except ToolError:
-            logger.warning("GeoClient failed for %s, trying PAD fallback", address)
+            logger.warning(
+                "GeoClient failed for %s (street: %r → %r), trying PAD fallback",
+                address, street, street_normalized,
+            )
 
     # Fallback to local PAD table.
-    bbl = await _pad_fallback(house_number, street, borough_code)
+    bbl = await _pad_fallback(house_number, street_normalized, borough_code)
     if bbl:
         _address_cache[cache_key] = bbl
         logger.info("PAD fallback resolved %s → BBL %s", address, bbl)

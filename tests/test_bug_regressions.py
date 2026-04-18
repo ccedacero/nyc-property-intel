@@ -207,3 +207,88 @@ class TestNormalizeFilter:
         from nyc_property_intel.utils import normalize_filter
         assert normalize_filter("") is None
         assert normalize_filter("   ") is None
+
+
+# =============================================================================
+# Bug 4 — GeoClient BBL normalization
+# Root cause: GeoClient returns BBLs with hyphens or fewer than 10 digits,
+#             causing the len(bbl) == 10 guard to drop the result silently.
+# Fix: normalize_geoclient_bbl() strips hyphens and zero-pads to 10 digits.
+# =============================================================================
+
+class TestNormalizeGeoClientBbl:
+    """normalize_geoclient_bbl must produce a 10-digit string from any valid input."""
+
+    def _normalize(self, raw: str):
+        from nyc_property_intel.geoclient import normalize_geoclient_bbl
+        return normalize_geoclient_bbl(raw)
+
+    def test_hyphenated_bbl_normalized(self):
+        assert self._normalize("1-00835-0001") == "1008350001"
+
+    def test_already_10_digits_passthrough(self):
+        assert self._normalize("1008350001") == "1008350001"
+
+    def test_short_bbl_zero_padded(self):
+        # GeoClient may omit leading zeros on block/lot portions.
+        assert self._normalize("100835001") == "0100835001"
+
+    def test_all_zeros_edge_case(self):
+        assert self._normalize("0000000000") == "0000000000"
+
+    def test_non_digit_after_strip_returns_none(self):
+        assert self._normalize("1-ABC-0001") is None
+
+    def test_empty_string_returns_none(self):
+        assert self._normalize("") is None
+
+    def test_too_long_returns_none(self):
+        assert self._normalize("12345678901") is None  # 11 digits
+
+    def test_whitespace_stripped(self):
+        assert self._normalize("  1008350001  ") == "1008350001"
+
+
+# =============================================================================
+# PLUTO data-gap error message — lookup_property
+# When a valid BBL is not in PLUTO, the error must explain the data gap and
+# direct users to other tools instead of saying "BBL may not exist."
+# =============================================================================
+
+class TestLookupPropertyPlutoDataGapMessage:
+    """lookup_property raises a descriptive ToolError for BBLs absent from PLUTO."""
+
+    async def test_missing_bbl_mentions_pluto_gap(self):
+        from unittest.mock import AsyncMock, patch
+        from mcp.server.fastmcp.exceptions import ToolError
+        from nyc_property_intel.tools.lookup import lookup_property
+
+        with patch("nyc_property_intel.tools.lookup.fetch_one", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = None  # both primary and fallback miss
+            with pytest.raises(ToolError) as exc_info:
+                await lookup_property(bbl="1008350001")
+
+        msg = str(exc_info.value)
+        assert "PLUTO" in msg, "Error must mention PLUTO dataset"
+        assert "data gap" in msg.lower() or "known" in msg.lower(), (
+            "Error must characterize the issue as a known data gap"
+        )
+        assert "other" in msg.lower() or "tool" in msg.lower(), (
+            "Error must direct users to other tools"
+        )
+
+    async def test_missing_bbl_message_contains_bbl_formatted(self):
+        from unittest.mock import AsyncMock, patch
+        from mcp.server.fastmcp.exceptions import ToolError
+        from nyc_property_intel.tools.lookup import lookup_property
+
+        with patch("nyc_property_intel.tools.lookup.fetch_one", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = None
+            with pytest.raises(ToolError) as exc_info:
+                await lookup_property(bbl="1008350001")
+
+        msg = str(exc_info.value)
+        # BBL should appear in display format (borough-block-lot) or raw.
+        assert "1008350001" in msg or "1-00835-0001" in msg, (
+            "Error must include the BBL so the user knows which property failed"
+        )
