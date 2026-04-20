@@ -334,10 +334,10 @@
             <code>"Do any properties on this block have open HPD litigations?"</code>
             <code>"What permits have been filed at 100 Gold Street, Manhattan?"</code>
             <code>"Is 123 Atlantic Ave Brooklyn rent stabilized?"</code>
-            <code>"What tax exemptions does BBL 1008350001 have?"</code>
+            <code>"What tax exemptions apply to 350 5th Ave, Manhattan?"</code>
             <code>"Show me neighborhood stats for zip 11215"</code>
             <code>"What complaints have tenants filed at this address?"</code>
-            <code>"Has there been a fire at 37-06 80th Street, Queens?"</code>
+            <code>"What fires have been reported near 37-06 80th Street, Queens?"</code>
             <code>"What crimes happened within 2 blocks of 350 5th Ave?"</code>
             <code>"Show me evictions at 123 Atlantic Ave, Brooklyn"</code>
             <code>"What 311 complaints are open at this building?"</code>
@@ -509,7 +509,7 @@
 
           <div class="tool-card">
             <h3><span class="tool-name">get_fdny_fire_incidents</span></h3>
-            <p>FDNY fire and emergency incident history for a property address. Fire type, highest alarm level, spread description, units on scene, duration, and civilian/firefighter casualties. Queried live from NYC Open Data.</p>
+            <p>FDNY fire and emergency incident history filtered by zip code and borough. Returns incident classification, highest alarm level, and units assigned. Note: the FDNY dataset has no street-address field &mdash; results cover the zip code area, not an exact address. Loaded into PostgreSQL; Socrata fallback when local table unavailable.</p>
             <div class="tool-sources">FDNY NFIRS &middot; NYC Open Data 8m42-w767</div>
           </div>
 
@@ -583,7 +583,7 @@
               <tr><td>DOF Tax Liens</td><td>DOF</td><td>Properties with outstanding tax liens</td></tr>
               <tr><td>Rent Stabilization</td><td>HCR/RGB</td><td>Rent-stabilized unit counts by building</td></tr>
               <tr><td>ACRIS</td><td>DOF/ACRIS</td><td>Deeds, mortgages, liens, satisfactions, UCC filings</td></tr>
-              <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by address (2013&ndash;present)</td></tr>
+              <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by zip/borough (2013&ndash;present)</td></tr>
               <tr><td>311 Service Requests</td><td>311/DOITT</td><td>Noise, rodents, heat, dumping, and 200+ complaint types</td></tr>
               <tr><td>Marshal Evictions</td><td>DOI</td><td>Executed eviction records by address, residential &amp; commercial (2017&ndash;present)</td></tr>
               <tr><td>DOB Complaints</td><td>DOB</td><td>Complaints filed with DOB before formal violations</td></tr>
@@ -594,7 +594,6 @@
 
         <p class="data-note">
           NYC Property Intel is not affiliated with the City of New York or any city agency.
-          Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
           All datasets are loaded into PostgreSQL. Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
         </p>
       </div>
