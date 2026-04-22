@@ -240,7 +240,9 @@ async def test_analyze_property_returns_all_sections():
         "property_summary",
         "financial_snapshot",
         "development_potential",
-        "risk_factors",
+        "violations_and_compliance",
+        "ownership_and_legal",
+        "tenant_and_operations",
         "comparable_market",
         "recent_sales",
         "key_observations",
@@ -281,15 +283,19 @@ async def test_analyze_property_key_observations_is_list():
 
 
 @pytest.mark.integration
-async def test_analyze_property_risk_factors_for_violator():
+async def test_analyze_property_violations_for_violator():
     """analyze_property shows violation counts for a property with known violations."""
     from nyc_property_intel.tools.analysis import analyze_property
 
     result = await analyze_property(bbl=BBL_BROOKLYN)
 
-    risk = result["risk_factors"]
+    vc = result["violations_and_compliance"]
+    assert "hpd_violations" in vc
+    assert "dob_violations" in vc
+    hpd = vc["hpd_violations"]
+    dob = vc["dob_violations"]
     # This BBL has many violations — counts should be non-None and > 0
-    assert risk["hpd_total_violations"] is not None
-    assert risk["hpd_total_violations"] > 0
-    assert risk["dob_total_violations"] is not None
-    assert risk["dob_total_violations"] > 0
+    assert hpd is not None
+    assert hpd["total"] is not None and hpd["total"] > 0
+    assert dob is not None
+    assert dob["total"] is not None and dob["total"] > 0

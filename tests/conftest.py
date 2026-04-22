@@ -28,13 +28,20 @@ os.environ.setdefault(
 
 
 @pytest.fixture(autouse=True)
-async def _init_db_pool_for_integration():
+async def _init_db_pool_for_integration(request):
     """Initialize the asyncpg pool before each integration test, close it after.
+
+    Only runs for tests marked with @pytest.mark.integration — skips for pure
+    unit tests so they don't require a live database.
 
     Each test function gets its own event loop (pytest-asyncio default),
     so we must create a fresh pool per test to avoid cross-loop errors.
     The module-level _pool in db.py is reset on each iteration.
     """
+    if not request.node.get_closest_marker("integration"):
+        yield
+        return
+
     import nyc_property_intel.db as _db
 
     # Force a fresh pool on the current event loop.

@@ -245,20 +245,23 @@ async def test_analyze_property_financial_snapshot_has_last_sale():
 
 
 @pytest.mark.integration
-async def test_analyze_property_risk_factors_dob_populated():
-    """analyze_property for the Brooklyn violator BBL has dob_total_violations > 0."""
+async def test_analyze_property_violations_dob_populated():
+    """analyze_property for the Brooklyn violator BBL has dob total violations > 0."""
     from nyc_property_intel.tools.analysis import analyze_property
 
     result = await analyze_property(bbl=BBL_BROOKLYN)
 
-    risk = result["risk_factors"]
-    assert risk["dob_total_violations"] is not None
-    assert risk["dob_total_violations"] >= 498, (
-        f"Expected dob_total_violations >= 498, got {risk['dob_total_violations']}"
+    vc = result["violations_and_compliance"]
+    dob = vc["dob_violations"]
+    hpd = vc["hpd_violations"]
+    assert dob is not None
+    assert dob["total"] is not None
+    assert dob["total"] >= 498, (
+        f"Expected dob violations total >= 498, got {dob['total']}"
     )
-    assert risk["hpd_total_violations"] is not None
-    assert risk["hpd_total_violations"] > 0
-    assert risk["most_recent_violation"] is not None
+    assert hpd is not None
+    assert hpd["total"] is not None and hpd["total"] > 0
+    assert hpd["most_recent"] is not None
 
 
 @pytest.mark.integration
