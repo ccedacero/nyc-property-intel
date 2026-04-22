@@ -247,18 +247,29 @@ async def get_nypd_crime(
             _since_prefix(since_year),  # $7
             limit,                 # $8
         )
+        incidents_list = [dict(i) for i in incidents]
+        # Derive the actual coverage end year from the data rather than
+        # hardcoding "prior calendar year" — the local DB may be refreshed
+        # more recently than once per year.
+        years = [
+            i["cmplnt_fr_dt"][:4]
+            for i in incidents_list
+            if i.get("cmplnt_fr_dt") and len(i["cmplnt_fr_dt"]) >= 4
+        ]
+        max_year = max(years) if years else None
+        coverage = f"through {max_year}" if max_year else "through prior calendar year"
         return {
             "address_queried": label,
             "bbl": bbl,
             "coordinates": {"latitude": lat, "longitude": lon},
             "radius_meters": radius_meters,
-            "total_returned": len(incidents),
-            "summary": _summarize([dict(i) for i in incidents]),
-            "incidents": [dict(i) for i in incidents],
+            "total_returned": len(incidents_list),
+            "summary": _summarize(incidents_list),
+            "incidents": incidents_list,
             "data_source": "NYPD Complaint Data Historic — local DB (NYC Open Data 5uac-w243)",
             "data_note": (
                 f"Bounding-box search: ~{radius_meters} m from property coordinates. "
-                "Historic dataset covers 2006 through prior calendar year."
+                f"Historic dataset covers 2006 {coverage}."
             ),
         }
     except asyncpg.UndefinedTableError:
@@ -298,7 +309,7 @@ async def get_nypd_crime(
         "incidents": incidents_raw,
         "data_source": "NYPD Complaint Data Historic via Socrata API (5uac-w243)",
         "data_note": (
-            f"Geospatial radius search: {radius_meters} m from property coordinates. "
+            f"Bounding-box search: ~{radius_meters} m from property coordinates. "
             "Historic dataset covers 2006 through prior calendar year. "
             "For current year, results may be incomplete."
         ),

@@ -9,6 +9,23 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 
+# Human-readable labels for ACRIS document type codes.
+_ACRIS_DOC_TYPES: dict[str, str] = {
+    "DEED":  "Deed",
+    "DEDL":  "Deed, Life Estate",
+    "DEDC":  "Deed, Corrected",
+    "RPTT":  "Real Property Transfer Tax Return",
+    "CTOR":  "Correction of Error",
+    "CORRD": "Correction of Error (Deed)",
+    "AL&R":  "Assignment of Leases and Rents",
+    "ASST":  "Assignment of Mortgage",
+    "MTGE":  "Mortgage",
+    "AGMT":  "Agreement",
+    "LEAS":  "Lease Agreement",
+    "UCC1":  "UCC Financing Statement",
+    "MISC":  "Miscellaneous Document",
+}
+
 import asyncpg
 from mcp.server.fastmcp.exceptions import ToolError
 
@@ -53,7 +70,7 @@ LIMIT $2;
 """
 
 _SQL_OWNERSHIP = """\
-SELECT m.documentid, m.doctype, m.doctype AS doc_type_description,
+SELECT m.documentid, m.doctype,
     m.docdate, m.docamount, m.recordedfiled,
     sellers.names AS seller_names, buyers.names AS buyer_names
 FROM real_property_legals l
@@ -75,7 +92,7 @@ LIMIT $4;
 """
 
 _SQL_TRANSACTIONS = """\
-SELECT m.documentid, m.doctype, m.doctype AS doc_type_description,
+SELECT m.documentid, m.doctype,
     m.docdate, m.docamount, m.recordedfiled,
     (
         SELECT jsonb_agg(jsonb_build_object(
@@ -174,6 +191,9 @@ async def get_property_history(
                 _SQL_OWNERSHIP, borough, block, lot, limit
             )
             for record in ownership:
+                record["doc_type_description"] = _ACRIS_DOC_TYPES.get(
+                    record.get("doctype", ""), record.get("doctype", "")
+                )
                 record["docamount_formatted"] = format_currency(
                     record.get("docamount")
                 )
@@ -201,6 +221,9 @@ async def get_property_history(
                 limit,
             )
             for record in transactions:
+                record["doc_type_description"] = _ACRIS_DOC_TYPES.get(
+                    record.get("doctype", ""), record.get("doctype", "")
+                )
                 record["docamount_formatted"] = format_currency(
                     record.get("docamount")
                 )

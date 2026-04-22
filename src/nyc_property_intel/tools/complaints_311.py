@@ -218,8 +218,19 @@ async def get_311_complaints(
             complaints = await _query_local_by_bbl(
                 bbl, complaint_type, since_year, status, limit
             )
+            # Resolve a human-readable address from PAD so address_queried
+            # is meaningful rather than showing the raw BBL number.
+            pad_row = await fetch_one(
+                "SELECT lhnd AS house_number, stname AS street_name "
+                "FROM pad_adr WHERE bbl = $1 LIMIT 1",
+                bbl,
+            )
+            bbl_address_label = (
+                f"{pad_row['house_number']} {pad_row['street_name']}"
+                if pad_row else bbl
+            )
             return {
-                "address_queried": bbl,
+                "address_queried": bbl_address_label,
                 "bbl": bbl,
                 "total_returned": len(complaints),
                 "summary": _summarize(complaints),

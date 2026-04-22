@@ -273,6 +273,6 @@ async def search_comps(
                 "This data will be available after Phase B data ingestion."
             )
 
-    result["data_as_of"] = data_freshness_note("rpad")
+    result["data_as_of"] = data_freshness_note("dof_sales")
 
     return result

@@ -266,7 +266,6 @@ def _build_risk_factors(
             "hpd_open_violations": None,
             "dob_total_violations": None,
             "most_recent_violation": None,
-            "has_tax_lien": None,  # Phase C
         }
 
     hpd_most_recent = violations.get("hpd_most_recent")
@@ -285,7 +284,6 @@ def _build_risk_factors(
         "hpd_open_violations": violations.get("hpd_open"),
         "dob_total_violations": violations.get("dob_total"),
         "most_recent_violation": most_recent,
-        "has_tax_lien": None,  # Phase C
     }
 
 
@@ -301,17 +299,27 @@ def _build_comparable_market(
         if price is not None and sqft is not None and sqft > 0:
             price_per_sqft_values.append(price / sqft)
 
+    ppsf_sample_size = len(price_per_sqft_values)
+    # Require at least 5 comps with usable sqft to avoid a misleading
+    # median derived from a single outlier (e.g., one large commercial sale).
     median_ppsf = (
         round(statistics.median(price_per_sqft_values), 2)
-        if price_per_sqft_values
+        if ppsf_sample_size >= 5
         else None
     )
 
-    return {
+    result: dict[str, Any] = {
         "zip_code": zip_code,
         "num_recent_sales": len(comp_sales),
         "median_price_per_sqft": median_ppsf,
+        "ppsf_sample_size": ppsf_sample_size,
     }
+    if median_ppsf is None and comp_sales:
+        result["ppsf_note"] = (
+            f"Suppressed — only {ppsf_sample_size} of {len(comp_sales)} "
+            "comps have usable sqft data (minimum 5 required for reliable median)."
+        )
+    return result
 
 
 def _generate_observations(

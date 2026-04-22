@@ -231,6 +231,10 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
         "source": "FDNY Fire Incident Reporting System (NYC Open Data 8m42-w767)",
         "cadence": "real-time via Socrata API (data from 2013)",
     },
+    "dof_sales": {
+        "source": "NYC DOF Rolling Sales",
+        "cadence": "updated monthly",
+    },
 }
 
 

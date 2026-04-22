@@ -86,9 +86,28 @@ async def get_rent_stabilization(bbl: str) -> dict:
 
     latest = counts_with_values[-1] if counts_with_values else None
 
-    return {
+    # Use the most-recent year that has ANY data (including zero) to determine
+    # current status. A building with non-zero early years but zeros in 2017
+    # has deregulated — `counts_with_values` would point to the last non-zero
+    # year, not the actual latest data point.
+    most_recent_data = unit_counts[-1] if unit_counts else None
+    is_rent_stabilized = (
+        most_recent_data is not None and most_recent_data["stabilized_units"] > 0
+    )
+
+    # Warn when historical records exist but current status is deregulated.
+    deregulated_note: str | None = None
+    if not is_rent_stabilized and counts_with_values and most_recent_data:
+        deregulated_note = (
+            f"Property shows 0 rent-stabilized units as of {most_recent_data['year']} "
+            f"but had {counts_with_values[-1]['stabilized_units']} stabilized units "
+            f"as recently as {counts_with_values[-1]['year']}. "
+            "Building may have been deregulated."
+        )
+
+    result: dict = {
         "bbl": bbl,
-        "is_rent_stabilized": True,
+        "is_rent_stabilized": is_rent_stabilized,
         "address": row.get("address"),
         "owner_name": row.get("ownername"),
         "total_residential_units": row.get("unitsres"),
@@ -100,3 +119,6 @@ async def get_rent_stabilization(bbl: str) -> dict:
         "unit_counts_by_year": unit_counts,
         "data_as_of": data_freshness_note("rentstab"),
     }
+    if deregulated_note:
+        result["deregulation_note"] = deregulated_note
+    return result

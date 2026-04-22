@@ -8,6 +8,7 @@ indicators — they show problems *before* they become formal violations.
 from __future__ import annotations
 
 import datetime
+import json
 import logging
 from typing import Any
 
@@ -93,7 +94,16 @@ async def get_hpd_complaints(
         if include_summary:
             summary_rows = await fetch_all(_SQL_COMPLAINT_SUMMARY, bbl)
             if summary_rows:
-                result["summary"] = summary_rows[0]
+                summary = dict(summary_rows[0])
+                # asyncpg returns jsonb_agg subqueries as a JSON string in some
+                # fetch paths — parse it back to a native list when needed.
+                raw = summary.get("top_categories")
+                if isinstance(raw, str):
+                    try:
+                        summary["top_categories"] = json.loads(raw)
+                    except json.JSONDecodeError:
+                        pass
+                result["summary"] = summary
             else:
                 result["summary"] = None
 

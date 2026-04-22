@@ -114,6 +114,20 @@ async def lookup_property(
     bbl_info = parse_bbl(str(row["bbl"]))
     row["bbl_formatted"] = bbl_info["bbl_formatted"]
 
+    # Surface any mismatch between the user-supplied address and the PLUTO
+    # address so callers aren't confused when the geocoder resolves to a
+    # nearby lot.  Only populated when an address (not a BBL) was queried.
+    pluto_address = row.get("address")
+    if address is not None and pluto_address is not None:
+        row["address_queried"] = address
+        row["address_pluto"] = pluto_address
+        if address.strip().upper() != pluto_address.strip().upper():
+            row["address_note"] = (
+                f"The address you searched ({address!r}) was resolved to BBL "
+                f"{bbl_info['bbl_formatted']}. PLUTO stores this lot as "
+                f"{pluto_address!r}. Both refer to the same property."
+            )
+
     # Condo detection: lot >= 1000 in Manhattan, lot >= 7501 in outer boroughs,
     # or condono field is present. The lot-number heuristic matches PLUTO's
     # convention where condo unit lots start at 1001 (Manhattan) / 7501 (outer).
