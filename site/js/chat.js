@@ -542,7 +542,12 @@
     messagesEl.appendChild(welcome);
     textarea.value = "";
     textarea.style.height = "";
-    sendBtn.disabled = true;
+    updateSendBtn();
+    updateCounter();
+    // Re-show the email gate if the user has already hit the limit
+    if (authState === "gate") {
+      showEmailGate();
+    }
     textarea.focus();
     sidebar.classList.remove("open");
   }
