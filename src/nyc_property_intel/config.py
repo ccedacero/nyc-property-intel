@@ -51,14 +51,9 @@ class Settings(BaseSettings):
     loops_api_key: str = ""
     # Signing secret from your Loops webhook settings (optional but recommended)
     loops_webhook_secret: str = ""
-    # Transactional email ID for the web chat activation email (legacy — superseded by Resend)
+    # Transactional email ID for the web chat activation email
+    # Create in Loops: Transactional → New → add {{activationUrl}} variable
     loops_chat_transactional_id: str = ""
-
-    # ── Resend transactional email ────────────────────────────────────────
-    # API key from https://resend.com/api-keys
-    resend_api_key: str = ""
-    # From address — must be a verified domain in Resend
-    email_from: str = "NYC Property Intel <noreply@nycpropertyintel.com>"
 
     # ── PostHog analytics ────────────────────────────────────────────────
     # Project API key from https://us.posthog.com/settings/project
