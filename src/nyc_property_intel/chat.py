@@ -104,10 +104,10 @@ def _get_client_ip(request: Request) -> str:
 
 # ── Cookie signing ────────────────────────────────────────────────────
 
-def make_session_cookie(query_count: int) -> str:
-    """Return a signed cookie value encoding the free-tier query count."""
+def make_session_cookie(query_count: int, analyze_count: int = 0) -> str:
+    """Return a signed cookie value encoding free-tier query + analyze counts."""
     payload = base64.urlsafe_b64encode(
-        json.dumps({"q": query_count, "t": int(time.time())}).encode()
+        json.dumps({"q": query_count, "a": analyze_count, "t": int(time.time())}).encode()
     ).decode().rstrip("=")
     sig = hmac.new(
         settings.cookie_secret.encode(),
@@ -117,10 +117,10 @@ def make_session_cookie(query_count: int) -> str:
     return f"{payload}.{sig}"
 
 
-def read_session_cookie(value: str) -> int:
-    """Return query count from signed cookie value, or 0 if invalid/tampered."""
+def read_session_cookie(value: str) -> tuple[int, int]:
+    """Return (query_count, analyze_count) from signed cookie, or (0, 0) if invalid."""
     if not settings.cookie_secret:
-        return 0
+        return 0, 0
     try:
         payload, sig = value.rsplit(".", 1)
         expected = hmac.new(
@@ -129,11 +129,11 @@ def read_session_cookie(value: str) -> int:
             hashlib.sha256,
         ).hexdigest()[:32]
         if not hmac.compare_digest(sig, expected):
-            return 0
+            return 0, 0
         data = json.loads(base64.urlsafe_b64decode(payload + "=="))
-        return max(0, int(data.get("q", 0)))
+        return max(0, int(data.get("q", 0))), max(0, int(data.get("a", 0)))
     except Exception:
-        return 0
+        return 0, 0
 
 
 # ── Fernet helpers ────────────────────────────────────────────────────
@@ -466,6 +466,8 @@ def make_chat_handlers(auth: TokenAuth):
         auth_header = request.headers.get("authorization", "")
         token_info = None
         is_authenticated = False
+        query_count = 0
+        anon_analyze_count = 0
 
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
@@ -486,7 +488,7 @@ def make_chat_handlers(auth: TokenAuth):
         else:
             # Anonymous path — check signed cookie
             cookie_val = request.cookies.get("nyprop_sess", "")
-            query_count = read_session_cookie(cookie_val) if cookie_val else 0
+            query_count, anon_analyze_count = read_session_cookie(cookie_val) if cookie_val else (0, 0)
 
             if query_count >= settings.chat_free_query_limit:
                 return JSONResponse(
@@ -501,9 +503,9 @@ def make_chat_handlers(auth: TokenAuth):
         # ── Build streaming response ──────────────────────────────────
         new_cookie_val: str | None = None
         if not is_authenticated:
-            cookie_val = request.cookies.get("nyprop_sess", "")
-            current_count = read_session_cookie(cookie_val) if cookie_val else 0
-            new_cookie_val = make_session_cookie(current_count + 1)
+            # Pre-mark analyze as "used" (a=1) so next request will block it.
+            # anon_analyze_count still holds the value from THIS request (0 or 1).
+            new_cookie_val = make_session_cookie(query_count + 1, max(anon_analyze_count, 1))
 
         # Build messages in Anthropic format (only role+content, strip extras)
         anthropic_messages = [
@@ -529,6 +531,10 @@ def make_chat_handlers(auth: TokenAuth):
                     if parsed.get("type") == "tool_start" and parsed.get("name") == "analyze_property":
                         if token_info and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_daily_limit:
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*Daily limit for full property analysis reached. Upgrade your plan for more.*'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                            return
+                        if not token_info and anon_analyze_count >= 1:
+                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Sign up for free to run full property analysis reports.** The free trial includes 3 queries — create an account to unlock unlimited queries and full analysis.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
                         analyze_calls_this_request += 1
