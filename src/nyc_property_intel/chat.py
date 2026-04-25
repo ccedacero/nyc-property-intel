@@ -185,40 +185,128 @@ async def _create_magic_link(pool, token_hash: str, plaintext_token: str) -> str
     return link_id
 
 
-# ── Loops transactional email ─────────────────────────────────────────
+# ── Transactional email (Resend) ──────────────────────────────────────
+
+def _activation_email_html(activation_url: str) -> str:
+    safe_url = activation_url.replace("&", "&amp;").replace('"', "&quot;")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate your free access</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#0f172a;padding:20px 32px;border-radius:8px 8px 0 0;">
+              <span style="color:#f8fafc;font-size:17px;font-weight:700;">NYC Property Intel</span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background-color:#ffffff;padding:40px 32px 32px;border-radius:0 0 8px 8px;">
+              <h1 style="margin:0 0 16px;font-size:26px;font-weight:700;color:#0f172a;line-height:1.25;">
+                Activate your free access
+              </h1>
+              <p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.65;">Hi there,</p>
+              <p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.65;">
+                You requested free access to <strong style="color:#0f172a;">NYC Property Intel</strong> —
+                AI-powered due diligence from 20+ NYC public record databases.
+              </p>
+              <p style="margin:0 0 32px;font-size:15px;color:#475569;line-height:1.65;">
+                Click the button below to activate your account.
+                The link expires in <strong style="color:#0f172a;">15 minutes</strong>.
+              </p>
+
+              <!-- CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <a href="{safe_url}"
+                       style="display:inline-block;background-color:#3b82f6;color:#ffffff;
+                              text-decoration:none;font-size:16px;font-weight:600;
+                              padding:14px 32px;border-radius:8px;">
+                      Activate My Free Access
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 28px;font-size:13px;color:#3b82f6;word-break:break-all;line-height:1.5;">
+                {safe_url}
+              </p>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 24px;">
+
+              <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#0f172a;">
+                Your free trial includes:
+              </p>
+              <p style="margin:0;font-size:14px;color:#475569;line-height:1.9;">
+                &bull; 10 queries/day for 30 days<br>
+                &bull; Up to 5 full property analysis reports<br>
+                &bull; Access to all 18 NYC public record tools<br>
+                &bull; No credit card required
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <p style="margin:0 0 4px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
+                If you didn&apos;t request this, you can safely ignore this email.
+              </p>
+              <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
+                NYC Property Intel &mdash;
+                <a href="https://nycpropertyintel.com" style="color:#94a3b8;text-decoration:underline;">
+                  nycpropertyintel.com
+                </a><br>
+                Data from NYC public records only. Not legal or financial advice.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
 
 async def _send_activation_email(email: str, activation_url: str) -> None:
-    if not settings.loops_api_key:
-        logger.warning("LOOPS_API_KEY not set — activation email not sent to %s", email)
-        return
-    if not settings.loops_chat_transactional_id:
+    if not settings.resend_api_key:
         logger.warning(
-            "LOOPS_CHAT_TRANSACTIONAL_ID not set — skipping activation email for %s. "
-            "Activation URL: %s",
-            email,
-            activation_url,
+            "RESEND_API_KEY not set — activation email not sent to %s. URL: %s",
+            email, activation_url,
         )
         return
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.post(
-            f"{_LOOPS_API_BASE}/transactional",
-            headers={
-                "Authorization": f"Bearer {settings.loops_api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "transactionalId": settings.loops_chat_transactional_id,
-                "email": email,
-                "dataVariables": {"activationUrl": activation_url},
-            },
-        )
-    if not resp.is_success:
-        logger.error(
-            "Failed to send activation email to %s: %s %s",
-            email, resp.status_code, resp.text,
-        )
-    else:
-        logger.info("Activation email sent to %s", email)
+
+    import resend
+    resend.api_key = settings.resend_api_key
+
+    try:
+        params: resend.Emails.SendParams = {
+            "from": settings.email_from,
+            "to": [email],
+            "subject": "Activate your free access — NYC Property Intel",
+            "html": _activation_email_html(activation_url),
+        }
+        resend.Emails.send(params)
+        logger.info("Activation email sent to %s via Resend", email)
+    except Exception:
+        logger.exception("Resend failed to send activation email to %s", email)
+        raise
 
 
 # ── Agentic loop ──────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ dependencies = [
     "anthropic>=0.40.0,<1.0",
     "slowapi>=0.1.9,<1.0",
     "cryptography>=42.0.0",
+    "resend>=2.0.0,<3.0",
 ]
 
 [dependency-groups]           # Fixed: Moved from tool.uv.dev-dependencies
