@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 _SITE_BASE = "https://nycpropertyintel.com"
 _LOOPS_API_BASE = "https://app.loops.so/api/v1"
-_CHAT_MODEL = "claude-haiku-4-5-20251001"
+_CHAT_MODEL = "claude-sonnet-4-6"
 _MAX_TOKENS = 4096
 _MAX_ROUNDS = 5          # max agentic tool-call rounds per request
 _MAX_TOOL_CALLS = 5      # max individual tool calls per request
