@@ -371,23 +371,25 @@ def make_chat_handlers(auth: TokenAuth):
             logger.exception("DB error provisioning token for %s", email)
             return JSONResponse({"error": "Service error"}, status_code=500)
 
-        if not created:
-            logger.info("Web chat signup: %s already has active token", email)
-            return JSONResponse({"ok": True})
-
         try:
             pool = await auth._get_pool()
-            await pool.execute(
-                "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                hash_token(token),
-            )
+            if not created:
+                # User already has a token — create a fresh magic link so they
+                # can re-activate (handles lost-email / repeat signup case).
+                logger.info("Web chat signup: %s already has token — re-sending activation", email)
+            else:
+                await pool.execute(
+                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
+                    hash_token(token),
+                )
             link_id = await _create_magic_link(pool, hash_token(token), token)
         except Exception:
             logger.exception("Failed to create magic link for %s", email)
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         activation_url = f"{_SITE_BASE}/chat?t={link_id}"
-        ph_capture(email, "web_chat_signup", {"plan": "trial"})
+        if created:
+            ph_capture(email, "web_chat_signup", {"plan": "trial"})
 
         try:
             await _send_activation_email(email, activation_url)
