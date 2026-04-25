@@ -103,10 +103,12 @@ def make_webhook_handler(auth: TokenAuth):
 
         # ── Signature check ───────────────────────────────────────────
         headers_lower = {k.lower(): v for k, v in request.headers.items()}
-        if settings.loops_webhook_secret:
-            if not _verify_signature(body, headers_lower, settings.loops_webhook_secret):
-                logger.warning("Loops webhook: invalid signature — rejected")
-                return JSONResponse({"error": "Invalid signature"}, status_code=401)
+        if not settings.loops_webhook_secret:
+            logger.error("LOOPS_WEBHOOK_SECRET not set — rejecting webhook request")
+            return JSONResponse({"error": "Webhook not configured"}, status_code=503)
+        if not _verify_signature(body, headers_lower, settings.loops_webhook_secret):
+            logger.warning("Loops webhook: invalid signature — rejected")
+            return JSONResponse({"error": "Invalid signature"}, status_code=401)
 
         # ── Parse payload ─────────────────────────────────────────────
         try:

@@ -15,6 +15,7 @@ import hmac
 import json
 import logging
 import time
+import re
 import uuid
 from collections.abc import AsyncIterator
 
@@ -30,6 +31,9 @@ from nyc_property_intel.auth import TokenAuth, hash_token
 from nyc_property_intel.config import settings
 
 logger = logging.getLogger(__name__)
+
+# RFC 5321 max email length is 254; reject anything with control chars or that looks wrong.
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 
 _SITE_BASE = "https://nycpropertyintel.com"
 _LOOPS_API_BASE = "https://app.loops.so/api/v1"
@@ -98,11 +102,19 @@ def _check_ip_rate_limit(ip: str) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
+    # NOTE: X-Forwarded-For is set by Railway's proxy and is not spoofable from outside
+    # Railway's infrastructure (Railway appends the real client IP on the right).
+    # We use the rightmost value so a client-supplied header cannot bypass the limit.
     forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()  # rightmost = added by our trusted proxy
+    return request.client.host if request.client else "unknown"
 
 
 # ── Cookie signing ────────────────────────────────────────────────────
+
+_COOKIE_MAX_AGE = 86400 * 7  # 7 days — must match Set-Cookie max_age
+
 
 def make_session_cookie(query_count: int, analyze_count: int = 0) -> str:
     """Return a signed cookie value encoding free-tier query + analyze counts."""
@@ -113,12 +125,12 @@ def make_session_cookie(query_count: int, analyze_count: int = 0) -> str:
         settings.cookie_secret.encode(),
         payload.encode(),
         hashlib.sha256,
-    ).hexdigest()[:32]
+    ).hexdigest()  # Full 64-char (256-bit) signature
     return f"{payload}.{sig}"
 
 
 def read_session_cookie(value: str) -> tuple[int, int]:
-    """Return (query_count, analyze_count) from signed cookie, or (0, 0) if invalid."""
+    """Return (query_count, analyze_count) from signed cookie, or (0, 0) if invalid/expired."""
     if not settings.cookie_secret:
         return 0, 0
     try:
@@ -127,10 +139,13 @@ def read_session_cookie(value: str) -> tuple[int, int]:
             settings.cookie_secret.encode(),
             payload.encode(),
             hashlib.sha256,
-        ).hexdigest()[:32]
+        ).hexdigest()
         if not hmac.compare_digest(sig, expected):
             return 0, 0
         data = json.loads(base64.urlsafe_b64decode(payload + "=="))
+        # Reject cookies older than max age — prevents replay of old cookies
+        if int(time.time()) - int(data.get("t", 0)) > _COOKIE_MAX_AGE:
+            return 0, 0
         return max(0, int(data.get("q", 0))), max(0, int(data.get("a", 0)))
     except Exception:
         return 0, 0
@@ -343,7 +358,7 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
         email = str(body.get("email", "")).strip().lower()
-        if not email or "@" not in email or "." not in email.split("@")[-1]:
+        if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
 
         try:
@@ -391,6 +406,10 @@ def make_chat_handlers(auth: TokenAuth):
         magic_token = str(body.get("magic_token", "")).strip()
         if not magic_token:
             return JSONResponse({"error": "Missing magic_token"}, status_code=400)
+        try:
+            uuid.UUID(magic_token)
+        except ValueError:
+            return JSONResponse({"error": "Invalid token"}, status_code=400)
 
         try:
             pool = await auth._get_pool()
