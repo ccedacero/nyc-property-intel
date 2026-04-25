@@ -27,7 +27,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp, MCP_INSTRUCTIONS
-from nyc_property_intel.auth import TokenAuth, hash_token
+from nyc_property_intel.auth import PLAN_LIMITS, TRIAL_DAYS, TokenAuth, generate_token, hash_token
 from nyc_property_intel.config import settings
 
 logger = logging.getLogger(__name__)
@@ -372,17 +372,32 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         try:
+            from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
             if not created:
-                # User already has a token — create a fresh magic link so they
-                # can re-activate (handles lost-email / repeat signup case).
-                logger.info("Web chat signup: %s already has token — re-sending activation", email)
+                # Existing user: old plaintext is unrecoverable (only hash stored).
+                # Generate a fresh token so we can build a magic link.
+                logger.info("Web chat signup: %s already has token — issuing fresh magic link", email)
+                token = generate_token()
+                t_hash = hash_token(token)
+                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+                await pool.execute(
+                    """
+                    INSERT INTO mcp_tokens
+                        (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
+                    VALUES ($1, $2, $3, 'trial', $4, $5, 'web chat re-signup')
+                    ON CONFLICT (token_hash) DO NOTHING
+                    """,
+                    t_hash, token[:15] + "...", email,
+                    PLAN_LIMITS.get("trial", 10), expires_at,
+                )
             else:
+                t_hash = hash_token(token)
                 await pool.execute(
                     "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                    hash_token(token),
+                    t_hash,
                 )
-            link_id = await _create_magic_link(pool, hash_token(token), token)
+            link_id = await _create_magic_link(pool, t_hash, token)
         except Exception:
             logger.exception("Failed to create magic link for %s", email)
             return JSONResponse({"error": "Service error"}, status_code=500)
