@@ -15,14 +15,18 @@
 
   const API_BASE = "https://nyc-property-intel-production.up.railway.app";
   const FREE_LIMIT = 3;
+  const TRIAL_LIMIT = 10;
   const TOKEN_KEY = "nyc_pi_token";
   const QUERY_COUNT_KEY = "nyc_pi_qcount";
+  const TRIAL_COUNT_KEY = "nyc_pi_trial_count";
+  const TRIAL_DATE_KEY  = "nyc_pi_trial_date";
 
   /* ── State ───────────────────────────────────────────────────────── */
 
   let authState = "anon"; // anon | gate | trial
   let token = null;
   let queryCount = 0;
+  let trialQueryCount = 0;
   let isStreaming = false;
   /** @type {Array<{role: string, content: string}>} */
   let messages = [];
@@ -81,6 +85,15 @@
     const stored_count = parseInt(localStorage.getItem(QUERY_COUNT_KEY) || "0", 10);
     queryCount = isNaN(stored_count) ? 0 : stored_count;
 
+    // Restore trial query count — reset if date has rolled over (UTC)
+    const todayUTC = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(TRIAL_DATE_KEY) !== todayUTC) {
+      localStorage.setItem(TRIAL_DATE_KEY, todayUTC);
+      localStorage.setItem(TRIAL_COUNT_KEY, "0");
+    }
+    const stored_trial = parseInt(localStorage.getItem(TRIAL_COUNT_KEY) || "0", 10);
+    trialQueryCount = isNaN(stored_trial) ? 0 : stored_trial;
+
     updateAuthUI();
     updateCounter();
 
@@ -134,6 +147,11 @@
         // Reset anon counter — they now have a proper token
         queryCount = 0;
         localStorage.setItem(QUERY_COUNT_KEY, "0");
+        // Reset trial counter for the new day
+        trialQueryCount = 0;
+        const todayUTC = new Date().toISOString().slice(0, 10);
+        localStorage.setItem(TRIAL_DATE_KEY, todayUTC);
+        localStorage.setItem(TRIAL_COUNT_KEY, "0");
         updateAuthUI();
         updateCounter();
         appendSystemMessage("You're activated! You now have 10 queries/day including up to 5 full analysis reports.");
@@ -301,6 +319,12 @@
       if (authState === "anon" && queryCount >= FREE_LIMIT) {
         authState = "gate";
         showEmailGate();
+      }
+
+      // Track trial query count client-side (resets daily at midnight UTC)
+      if (authState === "trial") {
+        trialQueryCount++;
+        localStorage.setItem(TRIAL_COUNT_KEY, String(trialQueryCount));
       }
 
     } catch (err) {
@@ -476,7 +500,9 @@
   function updateAuthUI() {
     if (authState === "trial") {
       authDot.className = "auth-dot active";
-      authLabel.textContent = "Trial active · 10 queries/day";
+      const remaining = Math.max(0, TRIAL_LIMIT - trialQueryCount);
+      authLabel.textContent = `Trial active · ${trialQueryCount}/${TRIAL_LIMIT} queries today`;
+      authLabel.title = `${remaining} quer${remaining === 1 ? "y" : "ies"} remaining today`;
     } else if (authState === "gate") {
       authDot.className = "auth-dot expired";
       authLabel.textContent = "Free limit reached";
@@ -489,7 +515,14 @@
 
   function updateCounter() {
     if (authState === "trial") {
-      freeCounter.innerHTML = "";
+      const remaining = Math.max(0, TRIAL_LIMIT - trialQueryCount);
+      if (remaining <= 3 && remaining > 0) {
+        freeCounter.innerHTML = `<span>${remaining}</span> quer${remaining === 1 ? "y" : "ies"} left today`;
+      } else if (remaining === 0) {
+        freeCounter.innerHTML = `Daily limit reached — resets at midnight UTC`;
+      } else {
+        freeCounter.innerHTML = `<span>${remaining}</span> of ${TRIAL_LIMIT} queries left today`;
+      }
     } else if (authState === "gate") {
       freeCounter.innerHTML = "Free limit reached — sign up for 10/day free";
     } else {
