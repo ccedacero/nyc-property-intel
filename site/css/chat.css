@@ -455,7 +455,8 @@
 }
 
 .gate-submit-btn:disabled {
-  opacity: 0.45;
+  background: var(--border);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
