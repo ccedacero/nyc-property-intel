@@ -156,9 +156,14 @@
     // Hide welcome state
     if (welcomeEl) welcomeEl.remove();
 
-    // Anon limit check
+    // Gate check — block if limit reached or gate already showing
+    if (authState === "gate") {
+      showEmailGate();
+      return;
+    }
     if (authState === "anon" && queryCount >= FREE_LIMIT) {
       authState = "gate";
+      updateSendBtn();
       showEmailGate();
       return;
     }
@@ -208,11 +213,19 @@
         const data = await res.json().catch(() => ({}));
         const msg = data.error || `Request failed (${res.status})`;
 
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 402) {
+          // Free limit reached (backend enforcement)
+          authState = "gate";
+          updateSendBtn();
+          updateAuthUI();
+          updateCounter();
+          showEmailGate();
+        } else if (res.status === 401 || res.status === 403) {
           // Token rejected — clear it and drop back to anon/gate
           token = null;
           localStorage.removeItem(TOKEN_KEY);
           authState = queryCount >= FREE_LIMIT ? "gate" : "anon";
+          updateSendBtn();
           updateAuthUI();
           showEmailGate();
         } else if (res.status === 429) {
@@ -483,7 +496,7 @@
   }
 
   function updateSendBtn() {
-    sendBtn.disabled = isStreaming || textarea.value.trim().length === 0;
+    sendBtn.disabled = isStreaming || authState === "gate" || textarea.value.trim().length === 0;
   }
 
   /* ── Textarea auto-grow ───────────────────────────────────────────── */
