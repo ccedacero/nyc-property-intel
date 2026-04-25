@@ -436,6 +436,29 @@
   min-height: 1em;
 }
 
+.gate-submit-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.gate-submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.gate-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── Input area ───────────────────────────────────────────────────── */
 
 .chat-input-area {

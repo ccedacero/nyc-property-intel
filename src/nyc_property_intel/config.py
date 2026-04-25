@@ -71,8 +71,8 @@ class Settings(BaseSettings):
     chat_free_query_limit: int = 3
     # Total tool-calls/day for trial tokens on web chat
     chat_daily_query_limit: int = 10
-    # Max analyze_property calls/day for trial tokens on web chat
-    chat_analyze_daily_limit: int = 5
+    # Max analyze_property calls over the 30-day trial period
+    chat_analyze_trial_limit: int = 5
 
     @field_validator("database_url")
     @classmethod

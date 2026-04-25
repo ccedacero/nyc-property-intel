@@ -313,15 +313,15 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
 
 # ── analyze_property daily limit ──────────────────────────────────────
 
-async def _count_analyze_today(pool, token_hash: str) -> int:
-    """Return number of analyze_property calls made today for this token."""
+async def _count_analyze_trial(pool, token_hash: str) -> int:
+    """Return total analyze_property calls in the last 30 days for this token."""
     try:
         row = await pool.fetchrow(
             """
             SELECT COUNT(*) AS cnt FROM mcp_usage_log
             WHERE token_hash = $1
               AND tool_name = 'analyze_property'
-              AND called_at >= CURRENT_DATE
+              AND called_at >= NOW() - INTERVAL '30 days'
             """,
             token_hash,
         )
@@ -475,14 +475,7 @@ def make_chat_handlers(auth: TokenAuth):
             if token_info is None:
                 return JSONResponse({"error": "Invalid or expired token"}, status_code=401)
 
-            # Check analyze_property daily limit for authenticated users
-            if settings.chat_analyze_daily_limit > 0:
-                pool = await auth._get_pool()
-                analyze_count = await _count_analyze_today(pool, token_info.token_hash)
-                if analyze_count >= settings.chat_analyze_daily_limit:
-                    # Check if this query would trigger analyze_property
-                    # We'll enforce at tool execution time in the stream
-                    pass  # enforced below in the stream generator
+            # analyze_property trial limit enforced mid-stream in stream_with_analyze_limit
 
             is_authenticated = True
         else:
@@ -519,30 +512,35 @@ def make_chat_handlers(auth: TokenAuth):
             analyze_calls_this_request = 0
             pool = await auth._get_pool() if token_info else None
 
-            # Check existing analyze count for authenticated users
-            analyze_count_today = 0
+            # Fetch 30-day analyze count for trial users
+            analyze_count_trial = 0
             if token_info and pool:
-                analyze_count_today = await _count_analyze_today(pool, token_info.token_hash)
+                analyze_count_trial = await _count_analyze_trial(pool, token_info.token_hash)
 
             async for chunk in _agentic_stream(anthropic_messages):
-                # Intercept tool_start for analyze_property to enforce limit
+                # Intercept tool_start for analyze_property to enforce limits
                 try:
                     parsed = json.loads(chunk.removeprefix("data: ").strip())
                     if parsed.get("type") == "tool_start" and parsed.get("name") == "analyze_property":
-                        if token_info and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_daily_limit:
-                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*Daily limit for full property analysis reached. Upgrade your plan for more.*'})}\n\n"
+                        if token_info and (analyze_count_trial + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
+                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*You have used all 5 full analysis reports included in your trial. Upgrade to continue.*'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
                         if not token_info and anon_analyze_count >= 1:
-                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Sign up for free to run full property analysis reports.** The free trial includes 3 queries — create an account to unlock unlimited queries and full analysis.'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Sign up for free to run full property analysis reports.** The free trial includes 3 queries — create an account to unlock 10 queries/day and up to 5 full analysis reports.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
+                        # Record this analyze call immediately so concurrent requests see it
+                        if token_info and pool:
+                            asyncio.create_task(
+                                auth.record_call(token_info.token_hash, "analyze_property", 0, 200)
+                            )
                         analyze_calls_this_request += 1
                 except Exception:
                     pass
                 yield chunk
 
-            # Fire-and-forget: record usage
+            # Record general web_chat request
             if token_info:
                 try:
                     asyncio.create_task(

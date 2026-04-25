@@ -341,7 +341,7 @@
           required
           aria-label="Email address"
         >
-        <button type="submit" class="btn btn-primary btn-sm">Get free access</button>
+        <button type="submit" class="gate-submit-btn" id="gate-submit" disabled aria-disabled="true">Get free access</button>
       </form>
       <p class="chat-gate-error" id="gate-error" role="alert" aria-live="polite"></p>
     `;
@@ -351,6 +351,14 @@
     const gateForm = gate.querySelector("#gate-form");
     const gateEmail = gate.querySelector("#gate-email");
     const gateError = gate.querySelector("#gate-error");
+    const gateSubmit = gate.querySelector("#gate-submit");
+
+    // Enable button only when a plausible email is typed
+    gateEmail.addEventListener("input", () => {
+      const valid = validateEmail(gateEmail.value.trim());
+      gateSubmit.disabled = !valid;
+      gateSubmit.setAttribute("aria-disabled", String(!valid));
+    });
 
     gateForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -360,7 +368,7 @@
         return;
       }
       gateError.textContent = "";
-      const submitBtn = gateForm.querySelector("button[type=submit]");
+      const submitBtn = gateSubmit;
       submitBtn.disabled = true;
       submitBtn.textContent = "Sending…";
 
