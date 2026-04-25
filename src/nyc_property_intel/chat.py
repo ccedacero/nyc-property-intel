@@ -422,10 +422,12 @@ def make_chat_handlers(auth: TokenAuth):
 
         magic_token = str(body.get("magic_token", "")).strip()
         if not magic_token:
+            logger.warning("activate_handler: missing magic_token — body keys: %s", list(body.keys()))
             return JSONResponse({"error": "Missing magic_token"}, status_code=400)
         try:
             uuid.UUID(magic_token)
         except ValueError:
+            logger.warning("activate_handler: invalid UUID format: %r", magic_token[:40])
             return JSONResponse({"error": "Invalid token"}, status_code=400)
 
         try:
