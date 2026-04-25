@@ -116,7 +116,7 @@
       const res = await fetch(`${API_BASE}/api/activate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ magic_token: id }),
         credentials: "include",
       });
       if (!res.ok) {
