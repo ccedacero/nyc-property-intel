@@ -513,7 +513,23 @@ def make_chat_handlers(auth: TokenAuth):
             if token_info is None:
                 return JSONResponse({"error": "Invalid or expired token"}, status_code=401)
 
-            # analyze_property trial limit enforced mid-stream in stream_with_analyze_limit
+            # Enforce daily web-chat query limit for trial tokens
+            allowed, used_count = await auth.check_rate_limit(
+                token_info.token_hash, settings.chat_daily_query_limit
+            )
+            if not allowed:
+                return JSONResponse(
+                    {
+                        "error": "daily_limit_reached",
+                        "message": (
+                            f"You've used all {settings.chat_daily_query_limit} queries for today. "
+                            "Your limit resets at midnight UTC."
+                        ),
+                        "used": used_count,
+                        "limit": settings.chat_daily_query_limit,
+                    },
+                    status_code=429,
+                )
 
             is_authenticated = True
         else:

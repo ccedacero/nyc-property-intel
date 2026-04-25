@@ -230,7 +230,7 @@
           showEmailGate();
         } else if (res.status === 429) {
           appendErrorMessage(
-            data.detail || "You've reached your daily query limit. It resets at midnight UTC."
+            data.message || data.detail || "You've reached your daily query limit. It resets at midnight UTC."
           );
         } else {
           appendErrorMessage(msg);
