@@ -86,6 +86,22 @@ async def cmd_migrate(pool: asyncpg.Pool) -> None:
 
         CREATE INDEX IF NOT EXISTS mcp_tokens_email
             ON mcp_tokens(customer_email);
+
+        ALTER TABLE mcp_tokens
+            ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'cli';
+
+        CREATE TABLE IF NOT EXISTS web_magic_links (
+            id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+            token_hash       TEXT        NOT NULL REFERENCES mcp_tokens(token_hash),
+            encrypted_token  TEXT        NOT NULL,
+            created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            expires_at       TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '15 minutes',
+            used_at          TIMESTAMPTZ
+        );
+
+        CREATE INDEX IF NOT EXISTS web_magic_links_expires
+            ON web_magic_links(expires_at)
+            WHERE used_at IS NULL;
     """)
     print("✓ Auth tables created / verified.")
 

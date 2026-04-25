@@ -24,6 +24,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Mount, Route
@@ -32,6 +33,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import TokenAuth
+from nyc_property_intel.chat import make_chat_handlers
 from nyc_property_intel.config import settings
 from nyc_property_intel.loops_webhook import make_webhook_handler
 from nyc_property_intel.db import db_lifespan
@@ -331,6 +333,13 @@ def main() -> None:
         # Starlette does NOT auto-run a mounted sub-app's lifespan, so we
         # propagate it here. SSE has no such requirement.
         webhook_handler = make_webhook_handler(auth)
+        signup_handler, activate_handler, chat_handler = make_chat_handlers(auth)
+        allowed_origins = [
+            o.strip()
+            for o in settings.chat_allowed_origins.split(",")
+            if o.strip()
+        ]
+
         if use_streamable:
             @asynccontextmanager
             async def _combined_lifespan(app):
@@ -339,6 +348,9 @@ def main() -> None:
             starlette_app = Starlette(
                 routes=[
                     Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                    Route("/api/chat/signup", signup_handler, methods=["POST"]),
+                    Route("/api/activate", activate_handler, methods=["POST"]),
+                    Route("/api/chat", chat_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
@@ -346,8 +358,19 @@ def main() -> None:
         else:
             starlette_app = Starlette(routes=[
                 Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                Route("/api/chat/signup", signup_handler, methods=["POST"]),
+                Route("/api/activate", activate_handler, methods=["POST"]),
+                Route("/api/chat", chat_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
+
+        starlette_app = CORSMiddleware(
+            starlette_app,
+            allow_origins=allowed_origins,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=True,
+        )
 
         if settings.loops_api_key:
             logger.info("Loops webhook enabled at /webhook/loops")

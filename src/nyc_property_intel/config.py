@@ -51,10 +51,28 @@ class Settings(BaseSettings):
     loops_api_key: str = ""
     # Signing secret from your Loops webhook settings (optional but recommended)
     loops_webhook_secret: str = ""
+    # Transactional email ID for the web chat activation email
+    # Create in Loops: Transactional → New → add {{activationUrl}} variable
+    loops_chat_transactional_id: str = ""
 
     # ── PostHog analytics ────────────────────────────────────────────────
     # Project API key from https://us.posthog.com/settings/project
     posthog_api_key: str = ""
+
+    # ── Web chat ─────────────────────────────────────────────────────────
+    anthropic_api_key: str = ""
+    # HMAC-SHA256 secret for signing free-tier session cookies
+    cookie_secret: str = ""
+    # Fernet key for encrypting plaintext token in web_magic_links rows
+    web_chat_token_key: str = ""
+    # Comma-separated origins allowed to call /api/chat (CORS)
+    chat_allowed_origins: str = "https://nycpropertyintel.com"
+    # Free queries before email gate (no token required)
+    chat_free_query_limit: int = 3
+    # Total tool-calls/day for trial tokens on web chat
+    chat_daily_query_limit: int = 10
+    # Max analyze_property calls/day for trial tokens on web chat
+    chat_analyze_daily_limit: int = 5
 
     @field_validator("database_url")
     @classmethod
