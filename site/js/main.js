@@ -106,7 +106,7 @@
         })
         .then(function (data) {
           if (data.success) {
-            ph("signup_submitted", { role: role || "not_set" });
+            ph("signup_submitted", {});
             signupForm.hidden = true;
             signupSuccess.hidden = false;
           } else {
