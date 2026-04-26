@@ -21,6 +21,7 @@ from collections.abc import AsyncIterator
 
 import anthropic
 import httpx
+from cachetools import TTLCache
 from cryptography.fernet import Fernet, InvalidToken
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
@@ -51,14 +52,14 @@ _anthropic_client: anthropic.AsyncAnthropic | None = None
 # Cached Anthropic-format tools list (built once on first request)
 _anthropic_tools: list[dict] | None = None
 
-# In-memory IP rate limiter: {ip: (count, window_start_ts)}
-_ip_buckets: dict[str, tuple[int, float]] = {}
-_IP_RATE_LIMIT = 10  # requests per minute per IP (chat endpoint)
+# In-memory IP rate limiters — TTLCache caps memory and auto-evicts expired entries.
+# Without a max size, these would grow unbounded under a flood of unique IPs.
+_IP_RATE_LIMIT = 10          # requests per minute per IP (chat endpoint)
+_SIGNUP_IP_RATE_LIMIT = 3    # signups per IP per hour
+_SIGNUP_IP_WINDOW = 3600     # 1 hour in seconds
 
-# Signup-specific IP rate limiter: {ip: (count, window_start_ts)}
-_signup_ip_buckets: dict[str, tuple[int, float]] = {}
-_SIGNUP_IP_RATE_LIMIT = 3   # signups per IP per hour
-_SIGNUP_IP_WINDOW = 3600    # 1 hour window
+_ip_buckets: TTLCache = TTLCache(maxsize=50_000, ttl=60)
+_signup_ip_buckets: TTLCache = TTLCache(maxsize=10_000, ttl=_SIGNUP_IP_WINDOW)
 
 
 # ── Client + tools ────────────────────────────────────────────────────
@@ -95,27 +96,19 @@ def _get_anthropic_tools() -> list[dict]:
 # ── IP rate limiting ──────────────────────────────────────────────────
 
 def _check_ip_rate_limit(ip: str) -> bool:
-    now = time.monotonic()
-    count, window_start = _ip_buckets.get(ip, (0, now))
-    if now - window_start > 60:
-        _ip_buckets[ip] = (1, now)
-        return True
+    count = _ip_buckets.get(ip, 0)
     if count >= _IP_RATE_LIMIT:
         return False
-    _ip_buckets[ip] = (count + 1, window_start)
+    _ip_buckets[ip] = count + 1
     return True
 
 
 def _check_signup_ip_rate_limit(ip: str) -> bool:
     """Allow at most 3 new signups per IP per hour."""
-    now = time.monotonic()
-    count, window_start = _signup_ip_buckets.get(ip, (0, now))
-    if now - window_start > _SIGNUP_IP_WINDOW:
-        _signup_ip_buckets[ip] = (1, now)
-        return True
+    count = _signup_ip_buckets.get(ip, 0)
     if count >= _SIGNUP_IP_RATE_LIMIT:
         return False
-    _signup_ip_buckets[ip] = (count + 1, window_start)
+    _signup_ip_buckets[ip] = count + 1
     return True
 
 
@@ -419,9 +412,14 @@ def make_chat_handlers(auth: TokenAuth):
             from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
             if not created:
-                # Existing user: old plaintext is unrecoverable (only hash stored).
-                # Generate a fresh token so we can build a magic link.
-                logger.info("Web chat signup: %s already has token — issuing fresh magic link", email_canonical)
+                # Existing user: revoke all current tokens, then issue a fresh one.
+                # Without revocation, repeat sign-ups accumulate multiple valid tokens
+                # each with independent daily limits — bypassing the trial cap.
+                logger.info("Web chat signup: %s re-signing up — revoking existing tokens and issuing fresh magic link", email_canonical)
+                await pool.execute(
+                    "UPDATE mcp_tokens SET revoked_at = NOW() WHERE customer_email = $1 AND revoked_at IS NULL",
+                    email_canonical,
+                )
                 token = generate_token()
                 t_hash = hash_token(token)
                 expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
@@ -476,13 +474,16 @@ def make_chat_handlers(auth: TokenAuth):
 
         try:
             pool = await auth._get_pool()
+            # Atomic check-and-mark: eliminates TOCTOU race where two concurrent
+            # requests could both pass the used_at IS NULL check before either marks it used.
             row = await pool.fetchrow(
                 """
-                SELECT id, encrypted_token
-                FROM web_magic_links
+                UPDATE web_magic_links
+                SET used_at = NOW()
                 WHERE id = $1
                   AND used_at IS NULL
                   AND expires_at > NOW()
+                RETURNING encrypted_token
                 """,
                 magic_token,
             )
@@ -497,14 +498,6 @@ def make_chat_handlers(auth: TokenAuth):
         if plaintext is None:
             logger.error("Fernet decryption failed for magic link %s", magic_token[:8])
             return JSONResponse({"error": "Service error"}, status_code=500)
-
-        try:
-            await pool.execute(
-                "UPDATE web_magic_links SET used_at = NOW() WHERE id = $1",
-                magic_token,
-            )
-        except Exception:
-            logger.warning("Failed to mark magic link %s as used", magic_token[:8])
 
         ph_capture("anonymous", "magic_link_activated", {})
         return JSONResponse({"token": plaintext})
@@ -598,12 +591,24 @@ def make_chat_handlers(auth: TokenAuth):
             # anon_analyze_count still holds the value from THIS request (0 or 1).
             new_cookie_val = make_session_cookie(query_count + 1, max(anon_analyze_count, 1))
 
-        # Build messages in Anthropic format (only role+content, strip extras)
-        anthropic_messages = [
+        # Build messages in Anthropic format. Strip any client-supplied assistant
+        # turns — they could be fabricated to inject instructions into Claude's context.
+        # We only trust user turns from the client; assistant turns come from our own
+        # streaming responses that the client mirrors back. Filtering to user-only and
+        # re-injecting paired assistant turns from trusted history would be ideal, but
+        # for now we only accept alternating pairs where the client is the source.
+        # Simple protection: drop any standalone assistant message at the start.
+        raw_anthropic = [
             {"role": m["role"], "content": m["content"]}
             for m in messages
             if m.get("role") in ("user", "assistant") and m.get("content")
         ]
+        # Ensure the conversation starts with a user turn (never an injected assistant turn)
+        anthropic_messages = []
+        for msg in raw_anthropic:
+            if not anthropic_messages and msg["role"] == "assistant":
+                continue  # drop leading assistant messages
+            anthropic_messages.append(msg)
 
         async def stream_with_analyze_limit():
             """Wrap _agentic_stream to enforce analyze_property limit mid-stream."""

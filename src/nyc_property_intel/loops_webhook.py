@@ -33,7 +33,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from nyc_property_intel.analytics import capture as ph_capture
-from nyc_property_intel.auth import TokenAuth
+from nyc_property_intel.auth import TokenAuth, hash_token
 from nyc_property_intel.config import settings
 
 logger = logging.getLogger(__name__)
@@ -155,8 +155,8 @@ def make_webhook_handler(auth: TokenAuth):
             except Exception:
                 logger.exception(
                     "Loops webhook: token created for %s but failed to set Loops property. "
-                    "Token: %s — set manually via manage_tokens.py",
-                    email, token[:20] + "...",
+                    "Token hash prefix: %s — set manually via manage_tokens.py",
+                    email, hash_token(token)[:12],
                 )
                 # Don't return error — token is in DB, just needs manual follow-up
         else:

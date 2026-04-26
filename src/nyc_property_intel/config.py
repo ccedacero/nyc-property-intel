@@ -6,7 +6,7 @@ import settings from here rather than reading os.environ directly.
 
 from __future__ import annotations
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -93,6 +93,33 @@ class Settings(BaseSettings):
                 f"LOG_LEVEL must be one of: {', '.join(sorted(_VALID_LOG_LEVELS))}"
             )
         return normalized
+
+    @model_validator(mode="after")
+    def validate_web_chat_secrets(self) -> "Settings":
+        """Fail loudly at startup if required web-chat secrets are missing.
+
+        Empty cookie_secret means every anonymous cookie is treated as invalid
+        (always 0 count → unlimited free queries). Empty web_chat_token_key
+        causes a fatal Fernet ValueError on first magic-link activation.
+        Both must be set in any non-stdio (HTTP) deployment.
+        """
+        import os
+        transport = os.environ.get("MCP_TRANSPORT", "").lower()
+        is_http = transport in ("http", "sse", "streamable-http") or bool(
+            os.environ.get("PORT")
+        )
+        if is_http:
+            missing = []
+            if not self.cookie_secret:
+                missing.append("COOKIE_SECRET")
+            if not self.web_chat_token_key:
+                missing.append("WEB_CHAT_TOKEN_KEY")
+            if missing:
+                raise ValueError(
+                    f"Required secret(s) not set for HTTP transport: {', '.join(missing)}. "
+                    "Set these environment variables in Railway before deploying."
+                )
+        return self
 
     @property
     def geoclient_configured(self) -> bool:
