@@ -340,6 +340,9 @@ def main() -> None:
             if o.strip()
         ]
 
+        async def health_handler(request: Request) -> Response:
+            return Response('{"status":"ok"}', media_type="application/json")
+
         if use_streamable:
             @asynccontextmanager
             async def _combined_lifespan(app):
@@ -347,6 +350,7 @@ def main() -> None:
                     yield
             starlette_app = Starlette(
                 routes=[
+                    Route("/health", health_handler, methods=["GET"]),
                     Route("/webhook/loops", webhook_handler, methods=["POST"]),
                     Route("/api/chat/signup", signup_handler, methods=["POST"]),
                     Route("/api/activate", activate_handler, methods=["POST"]),
@@ -357,6 +361,7 @@ def main() -> None:
             )
         else:
             starlette_app = Starlette(routes=[
+                Route("/health", health_handler, methods=["GET"]),
                 Route("/webhook/loops", webhook_handler, methods=["POST"]),
                 Route("/api/chat/signup", signup_handler, methods=["POST"]),
                 Route("/api/activate", activate_handler, methods=["POST"]),

@@ -129,12 +129,22 @@ def _normalize_email(email: str) -> str:
 
 
 def _get_client_ip(request: Request) -> str:
-    # NOTE: X-Forwarded-For is set by Railway's proxy and is not spoofable from outside
-    # Railway's infrastructure (Railway appends the real client IP on the right).
-    # We use the rightmost value so a client-supplied header cannot bypass the limit.
+    # Railway's public networking runs through Fastly, which sets Fastly-Client-IP
+    # to the real client IP before appending its own edge IP to X-Forwarded-For.
+    # Check CDN-specific headers first, then fall back to XFF.
+    for header in ("fastly-client-ip", "cf-connecting-ip", "x-real-ip"):
+        val = request.headers.get(header, "").strip()
+        if val:
+            return val
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
-        return forwarded.split(",")[-1].strip()  # rightmost = added by our trusted proxy
+        # With Fastly in front, the rightmost XFF is the Fastly edge PoP IP, not
+        # the client. Use the leftmost (first) non-private IP instead.
+        ips = [ip.strip() for ip in forwarded.split(",")]
+        for ip in ips:
+            if ip and not ip.startswith(("10.", "172.", "192.168.", "127.")):
+                return ip
+        return ips[0]
     return request.client.host if request.client else "unknown"
 
 
@@ -629,8 +639,10 @@ def make_chat_handlers(auth: TokenAuth):
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*You have used all 5 full analysis reports included in your trial. Upgrade to continue.*'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
-                        if not token_info and anon_analyze_count >= 1:
-                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Sign up for free to run full property analysis reports.** The free trial includes 3 queries — create an account to unlock 10 queries/day and up to 5 full analysis reports.'})}\n\n"
+                        if not token_info:
+                            # Always gate anon users from analyze_property — even the first call.
+                            # Allowing one free full report bypasses the core paywall.
+                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Full due-diligence reports require a free account.** Sign up below to get 10 queries/day including up to 5 full analysis reports — no credit card required.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
                         # Record this analyze call immediately so concurrent requests see it
