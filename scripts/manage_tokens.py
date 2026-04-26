@@ -96,8 +96,10 @@ async def cmd_migrate(pool: asyncpg.Pool) -> None:
             encrypted_token  TEXT        NOT NULL,
             created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             expires_at       TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '15 minutes',
-            used_at          TIMESTAMPTZ
+            used_at          TIMESTAMPTZ,
+            created_by_ip    TEXT
         );
+        ALTER TABLE web_magic_links ADD COLUMN IF NOT EXISTS created_by_ip TEXT;
 
         CREATE INDEX IF NOT EXISTS web_magic_links_expires
             ON web_magic_links(expires_at)

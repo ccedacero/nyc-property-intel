@@ -53,7 +53,12 @@ _anthropic_tools: list[dict] | None = None
 
 # In-memory IP rate limiter: {ip: (count, window_start_ts)}
 _ip_buckets: dict[str, tuple[int, float]] = {}
-_IP_RATE_LIMIT = 10  # requests per minute per IP
+_IP_RATE_LIMIT = 10  # requests per minute per IP (chat endpoint)
+
+# Signup-specific IP rate limiter: {ip: (count, window_start_ts)}
+_signup_ip_buckets: dict[str, tuple[int, float]] = {}
+_SIGNUP_IP_RATE_LIMIT = 3   # signups per IP per hour
+_SIGNUP_IP_WINDOW = 3600    # 1 hour window
 
 
 # ── Client + tools ────────────────────────────────────────────────────
@@ -99,6 +104,35 @@ def _check_ip_rate_limit(ip: str) -> bool:
         return False
     _ip_buckets[ip] = (count + 1, window_start)
     return True
+
+
+def _check_signup_ip_rate_limit(ip: str) -> bool:
+    """Allow at most 3 new signups per IP per hour."""
+    now = time.monotonic()
+    count, window_start = _signup_ip_buckets.get(ip, (0, now))
+    if now - window_start > _SIGNUP_IP_WINDOW:
+        _signup_ip_buckets[ip] = (1, now)
+        return True
+    if count >= _SIGNUP_IP_RATE_LIMIT:
+        return False
+    _signup_ip_buckets[ip] = (count + 1, window_start)
+    return True
+
+
+def _normalize_email(email: str) -> str:
+    """Return a canonical email for deduplication (never used for sending).
+
+    Rules:
+    - Strip + suffix from local part for all providers.
+    - Additionally strip dots from local part for gmail.com / googlemail.com,
+      and normalize googlemail.com → gmail.com (same inbox pool).
+    """
+    local, _, domain = email.partition("@")
+    local = local.split("+")[0]  # strip + alias universally
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}"
 
 
 def _get_client_ip(request: Request) -> str:
@@ -170,17 +204,18 @@ def _decrypt_token(encrypted: str) -> str | None:
 
 # ── Magic link DB helpers ─────────────────────────────────────────────
 
-async def _create_magic_link(pool, token_hash: str, plaintext_token: str) -> str:
+async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client_ip: str = "") -> str:
     """Insert a magic link row and return the UUID string."""
     link_id = str(uuid.uuid4())
     await pool.execute(
         """
-        INSERT INTO web_magic_links (id, token_hash, encrypted_token)
-        VALUES ($1, $2, $3)
+        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip)
+        VALUES ($1, $2, $3, $4)
         """,
         link_id,
         token_hash,
         _encrypt_token(plaintext_token),
+        client_ip or None,
     )
     return link_id
 
@@ -357,13 +392,22 @@ def make_chat_handlers(auth: TokenAuth):
         except Exception:
             return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
+        # IP rate limit on signups — max 3 per IP per hour
+        client_ip = _get_client_ip(request)
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("Signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
+
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
 
+        # Normalize for deduplication — keep original for sending
+        email_canonical = _normalize_email(email)
+
         try:
             token, created = await auth.create_token(
-                email=email,
+                email=email_canonical,
                 plan="trial",
                 notes="web chat signup",
             )
@@ -377,7 +421,7 @@ def make_chat_handlers(auth: TokenAuth):
             if not created:
                 # Existing user: old plaintext is unrecoverable (only hash stored).
                 # Generate a fresh token so we can build a magic link.
-                logger.info("Web chat signup: %s already has token — issuing fresh magic link", email)
+                logger.info("Web chat signup: %s already has token — issuing fresh magic link", email_canonical)
                 token = generate_token()
                 t_hash = hash_token(token)
                 expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
@@ -388,7 +432,7 @@ def make_chat_handlers(auth: TokenAuth):
                     VALUES ($1, $2, $3, 'trial', $4, $5, 'web chat re-signup')
                     ON CONFLICT (token_hash) DO NOTHING
                     """,
-                    t_hash, token[:15] + "...", email,
+                    t_hash, token[:15] + "...", email_canonical,
                     PLAN_LIMITS.get("trial", 10), expires_at,
                 )
             else:
@@ -397,14 +441,14 @@ def make_chat_handlers(auth: TokenAuth):
                     "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
                     t_hash,
                 )
-            link_id = await _create_magic_link(pool, t_hash, token)
+            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
         except Exception:
-            logger.exception("Failed to create magic link for %s", email)
+            logger.exception("Failed to create magic link for %s", email_canonical)
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         activation_url = f"{_SITE_BASE}/chat?t={link_id}"
         if created:
-            ph_capture(email, "web_chat_signup", {"plan": "trial"})
+            ph_capture(email_canonical, "web_chat_signup", {"plan": "trial"})
 
         try:
             await _send_activation_email(email, activation_url)

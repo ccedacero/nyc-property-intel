@@ -223,7 +223,11 @@ async def db_lifespan(server: Any):
         mcp.settings.lifespan = db_lifespan
     """
     logger.info("MCP lifespan: starting up")
-    await get_pool()
+    pool = await get_pool()
+    # Incremental schema migrations — safe to run on every startup (idempotent)
+    await pool.execute(
+        "ALTER TABLE web_magic_links ADD COLUMN IF NOT EXISTS created_by_ip TEXT"
+    )
     try:
         yield
     finally:
