@@ -81,7 +81,6 @@
       e.preventDefault();
 
       var email = signupForm.querySelector('input[name="email"]').value.trim();
-      var role = signupForm.querySelector('select[name="role"]').value;
       var btn = signupForm.querySelector(".signup-btn");
 
       signupError.textContent = "";
@@ -95,7 +94,6 @@
       btn.textContent = "Sending\u2026";
 
       var body = new URLSearchParams({ email: email });
-      if (role) body.append("userGroup", role);
 
       fetch("https://app.loops.so/api/newsletter-form/" + LOOPS_FORM_ID, {
         method: "POST",
