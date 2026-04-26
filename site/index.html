@@ -183,7 +183,7 @@
   <link rel="canonical" href="https://nycpropertyintel.com/">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260426">
+  <link rel="stylesheet" href="css/style.css?v=20260425b">
 
   <!-- PostHog analytics -->
   <script>
@@ -211,12 +211,7 @@
         <li><a href="#tools">Tools</a></li>
         <li><a href="#data-sources">Data</a></li>
         <li><a href="#install">Install</a></li>
-        <li><a href="#faq">FAQ</a></li>
-        <li><a href="chat.html" class="btn btn-sm btn-accent">Try It Free</a></li>
-        <li><a href="#hero-signup-form" class="btn btn-sm">Get Access</a></li>
-        <li><a href="#fair-housing">Fair Housing</a></li>
-        <li><a href="legal.html">Legal</a></li>
-        <li><a href="https://github.com/ccedacero/nyc-property-intel" class="btn btn-sm" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="chat.html" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>
       </ul>
     </nav>
   </header>
@@ -228,12 +223,19 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="hero" id="hero">
       <div class="container">
-        <h1>NYC Property Due Diligence<br>from Public Records</h1>
+        <h1>NYC Property Due Diligence<br>in Minutes, Not Hours</h1>
         <p class="hero-sub">
-          An MCP server that gives Claude AI access to <strong>20+ NYC public record databases</strong>.
-          Violations, sales history, ownership, zoning, fire history, crime data &mdash; all from a single AI query.
+          Ask about any NYC property in plain English. Get violations, sales history,
+          liens, permits, rent stabilization status, and ownership records from
+          <strong>20+ official NYC databases</strong> &mdash; no spreadsheets, no browser tabs.
         </p>
-        <form class="hero-signup" id="hero-signup-form" action="https://app.loops.so/api/newsletter-form/cmntqdkqy00y20iycvyyxby0m" method="POST" novalidate>
+        <div class="hero-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; margin-bottom:1.25rem;">
+          <a href="chat.html" class="btn btn-primary">Try It Now &mdash; Free</a>
+          <a href="#hero-signup-form" class="btn btn-outline">Connect to Claude Desktop &rarr;</a>
+        </div>
+        <p class="hero-note">No credit card &middot; No account needed for first 3 queries &middot; Open source (MIT)</p>
+        <form class="hero-signup" id="hero-signup-form" action="https://app.loops.so/api/newsletter-form/cmntqdkqy00y20iycvyyxby0m" method="POST" novalidate style="margin-top:2rem;">
+          <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.75rem; text-align:center;">Connect via <strong style="color:var(--text-primary);">Claude Desktop or Claude Code</strong> — get your token emailed instantly:</p>
           <div class="hero-signup-fields">
             <input
               type="email"
@@ -245,26 +247,17 @@
               required
               aria-label="Email address"
             >
-            <select name="role" id="hero-role" class="signup-select" aria-label="I am a...">
-              <option value="" disabled selected>I am a&hellip;</option>
-              <option value="investor">Investor</option>
-              <option value="attorney">RE Attorney</option>
-              <option value="broker">Broker</option>
-              <option value="developer">Developer</option>
-              <option value="other">Other</option>
-            </select>
-            <button type="submit" class="btn btn-primary signup-btn">Get Early Access</button>
+            <button type="submit" class="btn btn-primary signup-btn">Get Access Token</button>
           </div>
           <p class="signup-error" id="hero-signup-error" role="alert" aria-live="polite"></p>
         </form>
         <div class="hero-signup-success" id="hero-signup-success" hidden>
-          <p class="signup-success-msg">&#x2713; You&rsquo;re on the list. Check your inbox for the connection details.</p>
+          <p class="signup-success-msg">&#x2713; Check your inbox &mdash; your token and setup instructions are on the way.</p>
         </div>
-        <p class="hero-note">Free &middot; No credit card &middot; Open source (MIT)</p>
-        <div class="hero-actions-secondary">
+        <div class="hero-actions-secondary" style="margin-top:1rem;">
           <a href="#how-it-works" class="link-subtle">See how it works &darr;</a>
           <span class="hero-note-sep">&middot;</span>
-          <a href="https://github.com/ccedacero/nyc-property-intel" class="link-subtle" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+          <a href="https://github.com/ccedacero/nyc-property-intel" class="link-subtle" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
         </div>
       </div>
     </section>
@@ -510,7 +503,7 @@
 
           <div class="tool-card">
             <h3><span class="tool-name">get_fdny_fire_incidents</span></h3>
-            <p>FDNY fire and emergency incident history filtered by zip code and borough. Returns incident classification, highest alarm level, and units assigned. Note: the FDNY dataset has no street-address field &mdash; results cover the zip code area, not an exact address. Loaded into PostgreSQL; Socrata fallback when local table unavailable.</p>
+            <p>FDNY fire and emergency incident history for the zip code area. Returns incident classification, highest alarm level, and units assigned. Note: the FDNY dataset does not include street-level address fields &mdash; results reflect the full zip code, not a single building.</p>
             <div class="tool-sources">FDNY NFIRS &middot; NYC Open Data 8m42-w767</div>
           </div>
 
@@ -557,6 +550,7 @@
           All data is sourced from official <strong>NYC Open Data</strong> and city agency databases,
           loaded into PostgreSQL on Railway via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project
           (~19 million rows). The NYC Open Data Socrata API is used as a fallback only when local tables are unavailable.
+          <strong>HPD and DOB violations update daily. PLUTO updates quarterly. DOF sales update monthly.</strong>
         </p>
 
         <div class="data-table-wrapper">
@@ -904,7 +898,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     </div>
   </footer>
 
-  <script src="js/main.js?v=20260426" defer></script>
+  <script src="js/main.js?v=20260425b" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

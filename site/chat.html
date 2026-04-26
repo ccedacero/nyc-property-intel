@@ -20,8 +20,8 @@
   <link rel="canonical" href="https://nycpropertyintel.com/chat">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260426">
-  <link rel="stylesheet" href="css/chat.css?v=20260426">
+  <link rel="stylesheet" href="css/style.css?v=20260425b">
+  <link rel="stylesheet" href="css/chat.css?v=20260425b">
 
   <!-- PostHog analytics -->
   <script>
@@ -49,11 +49,7 @@
         <li><a href="/#tools">Tools</a></li>
         <li><a href="/#data-sources">Data</a></li>
         <li><a href="/#install">Install</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-        <li><a href="chat.html" class="btn btn-sm btn-accent" aria-current="page">Try It Free</a></li>
-        <li><a href="/#fair-housing">Fair Housing</a></li>
-        <li><a href="legal.html">Legal</a></li>
-        <li><a href="https://github.com/ccedacero/nyc-property-intel" class="btn btn-sm" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="chat.html" class="btn btn-sm btn-accent" aria-current="page">Try It Free &rarr;</a></li>
       </ul>
     </nav>
   </header>
@@ -120,10 +116,15 @@
           <div class="chat-welcome" id="chat-welcome">
             <h1 class="chat-welcome-title">NYC Property Intel</h1>
             <p class="chat-welcome-sub">
-              Ask about any NYC property in plain English. I'll pull violations,
+              Type an address or BBL to get started. I'll return violations,
               sales history, liens, permits, ownership records, and more from
-              official city databases.
+              20+ official NYC city databases.
             </p>
+            <div class="welcome-pills">
+              <button class="chat-suggestion-pill" type="button">Look up 350 5th Ave, Manhattan</button>
+              <button class="chat-suggestion-pill" type="button">Full due diligence on 250 West St, Manhattan</button>
+              <button class="chat-suggestion-pill" type="button">Any red flags on 123 Atlantic Ave, Brooklyn?</button>
+            </div>
           </div>
         </div>
 
@@ -174,10 +175,10 @@
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <!-- SCRIPTS                                                        -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
-  <script src="js/vendor/marked.min.js?v=20260426"></script>
-  <script src="js/vendor/purify.min.js?v=20260426"></script>
-  <script src="js/main.js?v=20260426" defer></script>
-  <script src="js/chat.js?v=20260426" defer></script>
+  <script src="js/vendor/marked.min.js?v=20260425b"></script>
+  <script src="js/vendor/purify.min.js?v=20260425b"></script>
+  <script src="js/main.js?v=20260425b" defer></script>
+  <script src="js/chat.js?v=20260425b" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

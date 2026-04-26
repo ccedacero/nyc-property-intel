@@ -169,6 +169,14 @@
   line-height: 1.6;
 }
 
+.welcome-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
 /* ── Message bubbles ──────────────────────────────────────────────── */
 
 .chat-message {

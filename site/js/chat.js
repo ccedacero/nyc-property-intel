@@ -154,7 +154,7 @@
         localStorage.setItem(TRIAL_COUNT_KEY, "0");
         updateAuthUI();
         updateCounter();
-        appendSystemMessage("You're activated! You now have 10 queries/day including up to 5 full analysis reports.");
+        appendSystemMessage("You're in. 10 queries per day, including up to 5 full due-diligence reports. Start with an address below.");
         if (typeof posthog !== "undefined") posthog.capture("chat_activated");
       }
     } catch {
@@ -248,7 +248,7 @@
           showEmailGate();
         } else if (res.status === 429) {
           appendErrorMessage(
-            data.message || data.detail || "You've reached your daily query limit. It resets at midnight UTC."
+            data.message || data.detail || "You've reached your daily limit — it resets tonight at 8 PM ET (midnight UTC)."
           );
         } else {
           appendErrorMessage(msg);
@@ -276,10 +276,7 @@
           try { evt = JSON.parse(line.slice(6)); } catch { continue; }
 
           if (evt.type === "text_delta") {
-            if (toolIndicatorEl) {
-              toolIndicatorEl.remove();
-              toolIndicatorEl = null;
-            }
+            if (toolIndicatorEl) { toolIndicatorEl.remove(); toolIndicatorEl = null; }
             if (!assistantEl) {
               assistantEl = appendAssistantMessage("");
               assistantEl.classList.add("streaming");
@@ -293,14 +290,11 @@
             }
 
           } else if (evt.type === "tool_done") {
-            if (toolIndicatorEl) {
-              toolIndicatorEl.remove();
-              toolIndicatorEl = null;
-            }
+            // Keep indicator visible until first text_delta to avoid blank gap
 
           } else if (evt.type === "error") {
             if (toolIndicatorEl) { toolIndicatorEl.remove(); toolIndicatorEl = null; }
-            appendErrorMessage(evt.message || "An error occurred. Please try again.");
+            appendErrorMessage(evt.message || "Something went wrong pulling that data. Try rephrasing your query or try again in a moment.");
 
           } else if (evt.type === "done") {
             if (assistantEl) assistantEl.classList.remove("streaming");
@@ -331,7 +325,7 @@
       thinkingEl.remove();
       if (toolIndicatorEl) { toolIndicatorEl.remove(); }
       if (assistantEl) assistantEl.classList.remove("streaming");
-      appendErrorMessage("Connection error. Please check your network and try again.");
+      appendErrorMessage("Connection error — please try again. If this keeps happening, the server may be temporarily unavailable.");
       console.error(err);
     } finally {
       isStreaming = false;
@@ -349,11 +343,10 @@
     gate.setAttribute("role", "region");
     gate.setAttribute("aria-label", "Email signup gate");
     gate.innerHTML = `
-      <p class="chat-gate-heading">Enjoying NYC Property Intel?</p>
+      <p class="chat-gate-heading">Continue with 10 free queries/day</p>
       <p class="chat-gate-sub">
-        You've used your 3 free queries. Enter your email to get
-        <strong>10 queries/day free for 30 days</strong> — including up to
-        5 full due-diligence reports. No credit card required.
+        Get <strong>10 queries/day free for 30 days</strong> — including up to
+        5 full due-diligence reports. No credit card required. Your activation link arrives in under a minute.
       </p>
       <form class="chat-gate-form" id="gate-form" novalidate>
         <input
@@ -365,7 +358,7 @@
           required
           aria-label="Email address"
         >
-        <button type="submit" class="gate-submit-btn" id="gate-submit" disabled aria-disabled="true">Get free access</button>
+        <button type="submit" class="gate-submit-btn" id="gate-submit" disabled aria-disabled="true">Send my activation link</button>
       </form>
       <p class="chat-gate-error" id="gate-error" role="alert" aria-live="polite"></p>
     `;
@@ -410,10 +403,11 @@
           submitBtn.textContent = "Get free access";
         } else {
           gate.innerHTML = `
-            <p class="chat-gate-heading">Check your inbox!</p>
+            <p class="chat-gate-heading">Check your inbox.</p>
             <p class="chat-gate-sub">
               We sent an activation link to <strong>${escapeHtml(email)}</strong>.
-              Click it to unlock 10 queries/day free for 30&nbsp;days.
+              Click it to continue — you'll have 10 queries/day, including full due-diligence reports.
+              You can close this tab and return once you've clicked the link.
             </p>
           `;
           if (typeof posthog !== "undefined") posthog.capture("chat_signup", { email });
@@ -501,7 +495,7 @@
     if (authState === "trial") {
       authDot.className = "auth-dot active";
       const remaining = Math.max(0, TRIAL_LIMIT - trialQueryCount);
-      authLabel.textContent = `Trial active · ${trialQueryCount}/${TRIAL_LIMIT} queries today`;
+      authLabel.textContent = `Free plan · ${trialQueryCount}/${TRIAL_LIMIT} queries today`;
       authLabel.title = `${remaining} quer${remaining === 1 ? "y" : "ies"} remaining today`;
     } else if (authState === "gate") {
       authDot.className = "auth-dot expired";
@@ -529,9 +523,11 @@
       const used = queryCount;
       const remaining = Math.max(0, FREE_LIMIT - used);
       if (used === 0) {
-        freeCounter.innerHTML = `<span>${FREE_LIMIT}</span> free queries — no account needed`;
+        freeCounter.innerHTML = `<span>${FREE_LIMIT}</span> free queries — no signup required`;
+      } else if (remaining === 1) {
+        freeCounter.innerHTML = `<span>${remaining}</span> query left — sign up for 10/day free`;
       } else {
-        freeCounter.innerHTML = `<span>${remaining}</span> of ${FREE_LIMIT} free queries remaining`;
+        freeCounter.innerHTML = `<span>${remaining}</span> of ${FREE_LIMIT} free queries left — sign up for 10/day free`;
       }
     }
   }
@@ -567,12 +563,26 @@
     welcome.innerHTML = `
       <h1 class="chat-welcome-title">NYC Property Intel</h1>
       <p class="chat-welcome-sub">
-        Ask about any NYC property in plain English. I'll pull violations,
+        Type an address or BBL to get started. I'll return violations,
         sales history, liens, permits, ownership records, and more from
-        official city databases.
+        20+ official NYC city databases.
       </p>
+      <div class="welcome-pills">
+        <button class="chat-suggestion-pill" type="button">Look up 350 5th Ave, Manhattan</button>
+        <button class="chat-suggestion-pill" type="button">Full due diligence on 250 West St, Manhattan</button>
+        <button class="chat-suggestion-pill" type="button">Any red flags on 123 Atlantic Ave, Brooklyn?</button>
+      </div>
     `;
     messagesEl.appendChild(welcome);
+    // Wire up the inline welcome pills
+    welcome.querySelectorAll(".chat-suggestion-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (isStreaming) return;
+        textarea.value = btn.textContent.trim();
+        textarea.dispatchEvent(new Event("input"));
+        textarea.focus();
+      });
+    });
     textarea.value = "";
     textarea.style.height = "";
     updateSendBtn();
