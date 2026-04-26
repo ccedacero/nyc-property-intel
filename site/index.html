@@ -666,15 +666,16 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
               <pre><code>{
   "mcpServers": {
     "nyc-property-intel": {
-      "type": "http",
-      "url": "https://nyc-property-intel-production.up.railway.app/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_TOKEN"
-      }
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://nyc-property-intel-production.up.railway.app/mcp",
+        "--header", "Authorization: Bearer YOUR_TOKEN"
+      ]
     }
   }
 }</code></pre>
-              <p>Replace <code>YOUR_TOKEN</code> with the token from your welcome email.</p>
+              <p>Replace <code>YOUR_TOKEN</code> with the token from your welcome email. Requires <a href="https://nodejs.org/" target="_blank" rel="noopener noreferrer">Node.js</a>.</p>
             </div>
           </div>
         </div>

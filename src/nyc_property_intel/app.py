@@ -52,12 +52,100 @@ WORKFLOW — How to Use These Tools
    - `get_property_history` — DOF sales history, ACRIS deed transfers, ownership changes
    - `search_comps`         — comparable sales in the same zip code, neighborhood stats
 
-3. **Get the full picture with `analyze_property`**
-   This is the power tool — it runs all sub-queries concurrently and returns a
-   comprehensive due diligence summary: property profile, financial snapshot,
-   development potential (FAR analysis), risk factors (violations), comparable
-   market data, and programmatic key observations. Use it when the user wants
-   a complete investment analysis of a property.
+3. **Get the full picture — always use ALL of these together:**
+   When a user asks for a full due diligence report, run ALL of the following
+   in sequence (analyze_property first, then the three supplemental tools):
+   - `analyze_property` — runs 14 sub-queries concurrently (violations, sales,
+     ownership, tax, mortgages, rent stabilization, permits, 311, evictions, comps)
+   - `get_nypd_crime` — crime data is NOT included in analyze_property
+   - `get_fdny_fire_incidents` — fire history is NOT included in analyze_property
+   - `get_dob_complaints` — DOB complaint pre-violation signals, also NOT included
+
+   NEVER call analyze_property alone for a "full report" — always follow with
+   the three supplemental tools above. The user asked for everything; give them everything.
+
+═══════════════════════════════════════════════════════════════════
+FULL DUE DILIGENCE REPORT — REQUIRED FORMAT
+═══════════════════════════════════════════════════════════════════
+
+When generating a full due diligence report, ALWAYS use this exact markdown
+structure. Every section must appear in this order, even if the data is empty
+(write "No data on record" rather than skipping a section). Consistency lets
+users compare reports across properties.
+
+```
+# Due Diligence Report: [Full Address], [Borough]
+*BBL: [X-XXXXX-XXXX] · Generated [Month DD, YYYY] · Source: NYC Public Records*
+
+---
+
+## 🏢 Property Profile
+| Field | Value |
+|-------|-------|
+| Owner | ... |
+| Building Class | ... |
+| Zoning | ... |
+| Year Built | ... |
+| Floors / Units | ... |
+| Lot Area / Bldg Area | ... |
+| Landmark / Historic | ... |
+
+## 💰 Financial Snapshot
+| Field | Value |
+|-------|-------|
+| Assessed Value (Land) | ... |
+| Assessed Value (Total) | ... |
+| Tax Class | ... |
+| Active Exemptions | ... |
+| FAR Built / Allowed | ... / ... (X% utilized) |
+
+## ⚠️ Violations & Compliance
+**HPD Housing Violations:** X total (X open) — Class A: X · Class B: X · Class C: X
+**DOB Building Violations:** X total
+**ECB/OATH Penalties:** $X outstanding
+
+[Table of open Class C and Class B violations if any]
+
+## 🔑 Ownership & Debt
+**Current Owner:** [name from ACRIS/PLUTO]
+**Last Sale:** [date] at [price]
+**Recorded Mortgages:** X active ($X total)
+**Tax Liens:** [Yes/No — detail if yes]
+
+## 🏠 Rental Status
+**Rent-Stabilized Units:** [count] (as of 2017)
+**Trend:** [declining/stable/increasing] — [2007 count] → [2017 count]
+
+## 📋 Complaints & Tenant Issues
+**HPD Complaints:** X total (X open) — most recent: [date]
+**311 Service Requests:** X total (X open) — most recent: [date]
+**DOB Complaints:** X total — most recent: [date]
+
+## ⚖️ Legal Actions
+**HPD Litigations:** X cases (X open) — harassment findings: [Yes/No]
+
+## 🏗️ Permits & Development
+**DOB Filings:** X total — [X new buildings / X alterations / X demolitions]
+**FAR Analysis:** [X of Y available, Z% used — development upside: High/Medium/Low/None]
+
+## 📈 Market & Comparables
+**Recent Sales (this property):** [date] at [price]
+**Comparable Sales (last 12 months, same zip):** [X sales, median $X/SF]
+
+## 🚨 Neighborhood Risk
+**NYPD Crime (300m radius, last 12 months):** X complaints — X felonies / X misdemeanors
+**FDNY Fire Incidents (zip area, last 3 years):** X incidents
+**Evictions:** X total (X residential / X commercial)
+
+## 🚩 Red Flags & Key Observations
+[Bullet list of anything material — open Class C violations, tax liens, HPD litigation,
+stop-work orders, FAR maxed out, unusual ownership structure, etc.]
+[Write "No material red flags identified." if clean]
+
+---
+*Data sourced from NYC public records (HPD, DOB, DOF, ACRIS, NYPD, FDNY, 311).
+Not legal, tax, or investment advice. Verify independently before financial decisions.*
+```
 
 ═══════════════════════════════════════════════════════════════════
 DATA PRESENTATION RULES
