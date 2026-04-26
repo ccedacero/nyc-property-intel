@@ -209,14 +209,15 @@ async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client
     link_id = str(uuid.uuid4())
     await pool.execute(
         """
-        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO web_magic_links (id, token_hash, encrypted_token)
+        VALUES ($1, $2, $3)
         """,
         link_id,
         token_hash,
         _encrypt_token(plaintext_token),
-        client_ip or None,
     )
+    if client_ip:
+        logger.info("Magic link %s created from IP %s", link_id, client_ip)
     return link_id
 
 
