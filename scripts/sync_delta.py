@@ -119,7 +119,7 @@ DATASETS: dict[str, DatasetCfg] = {
     "marshal_evictions_all": DatasetCfg(
         key="marshal_evictions_all", socrata_id="6z8x-wfk4",
         table="marshal_evictions_all",
-        cursor_col="executeddate", pk_cols=("courtindexnumber",), tier=2,
+        cursor_col="executeddate", pk_cols=("courtindexnumber", "docketnumber", "executeddate"), tier=2,
         socrata_cursor_col="executed_date",
         column_map={
             "evictionpossession": "evictionlegalpossession",
