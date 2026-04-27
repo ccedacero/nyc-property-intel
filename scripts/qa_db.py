@@ -27,17 +27,37 @@ DRIFT_ERR_PCT = 10.0
 
 
 async def get_socrata_count(client: httpx.AsyncClient, cfg: DatasetCfg) -> int | None:
-    """Fetch row count directly from Socrata $count endpoint (fastest, most accurate)."""
+    """Fetch row count from Socrata — tries $count endpoint first, falls back to metadata."""
+    # Method 1: SoQL aggregate query
     try:
         r = await client.get(
             f"{SOCRATA_BASE}/resource/{cfg.socrata_id}.json",
             params={"$select": "count(*)", "$limit": 1},
             timeout=30,
         )
-        r.raise_for_status()
-        data = r.json()
-        if data and "count_star_" in data[0]:
-            return int(data[0]["count_star_"])
+        if r.is_success:
+            data = r.json()
+            if data and "count_star_" in data[0]:
+                return int(data[0]["count_star_"])
+    except Exception:
+        pass
+
+    # Method 2: metadata endpoint
+    try:
+        r = await client.get(
+            f"{SOCRATA_BASE}/api/views/{cfg.socrata_id}.json",
+            timeout=30,
+        )
+        if r.is_success:
+            meta = r.json()
+            if "rowsUpdatedAt" in meta:
+                pass  # not what we want
+            if "viewLastModified" in meta:
+                pass
+            for col in meta.get("columns", []):
+                cc = col.get("cachedContents", {})
+                if "non_null" in cc:
+                    return int(cc["non_null"])
     except Exception as e:
         print(f"  [WARN] Socrata count failed for {cfg.key}: {e}")
     return None
@@ -132,13 +152,22 @@ async def run_qa() -> None:
             if db_cursor and socrata_max_cursor:
                 try:
                     db_dt = datetime.fromisoformat(str(db_cursor).replace(" ", "T").split("T")[0])
-                    api_dt = datetime.fromisoformat(str(socrata_max_cursor).split("T")[0])
-                    lag_days = (api_dt - db_dt).days
-                    if lag_days > 7:
-                        cursor_lag = f" [{lag_days}d behind]"
-                        issues.append(f"[{key}] Cursor is {lag_days} days behind Socrata latest ({db_cursor} vs {socrata_max_cursor[:10]})")
-                    elif lag_days > 1:
-                        cursor_lag = f" [{lag_days}d behind]"
+                    raw = str(socrata_max_cursor).strip()
+                    # Normalise YYYYMMDD → YYYY-MM-DD
+                    if len(raw) == 8 and raw.isdigit():
+                        raw = f"{raw[:4]}-{raw[4:6]}-{raw[6:]}"
+                    api_dt = datetime.fromisoformat(raw.split("T")[0])
+                    today = datetime.now(timezone.utc).replace(tzinfo=None)
+                    # Ignore bogus future dates from source (e.g. Y9990120, 2030-xx-xx)
+                    if api_dt > today + __import__("datetime").timedelta(days=90):
+                        cursor_lag = f" [API cursor bogus: {socrata_max_cursor[:12]}]"
+                    else:
+                        lag_days = (api_dt - db_dt).days
+                        if lag_days > 7:
+                            cursor_lag = f" [{lag_days}d behind]"
+                            issues.append(f"[{key}] Cursor is {lag_days} days behind Socrata latest ({str(db_cursor)[:10]} vs {raw[:10]})")
+                        elif lag_days > 1:
+                            cursor_lag = f" [{lag_days}d behind]"
                 except Exception:
                     pass
 
