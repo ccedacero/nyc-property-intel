@@ -48,6 +48,6 @@ def capture(distinct_id: str, event: str, properties: dict[str, Any] | None = No
     if client is None:
         return
     try:
-        client.capture(distinct_id, event=event, properties=properties or {})
+        client.capture(distinct_id=distinct_id, event=event, properties=properties or {})
     except Exception as exc:
         logger.debug("PostHog capture error: %s", exc)
