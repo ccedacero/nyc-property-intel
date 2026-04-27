@@ -115,7 +115,7 @@
         })
         .catch(function (err) {
           btn.disabled = false;
-          btn.textContent = "Get Early Access";
+          btn.textContent = "Get Access Token";
           if (err.message === "server_error") {
             signupError.textContent = "Something went wrong. Try again in a moment.";
           } else {

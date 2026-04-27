@@ -816,7 +816,33 @@ pre code {
   margin-bottom: 0.5rem;
 }
 
+/* ── Final CTA ────────────────────────────────────────────────────── */
+
+.final-cta {
+  text-align: center;
+  background: var(--bg-alt);
+}
+
+.final-cta h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 0.75rem;
+}
+
+.final-cta-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (min-width: 769px) and (max-width: 1023px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 @media (max-width: 768px) {
   .nav-toggle {
@@ -1014,13 +1040,13 @@ pre code {
 .btn-accent {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff !important;
+  color: #fff;
 }
 
 .btn-accent:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: #fff !important;
+  color: #fff;
 }
 
 /* ── Grid 2 ───────────────────────────────────────────────────────── */

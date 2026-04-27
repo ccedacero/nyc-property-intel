@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>NYC Property Intel — AI-Powered Due Diligence for NYC Real Estate</title>
-  <meta name="description" content="Free MCP server that gives Claude AI access to 20+ NYC public record databases. Check violations, liens, sales history, permits, rent stabilization &amp; more — from a single query. Open source.">
+  <meta name="description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases: violations, liens, sales history, permits &amp; rent stabilization. Open source.">
   <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude AI real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
   <meta name="author" content="NYC Property Intel">
@@ -125,7 +125,7 @@
             "name": "How do I check building violations in NYC?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "You can check NYC building violations using NYC Property Intel by providing an address or BBL. The get_property_issues tool returns both HPD housing violations and DOB building code violations with severity, status, and dates. Alternatively, you can search individual agency websites: HPD Online for housing violations, DOB BIS for building violations."
+              "text": "You can check NYC building violations using NYC Property Intel by providing an address or BBL. The get_property_issues tool returns both HPD housing violations and DOB building code violations with severity, status, and dates. Alternatively, you can search individual agency websites: HPD Online for housing violations, DOB BIS or DOB NOW for building violations."
             }
           },
           {
@@ -437,7 +437,7 @@
 
           <div class="tool-card">
             <h3><span class="tool-name">get_property_history</span></h3>
-            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types going back to 2003.</p>
+            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types. DOF sales back to 2003; ACRIS deed transfers back to 1966.</p>
             <div class="tool-sources">DOF Sales &middot; DOF Annual Sales &middot; ACRIS</div>
           </div>
 
@@ -778,7 +778,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">Is NYC Property Intel free?</summary>
             <div class="faq-a">
-              <p>Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version offers a free trial &mdash; sign up above and your personal token is emailed automatically. For ongoing professional use, paid plans provide higher daily query limits.</p>
+              <p>Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version includes a free trial &mdash; sign up above and your personal token is emailed automatically. Your trial token gives you unlimited access for 30 days. Professional and team plans with higher limits are in development &mdash; <a href="#hero-signup-form">sign up</a> and we&rsquo;ll reach out when they launch.</p>
             </div>
           </details>
 
@@ -846,6 +846,19 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           </details>
 
         </div>
+      </div>
+    </section>
+
+    <!-- ── Final CTA ──────────────────────────────────────────────── -->
+    <section class="section final-cta" id="get-started">
+      <div class="container">
+        <h2>Ready to Run Your First Search?</h2>
+        <p class="section-intro">Your trial token is emailed the moment you sign up &mdash; no credit card, no setup required. Connect to Claude Desktop or Claude Code in minutes.</p>
+        <div class="final-cta-actions">
+          <a href="chat.html" class="btn btn-primary">Try It Now &mdash; Free</a>
+          <a href="#hero-signup-form" class="btn btn-outline">Get Your Access Token &rarr;</a>
+        </div>
+        <p class="hero-note" style="margin-top:1.25rem;">No credit card &middot; First 3 queries free without signup &middot; Open source (MIT)</p>
       </div>
     </section>
 
