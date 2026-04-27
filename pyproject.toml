@@ -33,6 +33,7 @@ packages = ["src/nyc_property_intel"]
 
 [project.scripts]
 nyc-property-intel = "nyc_property_intel.server:main"
+nyc-property-intel-sync = "nyc_property_intel.sync_runner:main"
 
 [tool.ruff]
 target-version = "py312"
