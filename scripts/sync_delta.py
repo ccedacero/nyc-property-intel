@@ -57,15 +57,36 @@ import re
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
 
+_YYYYMMDD_RE = re.compile(r"^\d{8}$")
+
+
+def _normalize_cursor_date(value: str) -> str:
+    """Normalise YYYYMMDD → YYYY-MM-DD so cursors are stored in ISO format."""
+    s = value.strip()
+    if _YYYYMMDD_RE.match(s):
+        return f"{s[:4]}-{s[4:6]}-{s[6:]}"
+    return s
+
+
 def _is_valid_date_cursor(value) -> bool:
     """Reject junk date values (e.g. 'Y9990120') and absurd future dates that
-    would poison the cursor and block all future incremental syncs."""
-    if not isinstance(value, str) or not _ISO_DATE_RE.match(value):
+    would poison the cursor and block all future incremental syncs.
+
+    Normalises YYYYMMDD → YYYY-MM-DD before validation so that datasets like
+    ecb_violations (which return dates in that compact format) advance their
+    cursor correctly instead of stalling.
+    """
+    if not isinstance(value, str):
         return False
-    # Reject anything more than 1 day in the future — clearly bad source data.
+    s = value.strip()
+    # Normalise compact YYYYMMDD → ISO YYYY-MM-DD
+    if _YYYYMMDD_RE.match(s):
+        s = f"{s[:4]}-{s[4:6]}-{s[6:]}"
+    if not _ISO_DATE_RE.match(s):
+        return False
     from datetime import date, timedelta
     try:
-        d = date.fromisoformat(value[:10])
+        d = date.fromisoformat(s[:10])
         return d <= date.today() + timedelta(days=1)
     except ValueError:
         return False
@@ -422,7 +443,7 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
                 break
 
             page_max = max(
-                (r[cfg.cursor_col] for r in rows
+                (_normalize_cursor_date(r[cfg.cursor_col]) for r in rows
                  if _is_valid_date_cursor(r.get(cfg.cursor_col))),
                 default=max_cursor_seen,
             )
