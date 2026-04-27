@@ -181,6 +181,19 @@ def normalize_street_name(street: str) -> str:
     return expanded
 
 
+def _strip_ordinals_for_geoclient(street: str) -> str:
+    """Strip ordinal suffixes and expand type abbreviations for GeoClient.
+
+    Produces the numeric form GeoClient natively recognises:
+    "East 34th Street" → "East 34 Street".
+    Used as a retry strategy when the spelled-out form fails.
+    """
+    stripped = _ORDINAL_SUFFIX_RE.sub(r"\1", street)
+    for pattern, replacement in _STREET_SUFFIXES:
+        stripped = pattern.sub(replacement, stripped)
+    return stripped
+
+
 def parse_address(
     address: str,
     borough_hint: str | None = None,
@@ -446,6 +459,7 @@ async def resolve_address_to_bbl(
 
     # Try GeoClient first.
     if settings.geoclient_configured:
+        # Attempt 1: ordinals expanded ("34th" → "Thirty-Fourth Street")
         try:
             result = await _call_geoclient(house_number, street_normalized, borough_code)
             bbl = result.get("bbl")
@@ -456,6 +470,28 @@ async def resolve_address_to_bbl(
                     logger.info("GeoClient resolved %s → BBL %s", address, bbl_clean)
                     return bbl_clean
         except ToolError:
+            # Attempt 2: ordinal suffixes stripped ("34th" → "34 Street").
+            # GeoClient natively handles numeric ordinals and rejects spelled-out
+            # forms for some street names (e.g. "Thirty-Fourth" vs "34 Street").
+            street_stripped = _strip_ordinals_for_geoclient(street)
+            if street_stripped.lower() != street_normalized.lower():
+                try:
+                    result = await _call_geoclient(
+                        house_number, street_stripped, borough_code
+                    )
+                    bbl = result.get("bbl")
+                    if bbl:
+                        bbl_clean = normalize_geoclient_bbl(bbl)
+                        if bbl_clean:
+                            _address_cache[cache_key] = bbl_clean
+                            logger.info(
+                                "GeoClient resolved %s → BBL %s (stripped form)",
+                                address, bbl_clean,
+                            )
+                            return bbl_clean
+                except ToolError:
+                    pass
+
             logger.warning(
                 "GeoClient failed for %s (street: %r → %r), trying PAD fallback",
                 address, street, street_normalized,

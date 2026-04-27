@@ -461,6 +461,8 @@ def _build_violations_and_compliance(
                 ),
                 "most_recent_case": hpd_litigations.get("most_recent_case"),
             }
+        else:
+            hpd_lit = {"total_cases": 0, "has_litigation_history": False}
 
     bldg_permits: dict[str, Any] | None = None
     if permits is not None:
@@ -507,6 +509,12 @@ def _build_ownership_and_legal(
                 "most_recent_date": mortgages.get("most_recent_date"),
                 "total_mortgage_amount": _safe_float(
                     mortgages.get("total_mortgage_amount")
+                ),
+                "amount_note": (
+                    "Sum of all recorded ACRIS mortgage instrument amounts. "
+                    "May include cross-collateralized portfolio loans counted "
+                    "at full face value — not the building's isolated debt. "
+                    "Review individual instruments via get_liens_and_encumbrances."
                 ),
             }
 
