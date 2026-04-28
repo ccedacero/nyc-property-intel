@@ -67,6 +67,12 @@ async def get_hpd_complaints(
     tenants are reporting before formal violations are issued. Categories
     include PLUMBING, PAINT/PLASTER, HEAT/HOT WATER, PEST CONTROL, etc.
     Use this alongside violations to assess a building's condition.
+
+    Note on historical depth: our local DB retains all historical HPD
+    complaints, while NYC's live Socrata API rolls older records out of
+    its public feed. As a result, totals reported here may exceed what
+    data.cityofnewyork.us shows for the same BBL — the extra rows are
+    real, just no longer surfaced by NYC Open Data.
     """
     try:
         validate_bbl(bbl)

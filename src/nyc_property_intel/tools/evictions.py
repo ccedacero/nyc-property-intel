@@ -186,7 +186,9 @@ async def get_evictions(
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
 
-        # Resolve address for display
+        # Resolve address for display. pad_adr is the primary source but
+        # excludes synthetic condo billing lots (lot 7501+); fall back to
+        # PLUTO for those.
         row = await fetch_one(
             "SELECT lhnd AS house_number, stname AS street_name "
             "FROM pad_adr WHERE bbl = $1 LIMIT 1",
@@ -196,6 +198,13 @@ async def get_evictions(
             hn = (row["house_number"] or "").strip()
             sn = (row["street_name"] or "").strip()
             resolved_address = f"{hn} {sn}"
+        else:
+            pluto_row = await fetch_one(
+                "SELECT address FROM pluto_latest WHERE bbl = $1 LIMIT 1",
+                bbl,
+            )
+            if pluto_row and pluto_row.get("address"):
+                resolved_address = pluto_row["address"].strip()
 
         try:
             evictions = await _query_local_by_bbl(bbl, normalized_eviction_type, since_year, limit)

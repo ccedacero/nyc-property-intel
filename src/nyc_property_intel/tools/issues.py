@@ -28,6 +28,16 @@ SELECT bbl, hpd_total, hpd_class_a, hpd_class_b, hpd_class_c, hpd_open,
     dob_most_recent
 FROM mv_violation_summary WHERE bbl = $1;"""
 
+# ECB stats are not in mv_violation_summary — query directly. Cheap because
+# (bbl) is indexed.
+_SQL_ECB_SUMMARY = """\
+SELECT
+    COUNT(*) AS ecb_total,
+    COUNT(*) FILTER (WHERE upper(ecbviolationstatus) = 'ACTIVE') AS ecb_active,
+    COALESCE(SUM(balancedue), 0)::numeric AS ecb_balance_due_total,
+    MAX(issuedate) AS ecb_most_recent
+FROM ecb_violations WHERE bbl = $1;"""
+
 _SQL_HPD = """\
 SELECT violationid, class, inspectiondate, approveddate, currentstatus,
     violationstatus, novdescription, novissueddate, apartment, story, rentimpairing
@@ -77,6 +87,12 @@ async def get_property_issues(
     HPD Class C violations are immediately hazardous. ECB violations include
     penalties and balances due. Returns both summary counts and violation
     details. Use this to assess a building's regulatory risk profile.
+
+    Note on historical depth: our local DB retains all historical HPD
+    violations and complaints, while NYC's live Socrata API rolls older
+    records out of its public feed. As a result, the totals reported here
+    may exceed what data.cityofnewyork.us shows for the same BBL — the
+    extra rows are real, just no longer surfaced by NYC Open Data.
     """
     # ── Validate inputs ──────────────────────────────────────────────
     try:
@@ -117,6 +133,22 @@ async def get_property_issues(
         except asyncpg.UndefinedTableError:
             logger.info("mv_violation_summary not available, skipping summary")
             summary = None
+
+        # Augment with ECB stats — not in the materialized view.
+        if source_upper in ("ECB", "ALL"):
+            try:
+                ecb_stats = await fetch_one(_SQL_ECB_SUMMARY, bbl)
+                if ecb_stats:
+                    if summary is None:
+                        summary = {"bbl": bbl}
+                    # Coerce numeric balance to float for clean JSON.
+                    bal = ecb_stats.get("ecb_balance_due_total")
+                    summary["ecb_total"] = int(ecb_stats.get("ecb_total") or 0)
+                    summary["ecb_active"] = int(ecb_stats.get("ecb_active") or 0)
+                    summary["ecb_balance_due_total"] = float(bal) if bal is not None else 0.0
+                    summary["ecb_most_recent"] = ecb_stats.get("ecb_most_recent")
+            except asyncpg.UndefinedTableError:
+                logger.info("ecb_violations table not loaded, skipping ECB summary")
 
     # ── HPD violations ───────────────────────────────────────────────
     hpd_violations: list[dict[str, Any]] = []
