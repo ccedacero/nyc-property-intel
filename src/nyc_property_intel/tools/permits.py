@@ -6,6 +6,9 @@ from the legacy BIS system for a given BBL.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 
 import asyncpg
@@ -48,7 +51,7 @@ async def get_building_permits(
     bbl: str,
     job_type: str | None = None,
     limit: int = 20,
-) -> dict:
+) -> dict[str, Any]:
     """Get DOB building permit filings and job applications for a property.
 
     Shows new building, alteration, and demolition applications with costs,

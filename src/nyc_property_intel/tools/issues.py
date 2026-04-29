@@ -81,7 +81,7 @@ async def get_property_issues(
     since_date: str | None = None,
     limit: int = 25,
     include_summary: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Get HPD housing violations, DOB building code violations, and ECB/OATH violations for a property.
 
     HPD Class C violations are immediately hazardous. ECB violations include
@@ -126,6 +126,9 @@ async def get_property_issues(
             ) from exc
 
     # ── Summary from materialized view ───────────────────────────────
+    # Always return a fully-populated summary dict so callers can rely on
+    # numeric fields without null-checks. Clean buildings (no row in the
+    # materialized view) get zeroed counts.
     summary: dict[str, Any] | None = None
     if include_summary:
         try:
@@ -134,19 +137,24 @@ async def get_property_issues(
             logger.info("mv_violation_summary not available, skipping summary")
             summary = None
 
+        if summary is None:
+            summary = {
+                "bbl": bbl,
+                "hpd_total": 0, "hpd_class_a": 0, "hpd_class_b": 0,
+                "hpd_class_c": 0, "hpd_open": 0, "hpd_most_recent": None,
+                "dob_total": 0, "dob_no_disposition": 0,
+                "dob_has_disposition": 0, "dob_most_recent": None,
+            }
+
         # Augment with ECB stats — not in the materialized view.
         if source_upper in ("ECB", "ALL"):
             try:
                 ecb_stats = await fetch_one(_SQL_ECB_SUMMARY, bbl)
-                if ecb_stats:
-                    if summary is None:
-                        summary = {"bbl": bbl}
-                    # Coerce numeric balance to float for clean JSON.
-                    bal = ecb_stats.get("ecb_balance_due_total")
-                    summary["ecb_total"] = int(ecb_stats.get("ecb_total") or 0)
-                    summary["ecb_active"] = int(ecb_stats.get("ecb_active") or 0)
-                    summary["ecb_balance_due_total"] = float(bal) if bal is not None else 0.0
-                    summary["ecb_most_recent"] = ecb_stats.get("ecb_most_recent")
+                bal = (ecb_stats or {}).get("ecb_balance_due_total")
+                summary["ecb_total"] = int((ecb_stats or {}).get("ecb_total") or 0)
+                summary["ecb_active"] = int((ecb_stats or {}).get("ecb_active") or 0)
+                summary["ecb_balance_due_total"] = float(bal) if bal is not None else 0.0
+                summary["ecb_most_recent"] = (ecb_stats or {}).get("ecb_most_recent")
             except asyncpg.UndefinedTableError:
                 logger.info("ecb_violations table not loaded, skipping ECB summary")
 

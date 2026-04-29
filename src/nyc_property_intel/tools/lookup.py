@@ -6,6 +6,9 @@ including building characteristics, zoning, assessed values, and owner info.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 
 import asyncpg
@@ -42,7 +45,7 @@ async def lookup_property(
     address: str | None = None,
     bbl: str | None = None,
     borough: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Look up a NYC property by address or BBL.
 
     Returns the full property profile including building details, zoning,

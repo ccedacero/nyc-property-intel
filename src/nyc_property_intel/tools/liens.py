@@ -6,6 +6,9 @@ for a given BBL.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 
 import asyncpg
@@ -52,7 +55,7 @@ async def get_liens_and_encumbrances(
     include_tax_liens: bool = True,
     include_mortgages: bool = True,
     limit: int = 20,
-) -> dict:
+) -> dict[str, Any]:
     """Get tax liens and mortgage/encumbrance records for a property.
 
     Shows DOF tax lien sale list entries and ACRIS mortgage documents

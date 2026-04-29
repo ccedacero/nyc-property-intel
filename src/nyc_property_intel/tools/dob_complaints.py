@@ -317,7 +317,10 @@ async def get_dob_complaints(
             )
         house_number = (pad_row["house_number"] or "").strip()
         street_name = (pad_row["street_name"] or "").strip()
-        bin_val = str(pad_row["bin"]).strip() if pad_row.get("bin") else None
+        # Treat NYC sentinel BINs ('0', '1000000') as "no BIN" — they don't
+        # match any real building and would silently return zero results.
+        raw_bin = str(pad_row["bin"]).strip() if pad_row.get("bin") else ""
+        bin_val = raw_bin if raw_bin and raw_bin not in ("0", "1000000") else None
 
         # Use PLUTO canonical address for display — PAD has multiple rows per BBL
         # (one per entrance) and LIMIT 1 can pick a secondary address.
@@ -373,18 +376,32 @@ async def get_dob_complaints(
         data_source_used = "socrata"
 
     # ── Build response ────────────────────────────────────────────────
-    data_note = (
-        "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
-        "BIN-based exact match via PAD table."
-        if data_source_used == "local" and bin_val
-        else
-        "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
-        "Address string match."
-        if data_source_used == "local"
-        else
-        "Real-time via Socrata API (local table not yet loaded). "
-        "Address matching is approximate."
-    )
+    if data_source_used == "local" and bin_val:
+        data_note = (
+            "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
+            "BIN-based exact match via PAD table."
+        )
+    elif data_source_used == "local" and bbl:
+        # BBL was given but BIN couldn't be resolved (synthetic condo lot
+        # or sentinel BIN). Falling back to fuzzy address match — counts
+        # may undercount if the source dataset uses a slightly different
+        # street formatting.
+        data_note = (
+            "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
+            "BIN could not be resolved for this BBL (likely a synthetic "
+            "condo lot); used fuzzy address match — totals may be low. "
+            "For exact counts, query a non-condo BBL or pass an address."
+        )
+    elif data_source_used == "local":
+        data_note = (
+            "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
+            "Address string match."
+        )
+    else:
+        data_note = (
+            "Real-time via Socrata API (local table not yet loaded). "
+            "Address matching is approximate."
+        )
 
     return {
         "address_queried": resolved_address,

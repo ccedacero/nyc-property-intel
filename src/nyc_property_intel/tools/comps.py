@@ -7,6 +7,9 @@ quarterly market trend statistics.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 
 import asyncpg
@@ -119,7 +122,7 @@ async def search_comps(
     max_price: int | None = None,
     limit: int = 20,
     include_stats: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Find comparable property sales and neighborhood market statistics.
 
     Can search by zip code, building class, size, and time period. If a

@@ -6,6 +6,9 @@ DOF rolling sales data with ACRIS deed and document records.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 from datetime import date, datetime
 
@@ -135,7 +138,7 @@ async def get_property_history(
     start_date: str | None = None,
     end_date: str | None = None,
     limit: int = 15,
-) -> dict:
+) -> dict[str, Any]:
     """Get the history of a NYC property including sales and ownership transfers.
 
     Pulls sales from DOF records and ownership transfers from ACRIS deed
@@ -236,6 +239,29 @@ async def get_property_history(
                 "ACRIS transaction data tables are not yet loaded. "
                 "This data will be available after Phase C data ingestion."
             )
+
+    # ── Aggregate summary ─────────────────────────────────────────────
+    sales_list = result.get("sales") or []
+    transfers_list = result.get("ownership_transfers") or []
+    transactions_list = result.get("transactions") or []
+
+    sale_dates = [s.get("saledate") for s in sales_list if s.get("saledate")]
+    transfer_dates = [t.get("docdate") for t in transfers_list if t.get("docdate")]
+    most_recent = max(sale_dates + transfer_dates, default=None)
+
+    sale_prices = [
+        s.get("saleprice") for s in sales_list
+        if s.get("saleprice") and s.get("sale_type") != "NON_ARMS_LENGTH"
+    ]
+
+    result["summary"] = {
+        "total_sales": len(sales_list),
+        "total_transfers": len(transfers_list),
+        "total_transactions": len(transactions_list),
+        "total_records": len(sales_list) + len(transfers_list),
+        "most_recent_date": most_recent,
+        "most_recent_sale_price": max(sale_prices) if sale_prices else None,
+    }
 
     # Deduplicate data sources
     result["data_sources"] = list(dict.fromkeys(result["data_sources"]))

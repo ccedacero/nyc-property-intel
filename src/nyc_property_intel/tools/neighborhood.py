@@ -7,6 +7,9 @@ area comparisons, and investment targeting.
 
 from __future__ import annotations
 
+from typing import Any
+from __future__ import annotations
+
 import logging
 
 import asyncpg
@@ -142,7 +145,7 @@ async def search_neighborhood_stats(
     include_quarterly_trends: bool = True,
     include_violations: bool = True,
     include_rent_stabilization: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Get aggregate neighborhood statistics for market research and area analysis.
 
     Combines property stock data, sales market activity, violation patterns,

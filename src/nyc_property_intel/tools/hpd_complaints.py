@@ -60,7 +60,7 @@ async def get_hpd_complaints(
     since_date: str | None = None,
     limit: int = 25,
     include_summary: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Get HPD tenant complaints and reported problems for a property.
 
     Complaints are leading indicators of building distress — they show what
