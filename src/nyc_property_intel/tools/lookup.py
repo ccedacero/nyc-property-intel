@@ -7,7 +7,6 @@ including building characteristics, zoning, assessed values, and owner info.
 from __future__ import annotations
 
 from typing import Any
-from __future__ import annotations
 
 import logging
 

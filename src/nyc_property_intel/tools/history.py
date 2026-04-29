@@ -7,7 +7,6 @@ DOF rolling sales data with ACRIS deed and document records.
 from __future__ import annotations
 
 from typing import Any
-from __future__ import annotations
 
 import logging
 from datetime import date, datetime

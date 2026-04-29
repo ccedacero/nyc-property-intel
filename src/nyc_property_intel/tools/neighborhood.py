@@ -8,7 +8,6 @@ area comparisons, and investment targeting.
 from __future__ import annotations
 
 from typing import Any
-from __future__ import annotations
 
 import logging
 
