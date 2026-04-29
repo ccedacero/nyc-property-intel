@@ -310,17 +310,34 @@ async def get_dob_complaints(
             "FROM pad_adr WHERE bbl = $1 LIMIT 1",
             bbl,
         )
-        if pad_row is None:
-            raise ToolError(
-                f"Could not find an address for BBL {bbl}. "
-                "Try passing the street address directly."
+        if pad_row is not None:
+            house_number = (pad_row["house_number"] or "").strip()
+            street_name = (pad_row["street_name"] or "").strip()
+            # Treat NYC sentinel BINs ('0', '1000000') as "no BIN" — they don't
+            # match any real building and would silently return zero results.
+            raw_bin = str(pad_row["bin"]).strip() if pad_row.get("bin") else ""
+            bin_val = raw_bin if raw_bin and raw_bin not in ("0", "1000000") else None
+        else:
+            # pad_adr has no row — common for synthetic condo billing lots
+            # (lot 7501+). Fall back to PLUTO and address-based search.
+            logger.info("pad_adr has no row for BBL %s, falling back to PLUTO", bbl)
+            pluto_fallback = await fetch_one(
+                "SELECT address FROM pluto_latest WHERE bbl = $1 LIMIT 1",
+                bbl,
             )
-        house_number = (pad_row["house_number"] or "").strip()
-        street_name = (pad_row["street_name"] or "").strip()
-        # Treat NYC sentinel BINs ('0', '1000000') as "no BIN" — they don't
-        # match any real building and would silently return zero results.
-        raw_bin = str(pad_row["bin"]).strip() if pad_row.get("bin") else ""
-        bin_val = raw_bin if raw_bin and raw_bin not in ("0", "1000000") else None
+            if pluto_fallback is None or not pluto_fallback.get("address"):
+                raise ToolError(
+                    f"Could not find an address for BBL {bbl}. "
+                    "Try passing the street address directly."
+                )
+            # Use the PLUTO address as a coarse street_name for fuzzy match.
+            # Format is "338 5 AVENUE" — split off house number when possible.
+            addr = (pluto_fallback["address"] or "").strip()
+            parts = addr.split(None, 1)
+            if len(parts) == 2 and parts[0].replace("-","").isdigit():
+                house_number, street_name = parts[0], parts[1]
+            else:
+                house_number, street_name = "", addr
 
         # Use PLUTO canonical address for display — PAD has multiple rows per BBL
         # (one per entrance) and LIMIT 1 can pick a secondary address.
