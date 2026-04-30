@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     # Project API key from https://us.posthog.com/settings/project
     posthog_api_key: str = ""
 
+    # ── Sentry error tracking ────────────────────────────────────────────
+    # DSN from https://sentry.io/settings/<org>/projects/<project>/keys/
+    # Empty = no-op (local dev). Set in Railway env vars to enable.
+    sentry_dsn: str = ""
+    # "production" / "staging" / "development" — surfaces in Sentry UI
+    sentry_environment: str = "production"
+    # Fraction of transactions to sample for performance tracing.
+    # 0.1 = 10%, plenty at our traffic; raise if you need to debug latency.
+    sentry_traces_sample_rate: float = 0.1
+
     # ── Web chat ─────────────────────────────────────────────────────────
     anthropic_api_key: str = ""
     # HMAC-SHA256 secret for signing free-tier session cookies

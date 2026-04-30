@@ -40,6 +40,23 @@ from nyc_property_intel.db import db_lifespan
 from nyc_property_intel.geoclient import close_client as _close_geoclient
 from nyc_property_intel.socrata import close_client as _close_socrata
 
+# ── Sentry error tracking (optional) ─────────────────────────────────
+# Initialised at import time, before the Starlette app is built, so the
+# Starlette integration auto-attaches to the ASGI middleware stack.
+# No-op when SENTRY_DSN is unset (local dev).
+if settings.sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        # Don't ship request bodies — they may contain emails or addresses.
+        send_default_pii=False,
+        integrations=[StarletteIntegration()],
+    )
+
 # ── Logging setup ─────────────────────────────────────────────────────
 
 logging.basicConfig(
@@ -341,7 +358,71 @@ def main() -> None:
         ]
 
         async def health_handler(request: Request) -> Response:
+            """Liveness check: app is up and DB is reachable. Always cheap."""
+            try:
+                pool = await auth._get_pool()
+                async with pool.acquire() as conn:
+                    await conn.fetchval("SELECT 1")
+            except Exception as exc:
+                logger.warning("Health check DB ping failed: %s", exc)
+                return Response(
+                    json.dumps({"status": "degraded", "db": "unreachable"}),
+                    status_code=503,
+                    media_type="application/json",
+                )
             return Response('{"status":"ok"}', media_type="application/json")
+
+        async def healthz_handler(request: Request) -> Response:
+            """Deep health check: DB reachable AND tier-1 syncs fresh (<48h).
+
+            Used by Better Stack and similar uptime monitors. Returns 503 if
+            any tier-1 dataset hasn't synced successfully in 48 hours so we
+            page on stale data, not just downtime.
+            """
+            checks: dict[str, Any] = {"status": "ok"}
+            try:
+                pool = await auth._get_pool()
+                async with pool.acquire() as conn:
+                    await conn.fetchval("SELECT 1")
+                    rows = await conn.fetch(
+                        """
+                        SELECT dataset_key,
+                               EXTRACT(EPOCH FROM (NOW() - last_success_at)) / 3600 AS age_h
+                          FROM sync_state
+                         WHERE last_success_at IS NOT NULL
+                        """
+                    )
+                stale = [
+                    r["dataset_key"]
+                    for r in rows
+                    # Tier-2/3 datasets sync less often — only alert on tier-1.
+                    if r["dataset_key"] in {
+                        "hpd_violations",
+                        "hpd_complaints_and_problems",
+                        "hpd_litigations",
+                        "dob_violations",
+                        "ecb_violations",
+                        "real_property_master",
+                    }
+                    and r["age_h"] is not None and r["age_h"] > 48
+                ]
+                checks["db"] = "ok"
+                checks["stale_datasets"] = stale
+                if stale:
+                    checks["status"] = "degraded"
+                    return Response(
+                        json.dumps(checks),
+                        status_code=503,
+                        media_type="application/json",
+                    )
+            except Exception as exc:
+                logger.warning("Healthz check failed: %s", exc)
+                return Response(
+                    json.dumps({"status": "degraded", "error": str(exc)[:120]}),
+                    status_code=503,
+                    media_type="application/json",
+                )
+            return Response(json.dumps(checks), media_type="application/json")
 
         if use_streamable:
             @asynccontextmanager
@@ -351,6 +432,7 @@ def main() -> None:
             starlette_app = Starlette(
                 routes=[
                     Route("/health", health_handler, methods=["GET"]),
+                    Route("/healthz", healthz_handler, methods=["GET"]),
                     Route("/webhook/loops", webhook_handler, methods=["POST"]),
                     Route("/api/chat/signup", signup_handler, methods=["POST"]),
                     Route("/api/activate", activate_handler, methods=["POST"]),
@@ -362,6 +444,7 @@ def main() -> None:
         else:
             starlette_app = Starlette(routes=[
                 Route("/health", health_handler, methods=["GET"]),
+                Route("/healthz", healthz_handler, methods=["GET"]),
                 Route("/webhook/loops", webhook_handler, methods=["POST"]),
                 Route("/api/chat/signup", signup_handler, methods=["POST"]),
                 Route("/api/activate", activate_handler, methods=["POST"]),
