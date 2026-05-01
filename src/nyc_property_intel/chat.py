@@ -28,7 +28,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp, MCP_INSTRUCTIONS
-from nyc_property_intel.auth import PLAN_LIMITS, TRIAL_DAYS, TokenAuth, generate_token, hash_token
+from nyc_property_intel.auth import PLAN_LIMITS, TRIAL_DAYS, TokenAuth, generate_token, hash_token, normalize_email
 from nyc_property_intel.config import settings
 
 logger = logging.getLogger(__name__)
@@ -112,20 +112,7 @@ def _check_signup_ip_rate_limit(ip: str) -> bool:
     return True
 
 
-def _normalize_email(email: str) -> str:
-    """Return a canonical email for deduplication (never used for sending).
-
-    Rules:
-    - Strip + suffix from local part for all providers.
-    - Additionally strip dots from local part for gmail.com / googlemail.com,
-      and normalize googlemail.com → gmail.com (same inbox pool).
-    """
-    local, _, domain = email.partition("@")
-    local = local.split("+")[0]  # strip + alias universally
-    if domain in ("gmail.com", "googlemail.com"):
-        local = local.replace(".", "")
-        domain = "gmail.com"
-    return f"{local}@{domain}"
+_normalize_email = normalize_email
 
 
 def _get_client_ip(request: Request) -> str:
@@ -331,7 +318,7 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
-                        "content": json.dumps({"error": "Tool call budget exceeded"}),
+                        "content": "<tool_result>\n" + json.dumps({"error": "Tool call budget exceeded"}) + "\n</tool_result>",
                     })
                     continue
 
@@ -343,12 +330,13 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                         mcp._tool_manager.call_tool(block.name, block.input or {}, convert_result=False),
                         timeout=45.0,
                     )
-                    result_str = json.dumps(result, default=str)
+                    result_str = "<tool_result>\n" + json.dumps(result, default=str) + "\n</tool_result>"
                 except asyncio.TimeoutError:
-                    result_str = json.dumps({"error": f"{block.name} timed out"})
+                    logger.warning("Tool %s timed out", block.name)
+                    result_str = "<tool_result>\n" + json.dumps({"error": "Tool timed out"}) + "\n</tool_result>"
                 except Exception as exc:
                     logger.warning("Tool %s error: %s", block.name, exc)
-                    result_str = json.dumps({"error": str(exc)})
+                    result_str = "<tool_result>\n" + json.dumps({"error": "Tool execution failed"}) + "\n</tool_result>"
 
                 tool_results.append({
                     "type": "tool_result",
@@ -510,7 +498,17 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         ph_capture("anonymous", "magic_link_activated", {})
-        return JSONResponse({"token": plaintext})
+        response = JSONResponse({"ok": True})
+        response.set_cookie(
+            key="nyc_pi_token",
+            value=plaintext,
+            httponly=True,
+            secure=True,
+            samesite="none",  # cross-origin: Vercel frontend → Railway backend
+            max_age=30 * 24 * 3600,
+            path="/api/chat",
+        )
+        return response
 
     async def chat_handler(request: Request) -> JSONResponse | StreamingResponse:
         """Agentic SSE chat endpoint."""
@@ -547,18 +545,25 @@ def make_chat_handlers(auth: TokenAuth):
             if isinstance(msg.get("content"), str):
                 msg["content"] = msg["content"].replace("\x00", "")
 
-        # ── Auth: Bearer token or free-tier cookie ────────────────────
+        # ── Auth: HttpOnly cookie (web), Bearer header (CLI/API), or free-tier cookie ──
         auth_header = request.headers.get("authorization", "")
         token_info = None
         is_authenticated = False
         query_count = 0
         anon_analyze_count = 0
 
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-            token_info = await auth.validate(token)
+        # Web activation sets an HttpOnly cookie; CLI/API uses Authorization header.
+        cookie_token = request.cookies.get("nyc_pi_token")
+        raw_token = cookie_token or (auth_header[7:] if auth_header.startswith("Bearer ") else None)
+
+        if raw_token:
+            token_info = await auth.validate(raw_token)
             if token_info is None:
-                return JSONResponse({"error": "Invalid or expired token"}, status_code=401)
+                resp = JSONResponse({"error": "Invalid or expired token"}, status_code=401)
+                if cookie_token:
+                    # Clear the stale cookie so the browser doesn't keep retrying
+                    resp.delete_cookie("nyc_pi_token", path="/api/chat", samesite="none", secure=True)
+                return resp
 
             # Enforce daily web-chat query limit for trial tokens
             allowed, used_count = await auth.check_rate_limit(
@@ -639,27 +644,22 @@ def make_chat_handlers(auth: TokenAuth):
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*You have used all 5 full analysis reports included in your trial. Upgrade to continue.*'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
-                        if not token_info:
-                            # Always gate anon users from analyze_property — even the first call.
-                            # Allowing one free full report bypasses the core paywall.
+                        if not token_info and anon_analyze_count >= 1:
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Full due-diligence reports require a free account.** Sign up below to get 10 queries/day including up to 5 full analysis reports — no credit card required.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
-                        # Record this analyze call immediately so concurrent requests see it
-                        if token_info and pool:
-                            asyncio.create_task(
-                                auth.record_call(token_info.token_hash, "analyze_property", 0, 200)
-                            )
                         analyze_calls_this_request += 1
                 except Exception:
                     pass
                 yield chunk
 
-            # Record general web_chat request
+            # Record exactly one call per request. Use "analyze_property" when
+            # analyze ran so _count_analyze_trial stays accurate for the 30-day cap.
             if token_info:
                 try:
+                    tool_name = "analyze_property" if analyze_calls_this_request else "web_chat"
                     asyncio.create_task(
-                        auth.record_call(token_info.token_hash, "web_chat", 0, 200)
+                        auth.record_call(token_info.token_hash, tool_name, 0, 200)
                     )
                 except Exception:
                     pass
