@@ -47,6 +47,22 @@ PLAN_LIMITS: dict[str, int] = {
 TRIAL_DAYS = 30
 
 
+# ── Email normalization ───────────────────────────────────────────────
+
+def normalize_email(email: str) -> str:
+    """Return a canonical email for deduplication (never used for sending).
+
+    Strips + aliases universally. For Gmail / Googlemail also strips dots
+    and normalises googlemail.com → gmail.com (same inbox pool).
+    """
+    local, _, domain = email.lower().strip().partition("@")
+    local = local.split("+")[0]
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}"
+
+
 # ── Token generation ──────────────────────────────────────────────────
 
 def generate_token() -> str:
@@ -171,6 +187,7 @@ class TokenAuth:
         """
         from datetime import datetime, timedelta, timezone
 
+        email = normalize_email(email)
         pool = await self._get_pool()
 
         existing = await pool.fetchval(
@@ -193,6 +210,7 @@ class TokenAuth:
             INSERT INTO mcp_tokens
                 (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (customer_email) WHERE revoked_at IS NULL DO NOTHING
             """,
             token_hash, token_prefix, email, plan, daily_limit, expires_at, notes,
         )
