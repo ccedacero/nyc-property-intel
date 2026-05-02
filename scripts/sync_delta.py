@@ -484,7 +484,9 @@ async def upsert_page(
     seen: dict[tuple, dict] = {}
     for r in rows:
         pk = tuple(r.get(c) for c in cfg.pk_cols)
-        if all(v is not None for v in pk):
+        # Skip rows whose PK is NULL or empty-string — they can't be upserted
+        # and would fail the NOT NULL constraint after _coerce() converts "" → None.
+        if all(v is not None and str(v).strip() != "" for v in pk):
             seen[pk] = r
     rows = list(seen.values())
     if not rows:
