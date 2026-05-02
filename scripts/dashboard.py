@@ -120,7 +120,7 @@ async def run(hours: int) -> None:
     """)
     print(f"  {'DATASET':<32} {'AGE':<10} {'STATUS'}")
     # Datasets intentionally excluded from incremental sync until schema migration
-    PENDING_MIGRATION = {"dob_complaints"}
+    PENDING_MIGRATION: set[str] = set()  # no datasets currently pending migration
 
     for r in rows:
         key = r['dataset_key']
