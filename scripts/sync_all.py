@@ -114,7 +114,8 @@ def format_summary(results: list[RunResult]) -> tuple[str, str]:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--tier", type=int, default=1, help="filter by tier (default: 1)")
+    p.add_argument("--tier", type=int, default=int(os.environ.get("SYNC_TIER", 1)),
+                   help="filter by tier (default: 1, or $SYNC_TIER env var)")
     p.add_argument("--only", help="run a specific dataset only (overrides --tier)")
     p.add_argument(
         "--always-email", action="store_true",
