@@ -323,6 +323,21 @@ DATASETS: dict[str, DatasetCfg] = {
         cursor_col="lastregistrationdate", pk_cols=("registrationid",), tier=3,
         # Socrata column names match DB — no column_map needed.
     ),
+    "fdny_incidents": DatasetCfg(
+        key="fdny_incidents", socrata_id="8m42-w767",
+        table="fdny_incidents",
+        cursor_col="incident_datetime", pk_cols=("starfire_incident_id",), tier=3,
+        # Socrata column names match DB — no column_map needed.
+        # Source updates daily; we sync quarterly to pick up historical data.
+    ),
+    "nypd_crime_complaints": DatasetCfg(
+        key="nypd_crime_complaints", socrata_id="qgea-i56i",
+        table="nypd_crime_complaints",
+        cursor_col="rpt_dt", pk_cols=("cmplnt_num",), tier=3,
+        # Using Historic dataset (qgea-i56i); YTD is 5uac-w243 (current year only).
+        # rpt_dt (report date) is more reliable cursor than cmplnt_fr_dt (crime date).
+        # Socrata column names match DB — no column_map needed.
+    ),
 }
 
 # ── Tunables ──────────────────────────────────────────────────────────
