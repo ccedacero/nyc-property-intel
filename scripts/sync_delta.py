@@ -140,10 +140,12 @@ DATASETS: dict[str, DatasetCfg] = {
             "reelyr": "reelyear",
         },
     ),
-    # dobjobs (ic3t-wcy2): local table has 1.1M duplicate rows under (job, doc)
-    # because NYCDB loaded historical snapshots. Local 'id' PK is synthetic and
-    # not present in source. Phase 2.6: add row_hash column + migrate to it.
-    # dob_complaints: same problem. Phase 2.6.
+    "dobjobs": DatasetCfg(
+        key="dobjobs", socrata_id="ic3t-wcy2",
+        table="dobjobs",
+        cursor_col="latestactiondate", pk_cols=("job", "doc"), tier=1,
+        socrata_cursor_col="latest_action_date",
+    ),
 }
 
 # ── Tunables ──────────────────────────────────────────────────────────
