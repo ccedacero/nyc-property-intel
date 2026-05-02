@@ -31,10 +31,14 @@ class DatasetCfg:
     socrata_id: str        # Socrata 4x4 ID
     table: str             # Postgres table name
     cursor_col: str        # Column name in OUR table (used for cursor advance)
-    pk_cols: tuple[str, ...]  # Columns forming the primary key for UPSERT
+    pk_cols: tuple[str, ...]  # Columns forming the primary key for UPSERT (empty for refresh_by_documentid)
     tier: int              # 1 = daily, 2 = weekly, 3 = monthly+
     socrata_cursor_col: str | None = None  # source name if different (e.g. 'received_date' vs 'receiveddate')
     column_map: dict[str, str] | None = None  # source-stripped → target overrides
+    # "upsert": ON CONFLICT DO UPDATE keyed on pk_cols (default).
+    # "refresh_by_documentid": ACRIS sub-tables — no per-row PK; for each batch,
+    #   delete all existing rows whose documentid appears in the page, then insert.
+    sync_mode: str = "upsert"
 
 
 def _normalize_socrata_keys(row: dict, column_map: dict[str, str] | None = None) -> dict:
@@ -338,6 +342,81 @@ DATASETS: dict[str, DatasetCfg] = {
         # rpt_dt (report date) is more reliable cursor than cmplnt_fr_dt (crime date).
         # Socrata column names match DB — no column_map needed.
     ),
+    # ── ACRIS sub-tables ──────────────────────────────────────────────
+    # No per-row PK: each (documentid, goodthroughdate) is a snapshot of a
+    # composite-keyed record. Source ships full document state in monthly
+    # batches; same documentid reappears with a fresher goodthroughdate when
+    # corrected. ON CONFLICT upserts can't work, so we use refresh_by_documentid:
+    # for each page, delete all existing rows whose documentid appears in the
+    # batch, then insert. Cursor column is goodthroughdate.
+    "real_property_legals": DatasetCfg(
+        key="real_property_legals", socrata_id="8h5j-fqxa",
+        table="real_property_legals",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+    ),
+    "real_property_parties": DatasetCfg(
+        key="real_property_parties", socrata_id="636b-3b5g",
+        table="real_property_parties",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+    ),
+    "real_property_references": DatasetCfg(
+        key="real_property_references", socrata_id="pwkr-dpni",
+        table="real_property_references",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+    ),
+    "real_property_remarks": DatasetCfg(
+        key="real_property_remarks", socrata_id="9p4w-7npp",
+        table="real_property_remarks",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+        column_map={
+            "sequencenumber": "remarklinenbr",
+            "remarktext": "remarktextline",
+        },
+    ),
+    "personal_property_legals": DatasetCfg(
+        key="personal_property_legals", socrata_id="uqqa-hym2",
+        table="personal_property_legals",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+    ),
+    "personal_property_parties": DatasetCfg(
+        key="personal_property_parties", socrata_id="nbbg-wtuz",
+        table="personal_property_parties",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+    ),
+    "personal_property_references": DatasetCfg(
+        key="personal_property_references", socrata_id="6y3e-jcrc",
+        table="personal_property_references",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+        column_map={
+            # Source field is just `crfn`; local column is referencebycrfn.
+            "crfn": "referencebycrfn",
+        },
+    ),
+    "personal_property_remarks": DatasetCfg(
+        key="personal_property_remarks", socrata_id="fuzi-5ks9",
+        table="personal_property_remarks",
+        cursor_col="goodthroughdate", pk_cols=(), tier=3,
+        socrata_cursor_col="good_through_date",
+        sync_mode="refresh_by_documentid",
+        column_map={
+            "sequencenumber": "remarklinenbr",
+            "remarktext": "remarktextline",
+        },
+    ),
 }
 
 # ── Tunables ──────────────────────────────────────────────────────────
@@ -357,14 +436,19 @@ async def fetch_page(
     cursor_value: str | None,
     offset: int = 0,
     column_map: dict[str, str] | None = None,
+    use_offset_with_where: bool = False,
 ) -> list[dict]:
     """Fetch one page; retry with exp backoff. Raises on permanent failure.
 
-    Two modes:
+    Three modes:
       - Backfill (cursor_value is None): paginate by $offset, no $where.
-        Source doesn't need cursor_col to be indexed — fast for any column.
-      - Incremental (cursor_value set): use $where on cursor_col.
-        Requires the source to be indexed on cursor_col for performance.
+      - Incremental (cursor_value set): use $where on cursor_col, advance via
+        the page max each iteration. Requires the source to be indexed on
+        cursor_col.
+      - Refresh-window (cursor_value set + use_offset_with_where=True): apply
+        $where as a one-time range filter and paginate within it via $offset.
+        Used when the cursor column is too coarse (e.g. ACRIS goodthroughdate
+        where every row in a monthly batch shares one date).
     """
     url = f"https://data.cityofnewyork.us/resource/{socrata_id}.json"
     params: dict[str, str | int] = {
@@ -376,6 +460,8 @@ async def fetch_page(
         # become ISO-8601 ('2026-04-06T00:00:00') for SoQL.
         normalized = cursor_value.replace(" ", "T", 1)
         params["$where"] = f"{cursor_col} > '{normalized}'"
+        if use_offset_with_where:
+            params["$offset"] = offset
     else:
         params["$offset"] = offset
 
@@ -504,6 +590,19 @@ async def upsert_page(
         tuple(_coerce(row.get(c), t, ml) for c, t, ml in target_cols) for row in rows
     ]
 
+    # Defensive: drop rows where any PK column coerced to None (e.g. an alphanumeric
+    # value cast against an integer-typed PK). The pre-coerce filter above misses
+    # this because it sees the raw string. Without this, the COPY into _stage fails
+    # the NOT NULL implied by the target PK and aborts the entire page.
+    pk_indexes = [col_names.index(c) for c in cfg.pk_cols]
+    pre_drop = len(projected)
+    projected = [t for t in projected if all(t[i] is not None for i in pk_indexes)]
+    dropped = pre_drop - len(projected)
+    if dropped:
+        logger.warning("dropped %d row(s) with NULL PK after coercion", dropped)
+    if not projected:
+        return 0
+
     async with conn.transaction():
         await conn.execute(
             f'CREATE TEMP TABLE _stage (LIKE {cfg.table} INCLUDING DEFAULTS) ON COMMIT DROP'
@@ -525,6 +624,56 @@ async def upsert_page(
             f"{on_conflict}"
         )
         result = await conn.execute(sql)
+        affected = int(result.rsplit(" ", 1)[-1])
+
+    return affected
+
+
+async def refresh_page_by_doc(
+    conn: asyncpg.Connection,
+    cfg: DatasetCfg,
+    target_cols: list[tuple[str, str, int | None]],
+    rows: list[dict],
+) -> int:
+    """ACRIS sub-table sync: delete rows whose documentid appears in the page,
+    then insert the page. Composite "natural" keys aren't enforced as a PK so
+    UPSERT can't be used; the source ships full document state per batch, so
+    replacing all rows for the documentids in scope is correct.
+    """
+    if not rows:
+        return 0
+
+    col_names = [c for c, _, _ in target_cols]
+    if "documentid" not in col_names:
+        raise RuntimeError(f"refresh_by_documentid requires a documentid column on {cfg.table}")
+
+    projected = [
+        tuple(_coerce(row.get(c), t, ml) for c, t, ml in target_cols) for row in rows
+    ]
+    docid_idx = col_names.index("documentid")
+    pre_drop = len(projected)
+    projected = [t for t in projected if t[docid_idx] is not None and str(t[docid_idx]).strip() != ""]
+    dropped = pre_drop - len(projected)
+    if dropped:
+        logger.warning("dropped %d row(s) with NULL documentid", dropped)
+    if not projected:
+        return 0
+
+    docids = list({t[docid_idx] for t in projected})
+
+    async with conn.transaction():
+        await conn.execute(
+            f'DELETE FROM "{cfg.table}" WHERE documentid = ANY($1::text[])',
+            docids,
+        )
+        await conn.execute(
+            f'CREATE TEMP TABLE _stage (LIKE "{cfg.table}" INCLUDING DEFAULTS) ON COMMIT DROP'
+        )
+        await conn.copy_records_to_table("_stage", records=projected, columns=col_names)
+        col_list = ", ".join(f'"{c}"' for c in col_names)
+        result = await conn.execute(
+            f'INSERT INTO "{cfg.table}" ({col_list}) SELECT {col_list} FROM _stage'
+        )
         affected = int(result.rsplit(" ", 1)[-1])
 
     return affected
@@ -603,10 +752,19 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
 
         cursor_value: str | None = state["cursor_value"]
         is_backfill = cursor_value is None
+        is_refresh = cfg.sync_mode == "refresh_by_documentid"
         expected = await fetch_expected_rowcount(client, cfg.socrata_id)
+        # In refresh mode, the cursor is a one-time range filter and pagination
+        # advances via $offset (the cursor column is too coarse — every row in a
+        # monthly batch shares one goodthroughdate). In upsert mode, the cursor
+        # advances per page so $offset stays at 0.
+        mode_label = (
+            "refresh" if is_refresh
+            else ("backfill" if is_backfill else "incremental")
+        )
         logger.info(
             "starting sync %s: mode=%s cursor=%s expected_total=%s",
-            cfg.key, "backfill" if is_backfill else "incremental", cursor_value, expected,
+            cfg.key, mode_label, cursor_value, expected,
         )
 
         total_added = 0
@@ -617,15 +775,14 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
         while True:
             page_num += 1
             t0 = time.monotonic()
-            # Backfill uses $offset (always fast). Incremental uses $where on cursor_col
-            # (requires source-side index on cursor_col, but only over the small delta).
             try:
                 rows = await fetch_page(
                     client, cfg.socrata_id,
                     cfg.socrata_cursor_col or cfg.cursor_col,
-                    cursor_value=None if is_backfill else max_cursor_seen,
+                    cursor_value=None if is_backfill else (cursor_value if is_refresh else max_cursor_seen),
                     offset=offset,
                     column_map=cfg.column_map,
+                    use_offset_with_where=is_refresh,
                 )
             except Exception as e:
                 logger.exception("fatal fetch error on page %d", page_num)
@@ -650,11 +807,14 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
             else:
                 try:
                     async with pool.acquire() as conn:
-                        added = await upsert_page(conn, cfg, target_cols, rows)
-                        # Persist cursor only in incremental mode. Backfill cursor
-                        # is committed at the very end so a crashed backfill resumes
-                        # via $offset, not via $where (which would skip rows).
-                        if not is_backfill:
+                        if is_refresh:
+                            added = await refresh_page_by_doc(conn, cfg, target_cols, rows)
+                        else:
+                            added = await upsert_page(conn, cfg, target_cols, rows)
+                        # Persist cursor only in incremental upsert mode. Backfill
+                        # and refresh both commit cursor only at the very end so a
+                        # crashed run resumes via $offset, not via $where.
+                        if not is_backfill and not is_refresh:
                             await write_state(
                                 conn, cfg.key, cursor_value=page_max, rows_added=added,
                             )
@@ -670,7 +830,10 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
                             page_num, added, time.monotonic() - t0, cfg.cursor_col, page_max)
 
             max_cursor_seen = page_max
-            offset += len(rows)
+            # Refresh uses $where + $offset; upsert-incremental advances $where
+            # per page (offset stays 0); backfill paginates via $offset.
+            if is_backfill or is_refresh:
+                offset += len(rows)
 
             if len(rows) < PAGE_SIZE:
                 logger.info("partial page (%d < %d) — end of stream", len(rows), PAGE_SIZE)
@@ -682,8 +845,14 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
         async with pool.acquire() as conn:
             actual = await conn.fetchval(f'SELECT COUNT(*) FROM "{cfg.table}"')
             if not dry_run:
-                # Promote backfill cursor at end so future runs are incremental.
-                final_cursor = max_cursor_seen if is_backfill else None
+                # Promote backfill / refresh cursor at end so future runs are
+                # incremental. Upsert-incremental commits the cursor per page,
+                # so it has nothing to promote at the end (final_cursor=None
+                # means "leave cursor_value alone").
+                if is_backfill or is_refresh:
+                    final_cursor = max_cursor_seen
+                else:
+                    final_cursor = None
                 await write_state(
                     conn, cfg.key,
                     cursor_value=final_cursor,
