@@ -48,7 +48,7 @@ async def run(hours: int) -> None:
     if rows:
         print(f"  {'TOOL':<32} {'CALLS':>6} {'ERR':>5} {'AVG ms':>7} {'P95 ms':>7}")
         for r in rows:
-            print(f"  {r['tool_name']:<32} {r['calls']:>6} {r['errors']:>5} {r['avg_ms'] or 0:>7} {r['p95_ms'] or 0:>7}")
+            print(f"  {(r['tool_name'] or '(null)'):<32} {r['calls']:>6} {r['errors']:>5} {r['avg_ms'] or 0:>7} {r['p95_ms'] or 0:>7}")
     else:
         print("  (no calls in window)")
 
@@ -119,7 +119,14 @@ async def run(hours: int) -> None:
           FROM sync_state ORDER BY dataset_key
     """)
     print(f"  {'DATASET':<32} {'AGE':<10} {'STATUS'}")
+    # Datasets intentionally excluded from incremental sync until schema migration
+    PENDING_MIGRATION = {"dobjobs", "dob_complaints"}
+
     for r in rows:
+        key = r['dataset_key']
+        if key in PENDING_MIGRATION:
+            print(f"  ⏸  {key:<30} {'(pending migration)':<10}")
+            continue
         if r['last_success_at']:
             age_h = r['age_h']
             age = f"{age_h:.1f}h" if age_h < 48 else f"{age_h/24:.1f}d"
