@@ -160,8 +160,10 @@ def main() -> None:
 
     if failed:
         sys.exit(2)
-    if warned:
-        sys.exit(1)
+    # Drift warnings are informational — surfaced via log + email.
+    # Exiting non-zero would trigger Railway's ON_FAILURE restart policy
+    # and crash-loop the cron when a dataset has a permanent drift gap
+    # (e.g. dobjobs: Socrata frozen at 2020-05-21, local has 1.8M of 2.7M rows).
     sys.exit(0)
 
 
