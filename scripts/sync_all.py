@@ -79,9 +79,9 @@ def run_one(dataset_key: str) -> RunResult:
 
 def format_summary(results: list[RunResult]) -> tuple[str, str]:
     """Return (subject, body_plain) for the alert email."""
-    failed = [r for r in results if r.rc == 2]
-    warned = [r for r in results if r.rc == 1]
     ok = [r for r in results if r.rc == 0]
+    warned = [r for r in results if r.rc == 1]
+    failed = [r for r in results if r.rc not in (0, 1)]
 
     if failed:
         subject = f"❌ NYC Property Intel sync — {len(failed)} failed, {len(warned)} warned"
@@ -98,7 +98,7 @@ def format_summary(results: list[RunResult]) -> tuple[str, str]:
         "",
     ]
     for r in results:
-        status = {0: "OK", 1: "WARN", 2: "FAIL"}[r.rc]
+        status = {0: "OK", 1: "WARN", 2: "FAIL"}.get(r.rc, f"rc={r.rc}")
         lines.append(f"  [{status:>4}]  {r.key:30s}  {r.duration_sec:6.1f}s")
 
     if failed or warned:
