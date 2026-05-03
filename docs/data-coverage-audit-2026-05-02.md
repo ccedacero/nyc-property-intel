@@ -1,77 +1,89 @@
 # Data coverage audit — 2026-05-02
 
-Comparison of local Postgres tables to Socrata source-of-truth, run at 2026-05-02 14:01 UTC against the Railway production DB.
+Comparison of local Postgres tables (Railway prod) to Socrata source-of-truth, run 2026-05-02 14:01 UTC.
 
-Method: `scripts/coverage_audit.py` queries each dataset for local `count(*)`, local `min/max(cursor_col)`, and live Socrata `$select=count(*)` plus `min/max(cursor)`. 23 datasets, 3 minutes wall time.
+> **Connection verified**: audit ran via `RAILWAY_DB=postgresql://postgres:***@switchback.proxy.rlwy.net:33576/railway` — that's the public TCP-proxy hostname for the Railway "Postgres" service. The cron services (`nyc-property-intel-cron`, `nyc-property-intel-cron-weekly`) hit the same instance through the VPC-internal hostname `postgres.railway.internal:5432`. Sample query confirmed: `SELECT current_database()` → `railway`, 23 rows in `sync_state` matching DATASETS in `sync_delta.py`.
+
+> **Methods**: `scripts/coverage_audit.py` (count + min/max cursor vs Socrata) followed by `scripts/column_null_audit.py` (NULL rates on every `date`/`timestamp` column). Both tools reproducible — set `RAILWAY_DB` and run.
 
 ---
 
-## TL;DR
+## Why count-match alone is not enough — read this first
+
+Initial pass classified 17 of 23 datasets as "ALIGNED" based on row counts within 1% of Socrata. The follow-up column-NULL audit overturned that for **2 datasets**:
+
+- `dob_complaints` count-matches Socrata (+424 rows, 0.01%) but **every single date column is 100% NULL** — silent corruption from a `_coerce()` bug that nukes M/D/YYYY-format dates Socrata returns for some datasets.
+- `dobjobs` is `FROZEN_SOURCE` AND has the same `_coerce()` corruption — 55–100% NULL on 10 date columns.
+
+So the headline "17 healthy" was wrong. Updated below.
+
+---
+
+## Corrected TL;DR
 
 | Status | Count | Datasets |
 |---|---:|---|
-| ✅ **ALIGNED** (within 1%) | 17 | All ACRIS sub-tables, hpd_violations, dob_violations, ecb_violations, hpd_complaints_and_problems, hpd_litigations, real_property_master, dob_now_jobs, marshal_evictions_all, personal_property_master |
-| ⚠️ **MINOR_DRIFT** (1–5%) | 1 | `hpd_registrations` (-4.95%) |
-| ➕ **LOCAL_AHEAD** | 1 | `dob_complaints` (+424 rows, harmless) |
-| 🧊 **FROZEN_SOURCE** | 1 | `dobjobs` (Socrata stopped updating 2020-05-21) |
-| 🚨 **NEVER_SYNCED** (massive gaps) | 3 | `nyc_311_complaints`, `fdny_incidents`, `nypd_crime_complaints` |
-| 🐛 **DATA QUALITY BUG** (separate from count audit) | 2 | `dob_complaints` (99.99% NULL dateentered), `dobjobs` (55.6% NULL latestactiondate) |
+| ✅ **HEALTHY** (count + columns) | **15** | hpd_violations, hpd_complaints_and_problems, dob_violations, ecb_violations, dob_now_jobs, marshal_evictions_all, real_property_master + all 8 ACRIS sub-tables |
+| 🩹 **HARMLESS_SCHEMA_DRIFT** (column exists locally, not in Socrata) | 3 cols on 3 datasets | `hpd_litigations.findingdate`, `personal_property_master.assessmentdate`, `real_property_master.docdate` (originally bulk-loaded from NYCDB; Socrata doesn't ship these fields) |
+| 🐛 **COLUMN_CORRUPTION** (_coerce bug — M/D/YYYY → NULL) | 2 | `dob_complaints` (100% NULL on 4 date cols), `dobjobs` (55–100% NULL on 10 date cols) |
+| 🧊 **FROZEN_SOURCE** | 1 | `dobjobs` (Socrata stopped 2020-05-21; 901K historical rows missing) — also has bug above |
+| ⚠️ **MINOR_DRIFT** | 1 | `hpd_registrations` (-4.95%, ~10K rows behind, 1 month stale) |
+| ➕ **LOCAL_AHEAD** (harmless surplus) | 1 | `dob_complaints` (+424 rows, 0.01%) |
+| 🚨 **NEVER_SYNCED** (massive historical gaps) | 3 | `nyc_311_complaints` (-14.9%), `fdny_incidents` (-61.8%), `nypd_crime_complaints` (-94.2%) |
 
-**Most pressing**: 3 tier-3 datasets are missing huge historical chunks. `nypd_crime_complaints` has only 2025 (94% missing). And there's a date-coercion bug silently nulling cursor columns on 2 datasets.
-
----
-
-## Per-dataset summary table
-
-| Dataset | Tier | Local | Socrata | Diff | Local max | Socrata max | Status |
-|---|---:|---:|---:|---:|---|---|---|
-| `hpd_violations` | 1 | 10,886,435 | 10,889,395 | -0.03% | 2026-04-30 | 2026-04-30 | ✅ ALIGNED |
-| `hpd_complaints_and_problems` | 1 | 16,038,450 | 16,038,458 | -0.00% | 2026-04-30 | 2026-04-30 | ✅ ALIGNED |
-| `hpd_litigations` | 1 | 237,369 | 237,860 | -0.21% | 2030-10-05 | 2030-10-05 | ✅ ALIGNED¹ |
-| `dob_violations` | 1 | 2,473,906 | 2,474,046 | -0.01% | 2026-04-30 | Y9990120 | ✅ ALIGNED² |
-| `ecb_violations` | 1 | 1,808,951 | 1,809,319 | -0.02% | 2026-04-29 | 20260429 | ✅ ALIGNED |
-| `real_property_master` | 1 | 16,947,488 | 16,958,800 | -0.07% | 2026-04-03 | 2026-04-03 | ✅ ALIGNED |
-| `dobjobs` | 1 | 1,813,200 | 2,714,844 | **-33.21%** | 2025-12-31 | 2020-05-21 | 🧊 FROZEN_SOURCE |
-| `dob_complaints` | 1 | 3,081,172 | 3,080,748 | +0.01% | 2026-04-12 | 12/31/2025 | ➕ LOCAL_AHEAD³ |
-| `dob_now_jobs` | 1 | 897,138 | 897,256 | -0.01% | 2026-05-01 | 2026-05-01 | ✅ ALIGNED |
-| `marshal_evictions_all` | 2 | 127,242 | 127,383 | -0.11% | 2026-05-01 | 2026-05-01 | ✅ ALIGNED |
-| `nyc_311_complaints` | 2 | 17,859,506 | 20,997,024 | **-14.94%** | 2026-04-12 | 2026-05-01 | 🚨 NEVER_SYNCED |
-| `personal_property_master` | 2 | 4,515,861 | 4,523,303 | -0.16% | 2026-02-27 | 2026-04-03 | ✅ ALIGNED |
-| `hpd_registrations` | 3 | 192,998 | 203,043 | **-4.95%** | 2026-03-31 | 2026-04-30 | ⚠️ MINOR_DRIFT |
-| `fdny_incidents` | 3 | 4,509,303 | 11,819,520 | **-61.85%** | 2025-04-30 | 2026-03-31 | 🚨 NEVER_SYNCED |
-| `nypd_crime_complaints` | 3 | 579,561 | 10,071,507 | **-94.25%** | 2025-12-31 | 2025-12-31 | 🚨 NEVER_SYNCED |
-| `real_property_legals` | 3 | 22,581,578 | 22,581,852 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `real_property_parties` | 3 | 46,200,163 | 46,230,300 | -0.07% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `real_property_references` | 3 | 8,606,267 | 8,606,485 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `real_property_remarks` | 3 | 5,727,541 | 5,727,609 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `personal_property_legals` | 3 | 3,952,119 | 3,952,220 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `personal_property_parties` | 3 | 10,971,372 | 10,971,401 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `personal_property_references` | 3 | 7,709,731 | 7,709,734 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-| `personal_property_remarks` | 3 | 492,963 | 492,964 | -0.00% | 2026-03-31 | 2026-03-31 | ✅ ALIGNED |
-
-¹ `hpd_litigations` has dates back to year `0204` (data entry error in DOB) and forward to `2030-10-05` (future court dates) — same garbage in our DB as in Socrata, so aligned.
-² `dob_violations` Socrata uses `Y9990120` as a "no-end-date" sentinel; our local has the parsed value `2026-04-30`.
-³ The +424 rows in `dob_complaints` are likely NYCDB-augmented historical records that Socrata has since dropped — harmless.
+Some datasets fall in multiple buckets (e.g. `dobjobs` is FROZEN_SOURCE + COLUMN_CORRUPTION).
 
 ---
 
-## 🚨 Critical gaps (NEVER_SYNCED)
+## Per-dataset summary
 
-These three datasets have **never run** through `sync_delta.py`. Their `last_run_at` is NULL in `sync_state`; only `last_success_at` is populated (from a manual `UPDATE sync_state` during bootstrapping). Until tier-3 cron is configured, they will not auto-recover, and **even when sync runs, it will only fetch new rows past the existing cursor — historical gaps require `--reset`**.
+| Dataset | Tier | Local rows | Socrata rows | Diff | Healthy? | Issues |
+|---|---:|---:|---:|---:|:---:|---|
+| `hpd_violations` | 1 | 10,886,435 | 10,889,395 | -0.03% | ✅ | high NULL on optional re-cert cols are real source NULLs |
+| `hpd_complaints_and_problems` | 1 | 16,038,450 | 16,038,458 | -0.00% | ✅ | — |
+| `hpd_litigations` | 1 | 237,369 | 237,860 | -0.21% | ✅ | `findingdate` 100% NULL but column not in Socrata |
+| `dob_violations` | 1 | 2,473,906 | 2,474,046 | -0.01% | ✅ | dispositiondate NULL rate matches Socrata |
+| `ecb_violations` | 1 | 1,808,951 | 1,809,319 | -0.02% | ✅ | — |
+| `real_property_master` | 1 | 16,947,488 | 16,958,800 | -0.07% | ✅ | `docdate` 28% NULL but column not in Socrata |
+| `dobjobs` | 1 | 1,813,200 | 2,714,844 | **-33.21%** | ❌❌ | FROZEN_SOURCE + 10 date cols 55–100% NULL from _coerce bug |
+| `dob_complaints` | 1 | 3,081,172 | 3,080,748 | +0.01% | ❌ | Counts match BUT all 4 date cols are 100% NULL — _coerce bug |
+| `dob_now_jobs` | 1 | 897,138 | 897,256 | -0.01% | ✅ | firstpermitdate 39.6% NULL is real source NULL |
+| `marshal_evictions_all` | 2 | 127,242 | 127,383 | -0.11% | ✅ | — |
+| `nyc_311_complaints` | 2 | 17,859,506 | 20,997,024 | **-14.94%** | ❌ | Missing all of 2020 (~3.1M rows); never synced |
+| `personal_property_master` | 2 | 4,515,861 | 4,523,303 | -0.16% | ✅ | `assessmentdate` 87% NULL but column not in Socrata |
+| `hpd_registrations` | 3 | 192,998 | 203,043 | -4.95% | ⚠️ | 1 month behind; will close on next tier-3 cron run |
+| `fdny_incidents` | 3 | 4,509,303 | 11,819,520 | **-61.85%** | ❌ | Local: 2018–2025 only. Socrata: 2005–2026. Missing ~7.3M rows |
+| `nypd_crime_complaints` | 3 | 579,561 | 10,071,507 | **-94.25%** | ❌❌ | Local has ONLY 2025. Socrata: 2006–2025. Missing ~9.5M rows |
+| `real_property_legals` | 3 | 22,581,578 | 22,581,852 | -0.00% | ✅ | — |
+| `real_property_parties` | 3 | 46,200,163 | 46,230,300 | -0.07% | ✅ | — |
+| `real_property_references` | 3 | 8,606,267 | 8,606,485 | -0.00% | ✅ | — |
+| `real_property_remarks` | 3 | 5,727,541 | 5,727,609 | -0.00% | ✅ | — |
+| `personal_property_legals` | 3 | 3,952,119 | 3,952,220 | -0.00% | ✅ | — |
+| `personal_property_parties` | 3 | 10,971,372 | 10,971,401 | -0.00% | ✅ | — |
+| `personal_property_references` | 3 | 7,709,731 | 7,709,734 | -0.00% | ✅ | — |
+| `personal_property_remarks` | 3 | 492,963 | 492,964 | -0.00% | ✅ | — |
 
-### `nypd_crime_complaints` — 94.2% missing (~9.5M rows)
+**True scoreboard: 15 fully healthy / 23. The 17 number from the count-only audit is wrong.**
 
-**The most severe gap.** Local table has only the year 2025:
+---
+
+## 🚨 Critical: 3 NEVER_SYNCED datasets with massive gaps
+
+Confirmed against Railway prod. These three have `last_run_at = NULL` in `sync_state` because no tier-3 cron service exists yet. Their `last_success_at` was set by a manual `UPDATE sync_state` during bootstrap, not via `write_state()`.
+
+**Important**: even when the tier-3 cron is created, these will only fetch new data from the existing cursor forward. To get the historical data, each needs a `--reset` backfill.
+
+### `nypd_crime_complaints` — 94.2% missing
+
+Year breakdown of local table (Railway):
 
 | Year | Local rows |
 |---:|---:|
 | 2025 | 579,561 |
 
-But Socrata covers 2006-01-01 → 2025-12-31 with 10,071,507 rows total. We're missing **all of 2006–2024**.
+That's it. **Only the year 2025.** Socrata covers 2006-01-01 → 2025-12-31, 10,071,507 total rows. Missing ~9.5M rows spanning **19 years (2006–2024)**.
 
-The cursor `2025-12-31` is set, so an incremental sync would skip the gap entirely. **Requires `--reset` backfill** (~200 Socrata pages, several hours).
-
-### `fdny_incidents` — 61.8% missing (~7.3M rows)
+### `fdny_incidents` — 61.8% missing
 
 | Year | Local rows |
 |---:|---:|
@@ -84,9 +96,9 @@ The cursor `2025-12-31` is set, so an incremental sync would skip the gap entire
 | 2019 | 515,308 |
 | 2018 | 619,372 |
 
-Local starts in **2018**, Socrata starts in **2005**, and Socrata extends to **2026-03-31** while local stops at **2025-04-30**. Missing all of 2005-2017 plus the 11 most recent months. Same fix: `--reset` backfill.
+Local: 2018-01-01 → 2025-04-30. Socrata: 2005-01-01 → 2026-03-31. Missing 13 years of history (2005–2017) plus the most recent 11 months. ~7.3M rows.
 
-### `nyc_311_complaints` — 14.9% missing (~3.1M rows)
+### `nyc_311_complaints` — 14.9% missing
 
 | Year | Local rows |
 |---:|---:|
@@ -97,129 +109,151 @@ Local starts in **2018**, Socrata starts in **2005**, and Socrata extends to **2
 | 2022 | 3,169,960 |
 | 2021 | 3,220,882 |
 
-Local starts in **2021-01-01**, Socrata starts in **2020-01-01**. Missing all of 2020 (~3M rows) plus the most recent ~3 weeks (cursor at `2026-04-12`, Socrata max at `2026-05-01`). Smaller backfill (~60 pages).
+Local starts 2021-01-01, Socrata starts 2020-01-01. Missing all of 2020 (~3M rows). Smaller backfill than the other two but still ~60 Socrata pages.
 
 ---
 
-## 🐛 Data quality bug: silent NULL date coercion
+## 🐛 Critical bug: `_coerce()` silently NULLs M/D/YYYY date strings
 
-`scripts/sync_delta.py:535-540` only handles ISO 8601 dates in `_coerce()`:
+`scripts/sync_delta.py:519-546` only handles ISO 8601 dates. Three datasets serve M/D/YYYY:
 
-```python
-if pg_type == "date":
-    from datetime import date
-    return date.fromisoformat(s.split("T", 1)[0])  # ← only ISO
-if pg_type in ("timestamp without time zone", "timestamp with time zone"):
-    from datetime import datetime
-    return datetime.fromisoformat(s.replace("Z", "+00:00"))
-```
+| Socrata ID | Dataset | Sample value | Format |
+|---|---|---|---|
+| `wvxf-dwi5` | hpd_violations | `2014-01-06T00:00:00.000` | ISO ✅ |
+| `eabe-havv` | dob_complaints | `01/22/1996` | M/D/YYYY ❌ |
+| `ic3t-wcy2` | dobjobs | `06/23/2023` | M/D/YYYY ❌ |
+| `3h2n-5cm9` | dob_violations | `19881031` | YYYYMMDD ❌ (but bulk load loaded these via different path; only 0.001% NULL) |
 
-But Socrata returns dates in **three** formats depending on the dataset:
+`date.fromisoformat("01/22/1996")` raises ValueError, caught by the bare `except (ValueError, TypeError)` in `_coerce`, which returns `None`.
 
-| Format | Example | Datasets affected |
-|---|---|---|
-| ISO 8601 | `2014-01-06T00:00:00.000` | `wvxf-dwi5` (hpd_violations) and most others |
-| **M/D/YYYY** | `01/22/1996` | `eabe-havv` (dob_complaints), `ic3t-wcy2` (dobjobs) |
-| **YYYYMMDD** | `19881031` | `3h2n-5cm9` (dob_violations) |
+### Confirmed impact (Railway prod, 2026-05-02)
 
-`date.fromisoformat()` raises `ValueError` on the M/D/YYYY and YYYYMMDD formats; `_coerce` catches it and returns `None`. The row inserts with NULL in the cursor column.
+**dob_complaints** (3,081,172 rows total):
 
-### Confirmed impact
+| Column | NULL count | NULL % |
+|---|---:|---:|
+| `dateentered` | 3,080,742 | **100.0%** |
+| `dispositiondate` | 3,081,124 | **100.0%** |
+| `inspectiondate` | 3,081,124 | **100.0%** |
+| `dobrundate` | 3,081,172 | **100.0%** |
 
-| Dataset | Cursor col | NULL count | Total | NULL % |
-|---|---|---:|---:|---:|
-| `dob_complaints` | `dateentered` (M/D/YYYY source) | 3,080,742 | 3,081,172 | **99.99%** |
-| `dobjobs` | `latestactiondate` (M/D/YYYY source) | 1,009,207 | 1,813,200 | **55.66%** |
-| `hpd_violations` | `novissueddate` | 806,265 | 10,886,435 | 7.41% (likely real NULLs in source) |
-| `dob_violations` | `issuedate` (YYYYMMDD source) | 34 | 2,473,906 | 0.00% |
+**dobjobs** (1,813,200 rows total):
 
-The dob_violations YYYYMMDD-format rows mostly went through the bulk-load before the sync code existed, so they have correctly-parsed dates from a different code path. But future incremental rows would also lose dates.
+| Column | NULL count | NULL % |
+|---|---:|---:|
+| `latestactiondate` | 1,009,207 | 55.7% |
+| `prefilingdate` | 1,009,126 | 55.7% |
+| `paid` | 1,012,654 | 55.8% |
+| `fullypaid` | 1,011,885 | 55.8% |
+| `assigned` | 1,269,746 | 70.0% |
+| `approved` | 1,157,611 | 63.8% |
+| `fullypermitted` | 1,218,628 | 67.2% |
+| `dobrundate` | 1,813,200 | **100.0%** |
+| `signoffdate` | 1,307,689 | 72.1% |
+| `specialactiondate` | 1,721,902 | 95.0% (specialactionstatus is rare anyway, so partly real source NULL) |
 
-`dob_complaints` is the worst offender — incremental sync has added 3.08M rows since the bulk load and *every single one* dropped its `dateentered`. The cursor in `sync_state` shows `2026-04-12` because the cursor advance reads the raw string before coercion, but the persisted row has NULL.
+The variable rates on dobjobs reflect overlap with the original NYCDB bulk load — rows synced from Socrata had their dates nulled, NYCDB-only rows kept theirs (~45% of the table is NYCDB-only post-2020 augmentation that the cursor never reached).
 
-### Why count-comparison alone missed this
+`dob_complaints` is uniformly 100% because the entire table got UPSERTed by the daily sync since deploy.
 
-`dob_complaints` is "LOCAL_AHEAD" by 424 rows because count-only comparison can't see column-level corruption. The data is *there* (rows match), but key columns are NULL.
+### Why the cursor advances correctly despite this
 
-### Fix
+The cursor in `sync_state.cursor_value` is taken from the raw string before coercion (in `sync_delta.py:780-820`), so cursor tracking works. Only the persisted column gets nulled. The `dashboard.py` `_to_iso_date()` helper added in commit `68c0f74` already has the correct logic — just needs to be merged into `_coerce()`.
 
-`_coerce()` should fall through to `_to_iso_date()` (already exists in `scripts/dashboard.py`) before raising. After the fix, **all dob_complaints and dobjobs rows need their dates re-pulled** — `--reset` won't help directly because UPSERT doesn't update the cursor column on an existing row when the source field is the same value.
+### Mitigation order
 
-The simplest path:
-1. Fix `_coerce()` to handle M/D/YYYY and YYYYMMDD
-2. `UPDATE sync_state SET cursor_value = NULL WHERE dataset_key IN ('dob_complaints', 'dobjobs')`
-3. Run `sync_delta.py dob_complaints --reset` and `sync_delta.py dobjobs --reset`
+1. **Fix `_coerce()` first** — without this, any backfill re-corrupts dates.
+2. **Re-pull dob_complaints**: clear cursor, full re-sync. UPSERT will repopulate dates on existing rows.
+3. **Re-pull dobjobs**: same — also closes the FROZEN_SOURCE historical gap.
 
-Note: dobjobs is also FROZEN_SOURCE, so the reset will get the dates for the rows we have but won't fill the 901K historical gap.
+---
+
+## 🩹 Harmless schema drift (no action needed)
+
+Three columns exist locally but are not present in Socrata's API response. They were populated by the original NYCDB bulk load and just never get touched by Socrata syncs (since the field name doesn't exist in source rows).
+
+| Local column | Local NULL % | Socrata field | Notes |
+|---|---:|---|---|
+| `hpd_litigations.findingdate` | 100.0% | (not in Socrata) | NYCDB-derived enrichment |
+| `personal_property_master.assessmentdate` | 87.1% | (not in Socrata) | Field appears removed from source |
+| `real_property_master.docdate` | 28.4% | (not in Socrata) | Some rows have it from bulk load |
+
+These are not bugs. They're just dead-ish columns. Decide later whether to drop them.
 
 ---
 
 ## 🧊 FROZEN_SOURCE: `dobjobs`
 
-The Socrata dataset `ic3t-wcy2` ("DOB Job Application Filings") is **frozen at 2020-05-21**. NYC DOB has migrated active filings to "DOB NOW" (which we already capture as `dob_now_jobs`). The 901,644 missing rows are all pre-2020 history that the initial bulk load never fetched. Doing a `--reset` would pull all 2.7M from Socrata and INSERT the missing 901K (the rest are no-ops via ON CONFLICT). After that, drift would be ~0%.
+Socrata `ic3t-wcy2` ("DOB Job Application Filings") is frozen at 2020-05-21. NYC DOB has migrated active filings to "DOB NOW" (which is `dob_now_jobs` in our schema, healthy). The 901K missing rows are pre-2020 history that the initial bulk load never fetched. Already documented in the cron-crash investigation; the perpetual drift warning was de-fanged by removing the non-zero exit in `sync_all.py` (commit `f4d88dc`).
 
-Already discussed in [the cron crash investigation](../docs/cron-crash-investigation.md) and `scripts/sync_all.py` was patched in commit `f4d88dc` to no longer crash Railway on perpetual drift warnings.
-
----
-
-## ⚠️ MINOR_DRIFT: `hpd_registrations`
-
-Local cursor is `2026-03-31`, Socrata max is `2026-04-30` — exactly one month behind. Combined with `last_run_at = NULL` (cron never ran for this dataset), the gap is literally one month of new registrations (~10K rows). Will close on the first tier-3 monthly cron run.
+A `--reset` would close the gap by pulling all 2.7M historical rows from Socrata.
 
 ---
 
-## ➕ LOCAL_AHEAD: `dob_complaints`
+## Recommended action plan (in priority order)
 
-+424 rows over Socrata's count (rounding error at 0.01%). Likely some pre-2015 records from the original NYCDB load that Socrata has since dropped. Harmless, no action needed.
+### 1. Fix `_coerce()` date parsing (CRITICAL — blocks downstream fixes)
 
----
+`scripts/sync_delta.py:535-540`. Port the `_to_iso_date()` logic from `scripts/dashboard.py` (which already handles M/D/YYYY, YYYYMMDD, and ISO). Without this, any reset/backfill re-introduces the corruption.
 
-## ✅ ALIGNED datasets
+### 2. Backfill the corrupted datasets
 
-17 of 23 datasets are within 1% of Socrata's count. Tier-1 daily cron is doing its job (when it's not crash-looping on dobjobs drift) and the manual tier-3 ACRIS run from earlier today landed all 8 ACRIS sub-tables within 0.01% of source.
-
----
-
-## Recommended action plan
-
-In priority order:
-
-### 1. Fix `_coerce()` date parsing (critical, ~30 lines)
-
-Patch `scripts/sync_delta.py:535-540` to handle M/D/YYYY and YYYYMMDD. Same logic as `_to_iso_date()` in `scripts/dashboard.py`. Without this, every future row added by the daily cron for dob_complaints continues to land with NULL `dateentered`.
-
-### 2. Backfill dob_complaints + dobjobs after the fix
-
+```bash
+railway run --service nyc-property-intel-cron sh -c \
+  'cd /app && uv run python scripts/sync_delta.py dob_complaints --reset'
+railway run --service nyc-property-intel-cron sh -c \
+  'cd /app && uv run python scripts/sync_delta.py dobjobs --reset'
 ```
-railway run --service nyc-property-intel-cron "uv run python scripts/sync_delta.py dob_complaints --reset"
-railway run --service nyc-property-intel-cron "uv run python scripts/sync_delta.py dobjobs --reset"
-```
-~30 min each. Repopulates dates, also closes dobjobs' historical gap.
+
+Approx 30 min and 60 min respectively. UPSERT will repopulate dates on existing rows; INSERT will fill the dobjobs historical gap.
 
 ### 3. Set up tier-3 monthly cron service on Railway
 
-Create `nyc-property-intel-cron-monthly` matching the existing weekly pattern: same image, `SYNC_TIER=3`, monthly cron schedule (e.g. `0 2 1 * *`). This unblocks `hpd_registrations`, `fdny_incidents`, `nypd_crime_complaints`, and the 8 ACRIS sub-tables for ongoing sync.
+Create `nyc-property-intel-cron-monthly` matching the existing `-weekly` pattern: same image, `SYNC_TIER=3`, monthly cron schedule (e.g. `0 2 1 * *`). This unblocks `hpd_registrations`, `fdny_incidents`, `nypd_crime_complaints`, and ongoing ACRIS sub-table sync.
 
 ### 4. Backfill the 3 NEVER_SYNCED datasets
 
-These need `--reset` because incremental from existing cursor would skip the historical gap. Largest first:
+`--reset` is required because incremental from the existing cursor would skip the historical gap entirely. Largest first; run from Railway VPC so the connection stays internal:
 
+```bash
+railway run --service nyc-property-intel-cron-monthly sh -c \
+  'cd /app && uv run python scripts/sync_delta.py nypd_crime_complaints --reset'   # ~9.5M rows, ~3 hr
+railway run --service nyc-property-intel-cron-monthly sh -c \
+  'cd /app && uv run python scripts/sync_delta.py fdny_incidents --reset'          # ~7.3M rows, ~2.5 hr
+railway run --service nyc-property-intel-cron-monthly sh -c \
+  'cd /app && uv run python scripts/sync_delta.py nyc_311_complaints --reset'      # ~3.1M rows, ~1 hr
 ```
-sync_delta.py nypd_crime_complaints --reset    # 9.5M rows, ~3 hr
-sync_delta.py fdny_incidents --reset           # 7.3M rows, ~2.5 hr
-sync_delta.py nyc_311_complaints --reset       # 3.1M rows, ~1 hr
-```
 
-Run from Railway so the connection stays inside the VPC. Best to do these one at a time during off-hours.
+Best done one at a time during off-hours.
 
-### 5. Install `resend` so drift alerts actually email
+### 5. `uv add resend` so drift alerts actually email
 
-`uv add resend` — every cron run currently logs `WARNING resend package not installed`, so you have no early warning system for future drift.
+Every cron run currently logs `WARNING resend package not installed`. Without it, the alerting code in `scripts/alerting.py` is a no-op — you have no early warning system for future drift.
 
 ---
 
-## Appendix: data quality oddities (not actionable)
+## Reproducibility
 
-- **`hpd_litigations`** has rows with `caseopendate` going back to year `0204` and forward to `2030-10-05` — these match Socrata's data exactly. Likely DOB data-entry errors (year typos like 0204 instead of 2004, and pre-scheduled court dates).
-- **`dob_violations`** uses `Y9990120` as a sentinel "no expiration" date in Socrata — appears as `2026-04-30` in our table after coercion (the most recent real date).
-- **`real_property_master`** and ACRIS sub-tables share the cursor `goodthroughdate` which is a batch-update marker, not a per-row timestamp. The sync uses `refresh_by_documentid` mode for ACRIS which deletes/reinserts whole document batches.
+```bash
+# Connect via Railway external proxy (or RAILWAY_DB env var pre-set)
+export RAILWAY_DB="postgresql://postgres:***@switchback.proxy.rlwy.net:33576/railway"
+
+# Count + cursor comparison vs Socrata
+uv run python scripts/coverage_audit.py
+# → JSON-lines on stdout, markdown report to docs/data-coverage-audit-{date}.md
+
+# Per-column NULL rate audit (catches column-level corruption)
+uv run python scripts/column_null_audit.py
+# → table on stdout, flags >50% NULL date/timestamp columns
+```
+
+Both scripts are committed and reproducible. Re-run after backfills to verify.
+
+---
+
+## Appendix: data-quality oddities (informational)
+
+- **`hpd_litigations`** has rows with `caseopendate` = `0204-03-28` (DOB data-entry typo for 2004) and forward to `2030-10-05` (pre-scheduled future court dates). Same garbage in our DB and Socrata.
+- **`dob_violations`** uses `Y9990120` as a Socrata sentinel "no expiration"; our local has the parsed value `2026-04-30` (most recent real date).
+- **`real_property_master`** + ACRIS sub-tables share `goodthroughdate` cursor — a batch-update marker, not a per-row timestamp. Sync uses `refresh_by_documentid` mode for ACRIS which deletes/reinserts whole document batches.
+- **`hpd_violations`** has 99.1% NULL on `newcertifybydate`/`newcorrectbydate` and 64.5% NULL on `certifieddate` — these are real source NULLs (these fields are only populated when DOB issues a re-certification order, which is rare).
