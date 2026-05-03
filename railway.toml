@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "sh -c 'if echo \"$RAILWAY_SERVICE_NAME\" | grep -q \"cron\"; then uv run nyc-property-intel-sync; else uv run nyc-property-intel; fi'"
+startCommand = "sh -c 'case \"$RAILWAY_SERVICE_NAME\" in *backfill*) uv run python scripts/run_backfill.py;; *cron*) uv run nyc-property-intel-sync;; *) uv run nyc-property-intel;; esac'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
