@@ -516,6 +516,61 @@ async def get_target_columns(conn: asyncpg.Connection, table: str) -> list[tuple
     return [(r["column_name"], r["data_type"], r["character_maximum_length"]) for r in rows]
 
 
+# Date formats observed across NYC Socrata datasets:
+#   ISO 8601                "2014-01-06T00:00:00.000"   most datasets
+#   ISO 8601 + Z            "2014-01-06T00:00:00.000Z"
+#   M/D/YYYY                "06/23/2023"                eabe-havv, ic3t-wcy2
+#   M/D/YYYY HH:MM:SS       "06/24/2023 00:00:00"       ic3t-wcy2.dobrundate
+#   YYYYMMDD                "19881031"                  3h2n-5cm9.issue_date
+#   YYYYMMDDHHMMSS          "20260503000000"            eabe-havv.dobrundate
+# Sentinels treated as None: empty, "0", all-zeros, "Y\d+" (3h2n-5cm9 "no expiration").
+def _parse_flexible_datetime(s: str):
+    """Parse Socrata date strings across all observed formats. Return None on garbage."""
+    from datetime import date, datetime
+    s = s.strip()
+    if not s or s == "0":
+        return None
+    if s.startswith("Y") and len(s) > 1 and s[1:].isdigit():
+        return None
+    if s.replace("0", "") == "":  # all zeros
+        return None
+    # ISO 8601: prefix matches YYYY-MM-DD
+    if len(s) >= 10 and s[4:5] == "-" and s[7:8] == "-":
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                return datetime.combine(date.fromisoformat(s[:10]), datetime.min.time())
+            except ValueError:
+                pass
+    # M/D/YYYY [HH:MM:SS]
+    if "/" in s:
+        for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+    # YYYYMMDDHHMMSS (14-digit)
+    if len(s) == 14 and s.isdigit():
+        try:
+            return datetime(int(s[:4]), int(s[4:6]), int(s[6:8]),
+                            int(s[8:10]), int(s[10:12]), int(s[12:14]))
+        except ValueError:
+            pass
+    # YYYYMMDD (8-digit)
+    if len(s) == 8 and s.isdigit():
+        try:
+            return datetime(int(s[:4]), int(s[4:6]), int(s[6:8]))
+        except ValueError:
+            pass
+    return None
+
+
+def _parse_flexible_date(s: str):
+    dt = _parse_flexible_datetime(s)
+    return dt.date() if dt else None
+
+
 def _coerce(value, pg_type: str, max_len: int | None = None):
     """Convert Socrata's string value to the right Python type for asyncpg COPY.
     Respects character_maximum_length — truncates oversize strings rather than
@@ -533,11 +588,9 @@ def _coerce(value, pg_type: str, max_len: int | None = None):
         if pg_type == "boolean":
             return s.upper() in ("Y", "T", "TRUE", "1", "YES")
         if pg_type == "date":
-            from datetime import date
-            return date.fromisoformat(s.split("T", 1)[0])
+            return _parse_flexible_date(s)
         if pg_type in ("timestamp without time zone", "timestamp with time zone"):
-            from datetime import datetime
-            return datetime.fromisoformat(s.replace("Z", "+00:00"))
+            return _parse_flexible_datetime(s)
         # text, varchar, character types
         if max_len is not None and len(s) > max_len:
             return s[:max_len]
