@@ -57,43 +57,80 @@ def _normalize_socrata_keys(row: dict, column_map: dict[str, str] | None = None)
     return out
 
 
-import re
-_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+# Date formats observed across NYC Socrata datasets:
+#   ISO 8601                "2014-01-06T00:00:00.000"   most datasets
+#   ISO 8601 + Z            "2014-01-06T00:00:00.000Z"
+#   M/D/YYYY                "06/23/2023"                eabe-havv, ic3t-wcy2
+#   M/D/YYYY HH:MM:SS       "06/24/2023 00:00:00"       ic3t-wcy2.dobrundate
+#   YYYYMMDD                "19881031"                  3h2n-5cm9.issue_date
+#   YYYYMMDDHHMMSS          "20260503000000"            eabe-havv.dobrundate
+# Sentinels treated as None: empty, "0", all-zeros, "Y\d+" (3h2n-5cm9 "no expiration").
+def _parse_flexible_datetime(s: str):
+    """Parse Socrata date strings across all observed formats. Return None on garbage."""
+    from datetime import date, datetime
+    s = s.strip()
+    if not s or s == "0":
+        return None
+    if s.startswith("Y") and len(s) > 1 and s[1:].isdigit():
+        return None
+    if s.replace("0", "") == "":  # all zeros
+        return None
+    # ISO 8601: prefix matches YYYY-MM-DD
+    if len(s) >= 10 and s[4:5] == "-" and s[7:8] == "-":
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                return datetime.combine(date.fromisoformat(s[:10]), datetime.min.time())
+            except ValueError:
+                pass
+    # M/D/YYYY [HH:MM:SS]
+    if "/" in s:
+        for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+    # YYYYMMDDHHMMSS (14-digit)
+    if len(s) == 14 and s.isdigit():
+        try:
+            return datetime(int(s[:4]), int(s[4:6]), int(s[6:8]),
+                            int(s[8:10]), int(s[10:12]), int(s[12:14]))
+        except ValueError:
+            pass
+    # YYYYMMDD (8-digit)
+    if len(s) == 8 and s.isdigit():
+        try:
+            return datetime(int(s[:4]), int(s[4:6]), int(s[6:8]))
+        except ValueError:
+            pass
+    return None
 
 
-_YYYYMMDD_RE = re.compile(r"^\d{8}$")
+def _parse_flexible_date(s: str):
+    dt = _parse_flexible_datetime(s)
+    return dt.date() if dt else None
 
 
 def _normalize_cursor_date(value: str) -> str:
-    """Normalise YYYYMMDD → YYYY-MM-DD so cursors are stored in ISO format."""
+    """Normalise any observed Socrata date format → ISO YYYY-MM-DD so cursors
+    are stored uniformly. Returns the input unchanged if unparseable; callers
+    must gate on _is_valid_date_cursor first."""
     s = value.strip()
-    if _YYYYMMDD_RE.match(s):
-        return f"{s[:4]}-{s[4:6]}-{s[6:]}"
-    return s
+    d = _parse_flexible_date(s)
+    return d.isoformat() if d else s
 
 
 def _is_valid_date_cursor(value) -> bool:
-    """Reject junk date values (e.g. 'Y9990120') and absurd future dates that
-    would poison the cursor and block all future incremental syncs.
-
-    Normalises YYYYMMDD → YYYY-MM-DD before validation so that datasets like
-    ecb_violations (which return dates in that compact format) advance their
-    cursor correctly instead of stalling.
-    """
+    """Reject junk date values (e.g. 'Y9990120', '0   0612') and absurd future
+    dates that would poison the cursor and block all future incremental syncs."""
     if not isinstance(value, str):
         return False
-    s = value.strip()
-    # Normalise compact YYYYMMDD → ISO YYYY-MM-DD
-    if _YYYYMMDD_RE.match(s):
-        s = f"{s[:4]}-{s[4:6]}-{s[6:]}"
-    if not _ISO_DATE_RE.match(s):
+    d = _parse_flexible_date(value)
+    if d is None:
         return False
     from datetime import date, timedelta
-    try:
-        d = date.fromisoformat(s[:10])
-        return d <= date.today() + timedelta(days=1)
-    except ValueError:
-        return False
+    return d <= date.today() + timedelta(days=1)
 
 DATASETS: dict[str, DatasetCfg] = {
     "hpd_violations": DatasetCfg(
@@ -525,6 +562,8 @@ def _coerce(value, pg_type: str, max_len: int | None = None):
     if value is None or value == "":
         return None
     s = str(value)
+    # The outer try/except still serves int/float branches: int(float("abc"))
+    # raises ValueError. Date branches now use non-throwing helpers.
     try:
         if pg_type in ("integer", "smallint", "bigint"):
             return int(float(s))
@@ -533,11 +572,9 @@ def _coerce(value, pg_type: str, max_len: int | None = None):
         if pg_type == "boolean":
             return s.upper() in ("Y", "T", "TRUE", "1", "YES")
         if pg_type == "date":
-            from datetime import date
-            return date.fromisoformat(s.split("T", 1)[0])
+            return _parse_flexible_date(s)
         if pg_type in ("timestamp without time zone", "timestamp with time zone"):
-            from datetime import datetime
-            return datetime.fromisoformat(s.replace("Z", "+00:00"))
+            return _parse_flexible_datetime(s)
         # text, varchar, character types
         if max_len is not None and len(s) > max_len:
             return s[:max_len]
