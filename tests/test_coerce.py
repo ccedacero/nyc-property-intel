@@ -13,6 +13,8 @@ import pytest
 
 from scripts.sync_delta import (
     _coerce,
+    _is_valid_date_cursor,
+    _normalize_cursor_date,
     _parse_flexible_date,
     _parse_flexible_datetime,
 )
@@ -44,8 +46,9 @@ class TestParseFlexibleDate:
         "0000207",
         "xyz",
         "not-a-date",
-        "9999/99/99",
-        "13/45/2023",  # invalid month/day
+        "13/45/2023",  # would-be M/D/YYYY but month=13 — strptime rejects
+        "12/32/2023",  # M=12 valid, but day=32 invalid
+        "20231301",    # would-be YYYYMMDD but month=13
     ])
     def test_garbage_returns_none(self, s):
         assert _parse_flexible_date(s) is None
@@ -113,6 +116,41 @@ class TestCoerceTimestamp:
 
     def test_garbage_returns_none(self):
         assert _coerce("Y9990120", "timestamp without time zone") is None
+
+
+class TestCursorHelpers:
+    """The cursor-advancement path at sync_delta.py:851-855 reads
+    cfg.cursor_col from each Socrata row and feeds it through these helpers.
+    Before the fix, M/D/YYYY values from dob_complaints and dobjobs were all
+    rejected, leaving the cursor stuck and burning API quota."""
+
+    @pytest.mark.parametrize("source, normalized", [
+        # M/D/YYYY (dob_complaints, dobjobs) — were rejected before
+        ("12/14/2018", "2018-12-14"),
+        ("06/23/2023", "2023-06-23"),
+        ("06/24/2023 00:00:00", "2023-06-24"),
+        # YYYYMMDD (dob_violations) — was already accepted
+        ("19881031", "1988-10-31"),
+        # 14-digit (eabe-havv.dobrundate)
+        ("20260503000000", "2026-05-03"),
+        # ISO (most datasets)
+        ("2026-04-30T00:00:00.000", "2026-04-30"),
+    ])
+    def test_normalize_to_iso(self, source, normalized):
+        assert _is_valid_date_cursor(source) is True
+        assert _normalize_cursor_date(source) == normalized
+
+    @pytest.mark.parametrize("source", [
+        "Y9990120",   # 3h2n-5cm9 sentinel — would poison cursor
+        "0",
+        "0   0612",
+        "9999-12-31", # absurd-future protection
+        "garbage",
+        None,
+        42,           # non-string
+    ])
+    def test_rejects_garbage_and_future(self, source):
+        assert _is_valid_date_cursor(source) is False
 
 
 class TestCoerceOtherTypes:
