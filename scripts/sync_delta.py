@@ -512,8 +512,11 @@ async def fetch_page(
             rows = r.json()
             return [_normalize_socrata_keys(row, column_map) for row in rows]
         except httpx.HTTPStatusError as e:
-            if e.response.status_code in (429, 503, 504, 502):
-                continue  # retry
+            # Socrata 500s are transient on long $offset queries — observed
+            # ~1 in 3 calls to the same URL flapping between 200 and 500
+            # during dob_violations backfill. Retry with backoff.
+            if e.response.status_code in (429, 500, 502, 503, 504):
+                continue
             raise
         except (httpx.ReadError, httpx.ReadTimeout, httpx.ConnectError, httpx.RemoteProtocolError):
             continue
