@@ -332,7 +332,36 @@ DATASETS: dict[str, DatasetCfg] = {
         key="nyc_311_complaints", socrata_id="erm2-nwe9",
         table="nyc_311_complaints",
         cursor_col="created_date", pk_cols=("unique_key",), tier=2,
-        # Socrata column names match DB — no column_map needed.
+        # Local schema preserves underscores. _normalize_socrata_keys strips
+        # them (created_date → createddate), so without column_map the row
+        # dict had no "created_date" key and every row was dropped at the
+        # PK validation step. See known-issues.md / 2026-05-04 incident.
+        column_map={
+            "addresstype": "address_type",
+            "agencyname": "agency_name",
+            "closeddate": "closed_date",
+            "communityboard": "community_board",
+            "complainttype": "complaint_type",
+            "councildistrict": "council_district",
+            "createddate": "created_date",
+            "crossstreet1": "cross_street_1",
+            "crossstreet2": "cross_street_2",
+            "incidentaddress": "incident_address",
+            "incidentzip": "incident_zip",
+            "intersectionstreet1": "intersection_street_1",
+            "intersectionstreet2": "intersection_street_2",
+            "locationtype": "location_type",
+            "opendatachanneltype": "open_data_channel_type",
+            "parkborough": "park_borough",
+            "parkfacilityname": "park_facility_name",
+            "policeprecinct": "police_precinct",
+            "resolutionactionupdateddate": "resolution_action_updated_date",
+            "resolutiondescription": "resolution_description",
+            "streetname": "street_name",
+            "uniquekey": "unique_key",
+            "xcoordinatestateplane": "x_coordinate_state_plane",
+            "ycoordinatestateplane": "y_coordinate_state_plane",
+        },
     ),
     "personal_property_master": DatasetCfg(
         key="personal_property_master", socrata_id="sv7x-dduq",
@@ -368,8 +397,33 @@ DATASETS: dict[str, DatasetCfg] = {
         key="fdny_incidents", socrata_id="8m42-w767",
         table="fdny_incidents",
         cursor_col="incident_datetime", pk_cols=("starfire_incident_id",), tier=3,
-        # Socrata column names match DB — no column_map needed.
-        # Source updates daily; we sync quarterly to pick up historical data.
+        # Same underscore-stripping issue as nyc_311_complaints. Without this
+        # map, starfire_incident_id PK was always None → every row dropped.
+        column_map={
+            "alarmboxborough": "alarm_box_borough",
+            "alarmboxlocation": "alarm_box_location",
+            "alarmboxnumber": "alarm_box_number",
+            "alarmlevelindexdescription": "alarm_level_index_description",
+            "alarmsourcedescriptiontx": "alarm_source_description_tx",
+            "dispatchresponsesecondsqy": "dispatch_response_seconds_qy",
+            "enginesassignedquantity": "engines_assigned_quantity",
+            "firstactivationdatetime": "first_activation_datetime",
+            "firstassignmentdatetime": "first_assignment_datetime",
+            "firstonscenedatetime": "first_on_scene_datetime",
+            "highestalarmlevel": "highest_alarm_level",
+            "incidentborough": "incident_borough",
+            "incidentclassification": "incident_classification",
+            "incidentclassificationgroup": "incident_classification_group",
+            "incidentclosedatetime": "incident_close_datetime",
+            "incidentdatetime": "incident_datetime",
+            "incidentresponsesecondsqy": "incident_response_seconds_qy",
+            "incidenttraveltmsecondsqy": "incident_travel_tm_seconds_qy",
+            "laddersassignedquantity": "ladders_assigned_quantity",
+            "otherunitsassignedquantity": "other_units_assigned_quantity",
+            "starfireincidentid": "starfire_incident_id",
+            "validdispatchrspnstimeindc": "valid_dispatch_rspns_time_indc",
+            "validincidentrspnstimeindc": "valid_incident_rspns_time_indc",
+        },
     ),
     "nypd_crime_complaints": DatasetCfg(
         key="nypd_crime_complaints", socrata_id="qgea-i56i",
@@ -377,7 +431,39 @@ DATASETS: dict[str, DatasetCfg] = {
         cursor_col="rpt_dt", pk_cols=("cmplnt_num",), tier=3,
         # Using Historic dataset (qgea-i56i); YTD is 5uac-w243 (current year only).
         # rpt_dt (report date) is more reliable cursor than cmplnt_fr_dt (crime date).
-        # Socrata column names match DB — no column_map needed.
+        # Same underscore-stripping issue as nyc_311 / fdny — without this map
+        # cmplnt_num PK was always None → every row dropped during backfill.
+        column_map={
+            "addrpctcd": "addr_pct_cd",
+            "boronm": "boro_nm",
+            "cmplntfrdt": "cmplnt_fr_dt",
+            "cmplntfrtm": "cmplnt_fr_tm",
+            "cmplntnum": "cmplnt_num",
+            "cmplnttotm": "cmplnt_to_tm",
+            "crmatptcptdcd": "crm_atpt_cptd_cd",
+            "geocodedcolumn": "geocoded_column",
+            "jurisdesc": "juris_desc",
+            "jurisdictioncode": "jurisdiction_code",
+            "kycd": "ky_cd",
+            "latlon": "lat_lon",
+            "lawcatcd": "law_cat_cd",
+            "locofoccurdesc": "loc_of_occur_desc",
+            "ofnsdesc": "ofns_desc",
+            "parksnm": "parks_nm",
+            "patrolboro": "patrol_boro",
+            "pddesc": "pd_desc",
+            "premtypdesc": "prem_typ_desc",
+            "rptdt": "rpt_dt",
+            "stationname": "station_name",
+            "suspagegroup": "susp_age_group",
+            "susprace": "susp_race",
+            "suspsex": "susp_sex",
+            "vicagegroup": "vic_age_group",
+            "vicrace": "vic_race",
+            "vicsex": "vic_sex",
+            "xcoordcd": "x_coord_cd",
+            "ycoordcd": "y_coord_cd",
+        },
     ),
     # ── ACRIS sub-tables ──────────────────────────────────────────────
     # No per-row PK: each (documentid, goodthroughdate) is a snapshot of a
