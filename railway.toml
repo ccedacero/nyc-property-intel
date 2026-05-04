@@ -2,6 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "sh -c 'case \"$RAILWAY_SERVICE_NAME\" in *backfill*) uv run python scripts/run_backfill.py;; *cron*) uv run nyc-property-intel-sync;; *) uv run nyc-property-intel;; esac'"
+startCommand = "sh -c 'case \"$RAILWAY_SERVICE_NAME\" in *backfill*) uv run python scripts/run_backfill.py;; *cleanup*) uv run python scripts/cleanup_idle_tokens.py;; *cron*) uv run nyc-property-intel-sync;; *) uv run nyc-property-intel;; esac'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
