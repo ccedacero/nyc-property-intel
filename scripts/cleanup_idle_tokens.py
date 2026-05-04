@@ -5,12 +5,12 @@ Designed for Railway Cron — runs weekly on a dedicated cron service.
 
 Background: We saw 25 external signups in 16 days, of which 23 made zero
 real API calls. This script keeps the user table clean by auto-revoking
-trial tokens that have been sitting idle for > 7 days with no real usage.
+trial tokens that have been sitting idle for > 21 days with no real usage.
 
 Idle definition:
   - plan = 'trial'
   - revoked_at IS NULL
-  - created_at < NOW() - INTERVAL '7 days'
+  - created_at < NOW() - INTERVAL '21 days'
   - No row in mcp_usage_log with tool_name IS NOT NULL.
     (NULL tool_name rows are MCP `initialize`/`list_tools` handshakes —
      they don't count as real product usage.)
@@ -39,8 +39,8 @@ import asyncpg
 logger = logging.getLogger("cleanup_idle_tokens")
 
 # ── Tunables ──────────────────────────────────────────────────────────
-IDLE_DAYS = 7
-REVOKE_NOTE = "auto-revoked: 7d idle no real calls"
+IDLE_DAYS = 21
+REVOKE_NOTE = "auto-revoked: 21d idle no real calls"
 
 # ── Internal accounts — never auto-revoke even if idle ────────────────
 # Hard-coded domain check: anything @nycpropertyintel.com is staff/QA.

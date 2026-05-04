@@ -93,7 +93,7 @@ class TestIsInternalEmail:
         assert INTERNAL_DOMAIN == "@nycpropertyintel.com"
         assert "qa@nycpropertyintel.com" in INTERNAL_EMAIL_ALLOWLIST
         assert "cristiancedacero@gmail.com" in INTERNAL_EMAIL_ALLOWLIST
-        assert IDLE_DAYS == 7
+        assert IDLE_DAYS == 21
 
 
 # ── Unit: SQL constants are well-formed ───────────────────────────────
@@ -174,30 +174,30 @@ async def synthetic_tokens(request, monkeypatch):
     now = datetime.now(timezone.utc)
 
     rows: dict[str, dict] = {
-        # SHOULD be revoked: 10-day-old trial, no usage at all.
+        # SHOULD be revoked: 25-day-old trial, no usage at all.
         "stale_no_usage": {
             "token_hash": mk_hash("stale_no_usage"),
             "email": f"stale_no_usage{email_suffix}",
             "plan": "trial",
-            "created_at": now - timedelta(days=10),
+            "created_at": now - timedelta(days=25),
             "revoked_at": None,
             "notes": "external signup",
         },
-        # SHOULD be revoked: 10d trial, only init/list_tools (NULL tool_name).
+        # SHOULD be revoked: 25d trial, only init/list_tools (NULL tool_name).
         "stale_only_handshakes": {
             "token_hash": mk_hash("stale_only_handshakes"),
             "email": f"stale_only_handshakes{email_suffix}",
             "plan": "trial",
-            "created_at": now - timedelta(days=10),
+            "created_at": now - timedelta(days=25),
             "revoked_at": None,
             "notes": None,
         },
-        # SHOULD NOT be revoked: 10d old but made a real call.
+        # SHOULD NOT be revoked: 25d old but made a real call.
         "stale_real_usage": {
             "token_hash": mk_hash("stale_real_usage"),
             "email": f"stale_real_usage{email_suffix}",
             "plan": "trial",
-            "created_at": now - timedelta(days=10),
+            "created_at": now - timedelta(days=25),
             "revoked_at": None,
             "notes": None,
         },
@@ -233,7 +233,7 @@ async def synthetic_tokens(request, monkeypatch):
             "token_hash": mk_hash("stale_internal_domain"),
             "email": "qa+verify-50@nycpropertyintel.com",
             "plan": "trial",
-            "created_at": now - timedelta(days=15),
+            "created_at": now - timedelta(days=25),
             "revoked_at": None,
             "notes": None,
         },
@@ -242,7 +242,7 @@ async def synthetic_tokens(request, monkeypatch):
             "token_hash": mk_hash("stale_allowlisted"),
             "email": "cristiancedacero@gmail.com",
             "plan": "trial",
-            "created_at": now - timedelta(days=15),
+            "created_at": now - timedelta(days=25),
             "revoked_at": None,
             "notes": None,
         },
