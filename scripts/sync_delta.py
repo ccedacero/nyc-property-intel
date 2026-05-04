@@ -858,7 +858,11 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
     db_url = os.environ["DATABASE_URL"]
     app_token = os.environ.get("SOCRATA_APP_TOKEN", "")
 
-    pool = await asyncpg.create_pool(db_url, min_size=1, max_size=2, command_timeout=120)
+    # command_timeout=600s for backfills against multi-million-row tables.
+    # nyc_311_complaints (17.86M rows) hit the original 120s ceiling on the
+    # ON CONFLICT DO UPDATE step on 2026-05-04 because every row in the
+    # earliest pages overlaps existing PKs (50K UPDATEs vs the index).
+    pool = await asyncpg.create_pool(db_url, min_size=1, max_size=2, command_timeout=600)
     headers = {"X-App-Token": app_token} if app_token else {}
 
     async with httpx.AsyncClient(headers=headers, timeout=HTTP_TIMEOUT_SEC) as client:
