@@ -333,12 +333,30 @@ wheels = [
 ]
 
 [[package]]
+name = "disposable-email-domains"
+version = "0.0.179"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/65/911d192123efc7065d117fc74820b0861b8ffb8915051a1064dbb187e568/disposable_email_domains-0.0.179.tar.gz", hash = "sha256:63cad9b34ed84a286bbfba0c1de80ad79f0f5f668fcc7a6309665224009a4af3", size = 64660, upload-time = "2026-05-04T11:41:30.946Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/50/c67ef80e5e4bac89bff1440ddd534194de899cddbfdf8e6569d5d3ca777f/disposable_email_domains-0.0.179-py3-none-any.whl", hash = "sha256:66991440d49f8019dc80a1bc3b1746e073e00b921ce02096334738623aa616f0", size = 33264, upload-time = "2026-05-04T11:41:28.481Z" },
+]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fc/f8/98eea607f65de6527f8a2e8885fc8015d3e6f5775df186e443e0964a11c3/distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed", size = 60722, upload-time = "2023-12-24T09:54:32.31Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/12/b3/231ffd4ab1fc9d679809f356cebee130ac7daa00d6d6f3206dd4fd137e9e/distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2", size = 20277, upload-time = "2023-12-24T09:54:30.421Z" },
+]
+
+[[package]]
+name = "dnspython"
+version = "2.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/8b/57666417c0f90f08bcafa776861060426765fdb422eb10212086fb811d26/dnspython-2.8.0.tar.gz", hash = "sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f", size = 368251, upload-time = "2025-09-07T18:58:00.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl", hash = "sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af", size = 331094, upload-time = "2025-09-07T18:57:58.071Z" },
 ]
 
 [[package]]
@@ -574,6 +592,8 @@ dependencies = [
     { name = "asyncpg" },
     { name = "cachetools" },
     { name = "cryptography" },
+    { name = "disposable-email-domains" },
+    { name = "dnspython" },
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
     { name = "posthog" },
@@ -598,6 +618,8 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30.0,<1.0" },
     { name = "cachetools", specifier = ">=5.3.0,<6.0" },
     { name = "cryptography", specifier = ">=42.0.0" },
+    { name = "disposable-email-domains", specifier = ">=0.0.179" },
+    { name = "dnspython", specifier = ">=2.8.0" },
     { name = "httpx", specifier = ">=0.27.0,<1.0" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.2.0,<2.0" },
     { name = "posthog", specifier = ">=3.0.0" },

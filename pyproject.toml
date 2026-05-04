@@ -17,6 +17,8 @@ dependencies = [
     "cryptography>=42.0.0",
     "sentry-sdk[starlette]>=2.0,<3.0",
     "resend>=2.29.0",
+    "disposable-email-domains>=0.0.179",
+    "dnspython>=2.8.0",
 ]
 
 [dependency-groups]           # Fixed: Moved from tool.uv.dev-dependencies
