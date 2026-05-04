@@ -346,7 +346,11 @@ DATASETS: dict[str, DatasetCfg] = {
     "nyc_311_complaints": DatasetCfg(
         key="nyc_311_complaints", socrata_id="erm2-nwe9",
         table="nyc_311_complaints",
-        cursor_col="created_date", pk_cols=("unique_key",), tier=2,
+        cursor_col="created_date", pk_cols=("unique_key",), tier=1,
+        # NYC publishes 311 daily; tier-2 (weekly) was dropping up to 6 days
+        # of complaints between syncs. Cursor-based incremental is cheap, so
+        # promoted to tier-1 (PR #6 / 2026-05-05).
+        #
         # Local schema preserves underscores. _normalize_socrata_keys strips
         # them (created_date → createddate), so without column_map the row
         # dict had no "created_date" key and every row was dropped at the
