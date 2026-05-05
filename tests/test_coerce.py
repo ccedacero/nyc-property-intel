@@ -12,9 +12,11 @@ from datetime import date, datetime
 import pytest
 
 from scripts.sync_delta import (
+    DATASETS,
     _coerce,
     _is_valid_date_cursor,
     _normalize_cursor_date,
+    _normalize_socrata_keys,
     _parse_flexible_date,
     _parse_flexible_datetime,
 )
@@ -174,3 +176,63 @@ class TestCoerceOtherTypes:
     def test_empty_string_to_none(self):
         assert _coerce("", "date") is None
         assert _coerce(None, "date") is None
+
+
+class TestNormalizeSocrataKeys:
+    """Regression tests for _normalize_socrata_keys.
+
+    Strip-only mode (no column_map) handles the common case (e.g.
+    `received_date` → `receiveddate`). When the local schema diverges from
+    the source's short names, an explicit column_map must remap or the
+    field is silently dropped at upsert time. See hpd_litigations bug:
+    `boroid` and `casejudgement` were 100% NULL because no map was supplied.
+    """
+
+    def test_strip_underscores(self):
+        out = _normalize_socrata_keys({"received_date": "2024-01-01", "unique_key": "abc"})
+        assert out == {"receiveddate": "2024-01-01", "uniquekey": "abc"}
+
+    def test_drops_socrata_system_fields(self):
+        out = _normalize_socrata_keys({":id": "row-x", ":updated_at": "2024", "foo": "bar"})
+        assert out == {"foo": "bar"}
+
+    def test_column_map_overrides_stripped_name(self):
+        out = _normalize_socrata_keys(
+            {"boroid": "1", "casejudgement": "YES"},
+            column_map={"boroid": "boro", "casejudgement": "openjudgement"},
+        )
+        assert out == {"boro": "1", "openjudgement": "YES"}
+
+    def test_column_map_handles_combined_strip_then_remap(self):
+        # nyc_311_complaints style: strip first → "addresstype", then remap → "address_type"
+        out = _normalize_socrata_keys(
+            {"address_type": "ADDRESS"},
+            column_map={"addresstype": "address_type"},
+        )
+        assert out == {"address_type": "ADDRESS"}
+
+    def test_hpd_litigations_config_remaps_known_mismatches(self):
+        # Guards the dataset registry: regressing the column_map would make
+        # boro / openjudgement go silently NULL again on every sync.
+        cfg = DATASETS["hpd_litigations"]
+        assert cfg.column_map is not None
+        assert cfg.column_map.get("boroid") == "boro"
+        assert cfg.column_map.get("casejudgement") == "openjudgement"
+        # Round-trip: a real Socrata payload should land on the local column names.
+        sample_source = {
+            "litigationid": "460074",
+            "boroid": "3",
+            "casejudgement": "YES",
+            "findingdate": "01/02/2025 00:00:00",
+            "findingofharassment": "After Inquest",
+        }
+        out = _normalize_socrata_keys(sample_source, cfg.column_map)
+        assert out["boro"] == "3"
+        assert out["openjudgement"] == "YES"
+        assert out["findingdate"] == "01/02/2025 00:00:00"
+        assert out["findingofharassment"] == "After Inquest"
+        # And the source-side keys should be GONE from the normalized dict
+        # (otherwise upsert_page would still see them and they'd be silently
+        # dropped at the column-projection step but might confuse other code).
+        assert "boroid" not in out
+        assert "casejudgement" not in out
