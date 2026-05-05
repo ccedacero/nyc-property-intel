@@ -27,18 +27,25 @@ def main() -> int:
         return 0
 
     datasets = [d.strip() for d in raw.split(",") if d.strip()]
-    logger.info("backfill plan (%d datasets): %s", len(datasets), datasets)
+    # BACKFILL_RESET=0 → omit --reset so a crashed run resumes from the last
+    # persisted cursor (sync_delta now writes cursor per page even in backfill
+    # mode). Default = 1 (always reset; same as legacy behavior).
+    reset_flag = os.environ.get("BACKFILL_RESET", "1").strip() != "0"
+    logger.info(
+        "backfill plan (%d datasets, reset=%s): %s",
+        len(datasets), reset_flag, datasets,
+    )
 
     overall_t0 = time.monotonic()
     results: list[tuple[str, int, float]] = []
 
     for i, key in enumerate(datasets, 1):
-        logger.info("─── [%d/%d] %s --reset ───", i, len(datasets), key)
+        cmd = ["uv", "run", "python", "scripts/sync_delta.py", key]
+        if reset_flag:
+            cmd.append("--reset")
+        logger.info("─── [%d/%d] %s ───", i, len(datasets), " ".join(cmd[3:]))
         t0 = time.monotonic()
-        proc = subprocess.run(
-            ["uv", "run", "python", "scripts/sync_delta.py", key, "--reset"],
-            check=False,
-        )
+        proc = subprocess.run(cmd, check=False)
         dt = time.monotonic() - t0
         logger.info("[%d/%d] %s rc=%d in %.1fs", i, len(datasets), key, proc.returncode, dt)
         results.append((key, proc.returncode, dt))
