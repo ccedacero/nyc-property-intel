@@ -38,13 +38,13 @@ TOKEN_PREFIX = "nyprop_"
 _CACHE_TTL = 60.0  # seconds before re-validating against DB
 
 PLAN_LIMITS: dict[str, int] = {
-    "trial": 999999,  # unlimited during MVP validation
+    "trial": 50,    # bounded MVP trial — see launch-playbook-pricing.md
     "pro": 500,
     "team": 2000,
     "dev": 999999,
 }
 
-TRIAL_DAYS = 30
+TRIAL_DAYS = 14
 
 
 # ── Email normalization ───────────────────────────────────────────────

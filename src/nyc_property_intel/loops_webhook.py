@@ -281,6 +281,12 @@ def make_webhook_handler(auth: TokenAuth):
             logger.warning("Loops webhook: contactCreated payload missing email")
             return JSONResponse({"error": "Missing email"}, status_code=400)
 
+        # Funnel-top event: fires for every signup that passes signature + payload
+        # validation, BEFORE any rejection or token provisioning. Pairs with the
+        # downstream signup_provisioned / signup_rejected_* events to compute
+        # rejection rate per source.
+        ph_capture(email, "signup_form_submitted", {"source": "loops_webhook"})
+
         local, domain = _split_email(email)
         if not domain:
             logger.warning("Loops webhook: malformed email '%s' — rejecting", email)

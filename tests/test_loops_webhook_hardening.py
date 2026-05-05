@@ -301,8 +301,24 @@ async def test_disposable_domain_blocked_returns_200(captured_events, patch_mx_o
     # Token MUST NOT be provisioned.
     assert auth.calls == []
     event_names = [e[1] for e in captured_events]
-    assert event_names == ["signup_rejected_disposable"]
-    assert captured_events[0][2]["domain"] == "meyer-alpers.de"
+    # Funnel-top event fires first, then the rejection event.
+    assert event_names == ["signup_form_submitted", "signup_rejected_disposable"]
+    assert captured_events[1][2]["domain"] == "meyer-alpers.de"
+
+
+@pytest.mark.asyncio
+async def test_signup_form_submitted_event_fires_for_every_valid_payload(
+    captured_events, patch_mx_ok
+) -> None:
+    """Funnel-top event must fire BEFORE any rejection or provisioning logic
+    so we can compute rejection rate per source from PostHog alone."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload("alice@example.com")
+    await handle(_make_request(body, _sign(body)))
+    event_names = [e[1] for e in captured_events]
+    assert event_names[0] == "signup_form_submitted"
+    assert captured_events[0][2]["source"] == "loops_webhook"
 
 
 @pytest.mark.asyncio
@@ -315,7 +331,7 @@ async def test_lib_disposable_domain_blocked(captured_events, patch_mx_ok) -> No
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "disposable_domain"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_rejected_disposable"]
+    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_disposable"]
 
 
 @pytest.mark.asyncio
@@ -327,7 +343,7 @@ async def test_no_mx_blocked(captured_events, patch_mx_no_mx) -> None:
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "no_mx"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_rejected_mx"]
+    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_mx"]
 
 
 @pytest.mark.asyncio
@@ -356,8 +372,8 @@ async def test_brand_prefix_heuristic_blocked(captured_events, patch_mx_ok) -> N
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "heuristic_brand_prefix"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_rejected_heuristic"]
-    assert captured_events[0][2]["rule"] == "brand_prefix_no_name_domain"
+    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_heuristic"]
+    assert captured_events[1][2]["rule"] == "brand_prefix_no_name_domain"
 
 
 @pytest.mark.asyncio
@@ -381,7 +397,7 @@ async def test_duplicate_email_skipped_with_event(captured_events, patch_mx_ok) 
     resp = await handle(_make_request(body, _sign(body)))
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "duplicate"
-    assert [e[1] for e in captured_events] == ["signup_rejected_duplicate"]
+    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_duplicate"]
 
 
 @pytest.mark.asyncio
