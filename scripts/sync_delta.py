@@ -545,7 +545,7 @@ DATASETS: dict[str, DatasetCfg] = {
 # ── Tunables ──────────────────────────────────────────────────────────
 PAGE_SIZE = 50_000
 INTER_PAGE_SLEEP_SEC = 0.25
-RETRY_BACKOFF_SEC = [5, 15, 30, 60, 120]
+RETRY_BACKOFF_SEC = [10, 30, 60, 120, 300, 600, 1200]
 HTTP_TIMEOUT_SEC = 180
 DRIFT_WARN_PCT = 5.0
 DRIFT_ERR_PCT = 10.0
@@ -941,15 +941,19 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
                             added = await refresh_page_by_doc(conn, cfg, target_cols, rows)
                         else:
                             added = await upsert_page(conn, cfg, target_cols, rows)
-                        # Persist cursor only in incremental upsert mode. Backfill
-                        # and refresh both commit cursor only at the very end so a
-                        # crashed run resumes via $offset, not via $where.
-                        if not is_backfill and not is_refresh:
+                        # Persist cursor + rows_added per page in both incremental
+                        # and backfill modes. In backfill mode the next page is
+                        # fetched by $offset (not $where), so the persisted cursor
+                        # is informational only — but it lets a crashed run cleanly
+                        # switch to incremental mode on resume (no --reset). Refresh
+                        # mode still defers cursor write to the end because the
+                        # cursor column is too coarse mid-run.
+                        if is_refresh:
+                            await write_state(conn, cfg.key, rows_added=added)
+                        else:
                             await write_state(
                                 conn, cfg.key, cursor_value=page_max, rows_added=added,
                             )
-                        else:
-                            await write_state(conn, cfg.key, rows_added=added)
                 except Exception as e:
                     logger.exception("fatal upsert error on page %d", page_num)
                     async with pool.acquire() as conn:
@@ -975,11 +979,12 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
         async with pool.acquire() as conn:
             actual = await conn.fetchval(f'SELECT COUNT(*) FROM "{cfg.table}"')
             if not dry_run:
-                # Promote backfill / refresh cursor at end so future runs are
-                # incremental. Upsert-incremental commits the cursor per page,
-                # so it has nothing to promote at the end (final_cursor=None
-                # means "leave cursor_value alone").
-                if is_backfill or is_refresh:
+                # Refresh mode commits cursor only at the end (the source's
+                # cursor column is too coarse mid-run). Backfill and incremental
+                # both persist cursor per page; this final write is a no-op for
+                # cursor in those modes (final_cursor=None leaves it alone) but
+                # still records expected_rows / actual_rows / success.
+                if is_refresh:
                     final_cursor = max_cursor_seen
                 else:
                     final_cursor = None
