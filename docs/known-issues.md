@@ -60,3 +60,25 @@ Recommend (1) for a one-off recovery; bake it into a `scripts/sync_delta.py --ba
 **Affected datasets to recheck after fix**
 - `dobjobs` (confirmed)
 - Any other dataset with high tie-density on its cursor column. Worth a sweep — e.g. ACRIS sub-tables share `goodthroughdate` across millions of rows but use `refresh_by_documentid` mode so likely immune. `nyc_311_complaints` and `fdny_incidents` use ISO-precision timestamps so tie density is low; probably fine.
+
+---
+
+## ✅ ACCEPTED — `hpd_registrations`: Socrata `rowsCount` is non-deduplicated
+
+**TL;DR — local has every unique registration. Do NOT flag as out-of-sync.**
+
+- Local: 193,391 rows. Socrata `count(*)`: 203,043. Apparent gap: 4.75%.
+- **The "gap" is illusory.** Socrata stores **multiple versions per `registrationid`** (renewals, amendments). Verified 2026-05-05 via `scripts/recover_by_pk.py`:
+  - PK-ordered pagination through Socrata enumerated only **193,374 unique `registrationid` values** — fewer than our 193,391.
+  - The 203,043 row count includes ~9,650 duplicate-version rows.
+- We UPSERT on `registrationid` PK → keep one row per registration = the latest version. **This is what due-diligence queries need.** Old amendment versions are noise.
+
+**Initially diagnosed**: 2026-05-05 (post-`--reset` backfill that added only +3 rows).
+
+### Symptoms a future audit or developer might see
+- `coverage_audit.py` (pre-2026-05-05 logic): `MINOR_DRIFT -4.75%`. Misleading.
+- After 2026-05-05: `FROZEN_ACCEPTED` (added to `KNOWN_FROZEN_SOURCE`). The bucket name is slightly off — it's not "frozen", it's "deduplicated PK" — but the operational meaning is the same: don't fix.
+- A future audit upgrade should compare `local COUNT(*) vs Socrata COUNT(DISTINCT pk)` for datasets with single-column unique PKs — that's the correct math. Until then, the `KNOWN_FROZEN_SOURCE` set takes care of it.
+
+### Recovery procedure (if a real gap surfaces)
+`scripts/recover_by_pk.py <dataset_key>` enumerates all PKs from Socrata via PK-ordered pagination (tie-free), diffs against local, fetches missing rows. Idempotent — safe to re-run. Canonical fix path for any single-PK dataset hitting this class of issue.

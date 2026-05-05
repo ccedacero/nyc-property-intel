@@ -151,8 +151,13 @@ async def audit_one(pool: asyncpg.Pool, client: httpx.AsyncClient, cfg: DatasetC
 #
 # These are NOT bugs. Audits should treat them as healthy (no red flag).
 KNOWN_FROZEN_SOURCE: set[str] = {
-    "dobjobs",  # Socrata stopped publishing 2020-05-21; pre-2020 rows unenumerable
-                # via $offset due to cursor-column tie pagination. See known-issues.md.
+    "dobjobs",            # Socrata stopped publishing 2020-05-21; pre-2020 rows
+                          # unenumerable via $offset due to cursor-column tie pagination.
+    "hpd_registrations",  # Socrata stores multiple versions per registrationid (renewals,
+                          # amendments). rowsCount = 203,043 versions, but only ~193K unique
+                          # registrations. We UPSERT one row per PK = the latest version,
+                          # which is what due-diligence lookups need. Verified via PK-based
+                          # pagination on 2026-05-05 (scripts/recover_by_pk.py).
 }
 
 
