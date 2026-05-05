@@ -145,10 +145,26 @@ async def audit_one(pool: asyncpg.Pool, client: httpx.AsyncClient, cfg: DatasetC
     }
 
 
+# Datasets we've explicitly accepted as having a permanent drift from Socrata's
+# headline rowsCount — see docs/known-issues.md for the per-dataset reasoning.
+# Add a key here only after the limitation is documented and product-acknowledged.
+#
+# These are NOT bugs. Audits should treat them as healthy (no red flag).
+KNOWN_FROZEN_SOURCE: set[str] = {
+    "dobjobs",  # Socrata stopped publishing 2020-05-21; pre-2020 rows unenumerable
+                # via $offset due to cursor-column tie pagination. See known-issues.md.
+}
+
+
 def classify(r: dict) -> tuple[str, str]:
     """Return (status_code, one-line explanation)."""
     if r["local_count"] is None:
         return ("ERROR", f"local query failed: {r['local_count_err']}")
+
+    # Honor the accepted-limitation list before any drift math
+    if r["key"] in KNOWN_FROZEN_SOURCE:
+        return ("FROZEN_ACCEPTED",
+                "accepted limitation — see docs/known-issues.md (no action needed)")
 
     soc_count = r["soc_count"]
     local = r["local_count"]
@@ -228,7 +244,7 @@ async def main() -> None:
     lines.append("")
     lines.append(f"| Status | Count | Datasets |")
     lines.append(f"|---|---:|---|")
-    order = ["ALIGNED", "MINOR_DRIFT", "LOCAL_AHEAD", "FROZEN_SOURCE", "DEFICIT", "NEVER_SYNCED", "UNKNOWN", "ERROR"]
+    order = ["ALIGNED", "FROZEN_ACCEPTED", "MINOR_DRIFT", "LOCAL_AHEAD", "FROZEN_SOURCE", "DEFICIT", "NEVER_SYNCED", "UNKNOWN", "ERROR"]
     for status in order:
         rows = by_status.get(status, [])
         if rows:

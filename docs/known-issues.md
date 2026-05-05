@@ -1,10 +1,26 @@
 # Known issues — for future debug
 
-Issues we deferred rather than fixed in the current pass. Each entry: what / why-it-happens / why-deferred / suggested fix.
+Issues we **explicitly accepted** (not bugs to fix). Anyone running a sync audit, building a dashboard, or inspecting drift output should consult this file before flagging a dataset as "broken".
+
+> **For automation**: `scripts/coverage_audit.py` consults the `KNOWN_FROZEN_SOURCE` set at the top of the file. Datasets in that set get classified `FROZEN_ACCEPTED` (not `FROZEN_SOURCE` or `DEFICIT`) so they don't show up as red in audits.
 
 ---
 
-## dobjobs: 901K-row historical gap not closed by `--reset` backfill (2026-05-03)
+## ✅ ACCEPTED — `dobjobs`: 901K pre-2020 historical rows not enumerable
+
+**TL;DR — this is expected. Do NOT flag dobjobs as out-of-sync.**
+
+- Local has 1,813,227 rows. Socrata metadata claims 2,714,871. Apparent gap: 33.21%.
+- **All recent data IS present** — local `MAX(latestactiondate) = 2026-05-01` (today-ish). Drift is purely pre-2020 historical permits.
+- Socrata stopped publishing fresh `dobjobs` data on **2020-05-21**. Anything we have past that date comes from the NYCDB augmentation pipeline, not Socrata.
+- Even if we wanted the missing 900K rows, Socrata's `$offset` pagination silently skips rows when many tie on the cursor column. Standard pagination tops out at ~1.87M unique PKs. Recovery requires `$order=:id` (see suggested fix below).
+
+**Initially diagnosed**: 2026-05-03 (post-`--reset` backfill that added only 27 new rows).
+
+### Symptoms a future audit or developer might see
+- `coverage_audit.py` reports `FROZEN_SOURCE` or `LOCAL_AHEAD` (or our custom `FROZEN_ACCEPTED` after 2026-05-05).
+- `column_null_audit.py`: dobjobs date columns will look <1% NULL (all column-corruption was fixed). Healthy.
+- Drift detection in `sync_delta.py` may emit `MISSING ≥ 10%` warnings on incremental runs. Non-actionable.
 
 **Symptom**
 - `dobjobs` table has 1,813,227 rows on Railway prod after a full `--reset` backfill.
