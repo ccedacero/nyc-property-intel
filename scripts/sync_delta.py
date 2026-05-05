@@ -146,6 +146,21 @@ DATASETS: dict[str, DatasetCfg] = {
     "hpd_litigations": DatasetCfg(
         key="hpd_litigations", socrata_id="59kj-x8nc", table="hpd_litigations",
         cursor_col="caseopendate", pk_cols=("litigationid",), tier=1,
+        # Local schema (from NYCDB bulk load) uses different short names than
+        # Socrata's API for two columns. Without this map, both stay 100% NULL
+        # in prod because _normalize_socrata_keys produces a key the target
+        # table doesn't have, so upsert_page silently drops the value.
+        #   source `boroid`        → local `boro`           (was 100% NULL)
+        #   source `casejudgement` → local `openjudgement`  (was 100% NULL)
+        # `findingdate` matches by name but is also 100% NULL — that one is
+        # caused by historical pre-_coerce-fix sync runs corrupting the M/D/YYYY
+        # values to NULL. The cursor (caseopendate) never re-fetches the
+        # 322 affected rows, so a one-shot --reset backfill is required after
+        # this fix lands. See docs/hpd-litigations-findingdate-investigation.md.
+        column_map={
+            "boroid":        "boro",
+            "casejudgement": "openjudgement",
+        },
     ),
     "dob_violations": DatasetCfg(
         key="dob_violations", socrata_id="3h2n-5cm9", table="dob_violations",
