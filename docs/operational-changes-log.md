@@ -61,8 +61,55 @@ Reduced monthly Railway bill from ~$65–75/mo → estimated **~$25–35/mo** vi
 ### Stale Railway "Running 72:55:10" execution — RESET
 
 - **What**: `nyc-property-intel-cron-weekly` UI showed "Running 72:55:10" — was a Railway-side execution-tracking leak (script exited 0 cleanly Sun 2026-05-03 03:01 UTC, container exited, but the `DeploymentInstanceExecution` row never transitioned out of `RUNNING`).
-- **Action taken**: `serviceInstanceRedeploy` mutation forced a fresh deployment (`fe87554e-…` SUCCESS at 2026-05-06 04:04 UTC). Cron schedule `0 3 * * 0` preserved.
+- **Action taken**: `serviceInstanceRedeploy` mutation forced a fresh deployment (`fe87554e-…` SUCCESS at 2026-05-06 04:04 UTC). Cron schedule `0 3 * * 0` preserved. Re-redeployed at 04:46 UTC to attempt clearing the dashboard badge again.
 - **Diagnosis**: `docs/stuck-service-debug-2026-05-06.md`.
+
+### Orphan `postgres-volume` on `nyc-property-intel` — DELETE ATTEMPTED, LIKELY SOFT-DELETED
+
+- **What**: The MCP server (`nyc-property-intel`, id `6f49517c-...`) had a 40 GB volume named `postgres-volume` mounted at `/var/lib/postgresql/data`. The actual Postgres service has its own separate volume (`postgres-volume-EbJs`, 250 GB). The `postgres-volume` on the MCP server is an orphan from a past migration — production code has zero references to that mount path.
+- **Diagnosis**: `grep -rn "var/lib/postgresql" src/ scripts/` returned empty. Only references are in `docker-compose.yml` (for **local** development with Postgres-in-Docker) and `docs/implementation-plan.md`. The Railway-deployed MCP server doesn't write to that path.
+- **Volume identifiers** (for rollback):
+  - Volume id: `96505d7a-2a24-460e-a2b7-46889d1fac9e`
+  - Volume instance id: `2c8eeaf4-7363-4156-8b92-3a9aca72434f`
+  - Service: `nyc-property-intel` (`6f49517c-a2e8-414f-9f12-a8b6e2f0b40a`)
+  - Mount: `/var/lib/postgresql/data`
+  - Size: 40 GB (5 GB used)
+  - Region: `us-west2`
+  - Created: 2026-04-11
+- **Action attempted (2026-05-06)**:
+  1. Captured full pre-state to `/tmp/volume-state-before-2026-05-06.json`
+  2. Created backup snapshot via `volumeInstanceBackupCreate(volumeInstanceId: "2c8eeaf4-...")` — workflow id `createVolumeInstanceBackup/2c8eeaf4-...`
+  3. Called `volumeDelete(volumeId: "96505d7a-...")` — mutation returned `true`
+  4. Redeployed MCP server (`58a539ec`/`7d1cb1aa` etc.) — SUCCESS, no errors, healthcheck 200
+  5. Verified post-state: **volume still appears in API as `READY`, still attached to MCP server**
+- **Outcome**: Volume deletion mutation was accepted by Railway API but the volume persists. Likely Railway has a soft-delete grace period (typical 30-day retention) OR the delete-while-mounted path requires UI-only action. **MCP server is unaffected** — it continues running cleanly with the volume still mounted.
+- **What you (operator) need to do manually**:
+  1. Railway dashboard → `nyc-property-intel` service → Volumes tab
+  2. Find `postgres-volume` (40 GB)
+  3. Click into it → Detach OR Delete
+  4. Either resize to 5 GB (saves ~$8.75/mo) OR fully delete (saves ~$10/mo)
+  5. After UI action, verify next MCP redeploy succeeds (it should — the volume is unused)
+- **Rollback if Railway UI delete causes problems**: Recreate via `volumeCreate(input: { name: "postgres-volume", projectId: "20dddcf3-...", environmentId: "ef3f6030-...", serviceId: "6f49517c-...", mountPath: "/var/lib/postgresql/data" })`. Won't recover the 5 GB of data inside, but that data was stale Postgres files unused by the MCP server.
+
+### Cron-weekly redeploy attempts — phantom badge persists
+
+- **What**: Railway dashboard showed `nyc-property-intel-cron-weekly` as "Running (73:39:59)" despite the actual deployment showing SUCCESS in API.
+- **Verified via GraphQL**: `deployments` query returned `fe87554e SUCCESS at 04:02 UTC`, all other deploys REMOVED. **No deployment is actually RUNNING per the API.** The badge is a UI artifact — Railway never transitioned a stale `DeploymentInstanceExecution` row out of `RUNNING` status.
+- **Action attempted**: `serviceInstanceRedeploy` mutation called twice. New deployments succeeded each time. Dashboard badge unaffected by API.
+- **Workaround**: Hard-refresh (Cmd+Shift+R) the Railway dashboard. If badge persists, it'll resolve naturally on Sunday's next scheduled cron run.
+
+---
+
+## Pending operator actions
+
+1. **Resize or delete `postgres-volume` (40 GB) on nyc-property-intel via Railway UI** — saves ~$8–10/mo
+2. **After next Sunday's run verifies consolidated cleanup**, delete `nyc-property-intel-cron-cleanup` service:
+   ```
+   curl -X POST https://backboard.railway.com/graphql/v2 \
+     -H "Authorization: Bearer $RAILWAY_TOKEN" -H "Content-Type: application/json" \
+     -d '{"query":"mutation { serviceDelete(id: \"a3ad54c1-ed92-4bed-bfba-dc05c5ee24ce\") }"}'
+   ```
+3. **Optional: hard-refresh Railway dashboard** to clear the cron-weekly phantom badge.
 
 ---
 
