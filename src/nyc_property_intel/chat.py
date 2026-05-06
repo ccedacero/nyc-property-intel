@@ -498,7 +498,15 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         ph_capture("anonymous", "magic_link_activated", {})
-        response = JSONResponse({"ok": True})
+        # Return the plaintext token in the JSON body so the browser can store
+        # it in localStorage and send it as a Bearer header on /api/chat. We
+        # also set an HttpOnly cookie as defence-in-depth — the chat handler
+        # accepts either. Without the JSON field, the frontend's
+        # `activateMagicLink` (site/js/chat.js) treats the response as a no-op:
+        # `data.token` is undefined, authState stays "anon", queryCount stays
+        # at FREE_LIMIT, and the next user query immediately re-shows the
+        # email gate — i.e. the activation link appears to do nothing.
+        response = JSONResponse({"ok": True, "token": plaintext})
         response.set_cookie(
             key="nyc_pi_token",
             value=plaintext,
