@@ -375,6 +375,79 @@ async def _count_analyze_today(pool, token_hash: str) -> int:
         return 0  # fail open
 
 
+# ── Anonymous chat tracking ───────────────────────────────────────────
+
+# Per-process random fallback used when ANON_IP_HASH_SECRET is unset. This
+# keeps hashes consistent within a single instance but resets on each deploy;
+# set the env var in Railway for stable hashes across restarts.
+_ANON_IP_HASH_FALLBACK: str | None = None
+
+
+def _anon_ip_secret() -> str:
+    """Return the IP-hash secret, falling back to a random per-process value.
+
+    Reading from settings each call (rather than at import time) keeps tests
+    that monkeypatch settings.anon_ip_hash_secret working.
+    """
+    import os
+    secret = (
+        getattr(settings, "anon_ip_hash_secret", "")
+        or os.environ.get("ANON_IP_HASH_SECRET", "")
+    )
+    if secret:
+        return secret
+    global _ANON_IP_HASH_FALLBACK
+    if _ANON_IP_HASH_FALLBACK is None:
+        # uuid4 is fine — we only need an unguessable per-process value.
+        _ANON_IP_HASH_FALLBACK = uuid.uuid4().hex
+        logger.warning(
+            "ANON_IP_HASH_SECRET not set — using per-process fallback. "
+            "Anon IP hashes will not be stable across deploys."
+        )
+    return _ANON_IP_HASH_FALLBACK
+
+
+def _hash_ip(ip: str) -> str:
+    """Return a 32-char hex digest of (ip || secret), or empty string if ip is empty."""
+    if not ip:
+        return ""
+    secret = _anon_ip_secret()
+    return hashlib.sha256(f"{ip}{secret}".encode()).hexdigest()[:32]
+
+
+async def _record_anon_chat_query(
+    pool,
+    ip_hash: str,
+    query_count: int,
+    anon_session_id: str | None = None,
+) -> None:
+    """Insert one row into anon_chat_queries.
+
+    Failures must NOT bubble out — anon-tracking is observability, not a
+    user-visible feature. We log at warning level and swallow.
+
+    The INSERT is also wrapped in a try/except inside the SQL call site so
+    that even if the table is missing (e.g. migration somehow rolled back),
+    the chat path keeps working.
+    """
+    if pool is None:
+        return
+    try:
+        await pool.execute(
+            """
+            INSERT INTO anon_chat_queries (ip_hash, anon_session_id, query_count)
+            VALUES ($1, $2, $3)
+            """,
+            ip_hash or None,
+            anon_session_id,
+            query_count,
+        )
+    except Exception as exc:
+        # Includes UndefinedTableError if the migration hasn't been applied —
+        # we deliberately do NOT crash the chat handler in that case.
+        logger.warning("Failed to record anon chat query: %s", exc)
+
+
 # ── Handler factory ───────────────────────────────────────────────────
 
 def make_chat_handlers(auth: TokenAuth):
@@ -611,6 +684,16 @@ def make_chat_handlers(auth: TokenAuth):
                     status_code=402,
                 )
 
+        # Pre-compute IP hash for anonymous tracking. We never store the raw IP.
+        # `client_ip` was already extracted above for IP rate limiting (handles
+        # Fastly / CF / x-forwarded-for chain). If extraction failed entirely
+        # _get_client_ip returns "unknown"; treat that as missing → empty hash.
+        if client_ip and client_ip != "unknown":
+            anon_ip_hash = _hash_ip(client_ip)
+        else:
+            anon_ip_hash = ""
+            logger.warning("Anon chat: no client IP available for hashing")
+
         # ── Build streaming response ──────────────────────────────────
         new_cookie_val: str | None = None
         if not is_authenticated:
@@ -678,6 +761,31 @@ def make_chat_handlers(auth: TokenAuth):
                     asyncio.create_task(
                         auth.record_call(token_info.token_hash, tool_name, 0, 200)
                     )
+                except Exception:
+                    pass
+            else:
+                # Anonymous (pre-email-gate) path. Log a row to anon_chat_queries
+                # so we can measure the top-of-funnel — the auth path above is the
+                # only place this used to be tracked, leaving anon traffic invisible.
+                # Wrapped in try/except: a DB failure here must NEVER break the chat.
+                try:
+                    anon_pool = pool
+                    if anon_pool is None:
+                        try:
+                            anon_pool = await auth._get_pool()
+                        except Exception:
+                            anon_pool = None
+                    if anon_pool is not None:
+                        # query_count from the cookie was the count BEFORE this request;
+                        # store the post-request value so the row reflects "this is the Nth
+                        # free query for this visitor".
+                        asyncio.create_task(
+                            _record_anon_chat_query(
+                                anon_pool,
+                                anon_ip_hash,
+                                query_count + 1,
+                            )
+                        )
                 except Exception:
                     pass
 

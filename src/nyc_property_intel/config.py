@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     # Resets at midnight UTC. The remaining (chat_daily_query_limit -
     # chat_analyze_trial_limit) queries are available for other tools / chat.
     chat_analyze_trial_limit: int = 5
+    # Secret used when hashing visitor IPs for the anonymous chat tracking
+    # table (anon_chat_queries). Hash is sha256(ip || secret)[:32], so we never
+    # store the raw IP. If empty we fall back to a random per-process value and
+    # log a warning — set ANON_IP_HASH_SECRET in Railway to keep hashes stable
+    # across deploys (so the same visitor produces the same ip_hash).
+    anon_ip_hash_secret: str = ""
 
     @field_validator("database_url")
     @classmethod
