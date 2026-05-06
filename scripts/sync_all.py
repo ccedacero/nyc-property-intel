@@ -12,6 +12,10 @@ Behavior:
   - Runs each via subprocess so a hard crash in one doesn't break the rest.
   - Stagger 5s between datasets to avoid hammering Socrata simultaneously.
   - On any failure or drift warning, emails a summary via Resend.
+  - On weekly tier-2 runs, also sweeps idle trial tokens (folded in from
+    the standalone cleanup-cron service — see
+    docs/cost-cuts-plan-cleanup-consolidation-2026-05-06.md).
+    Suppress with --skip-cleanup or SYNC_SKIP_CLEANUP=1.
   - Exits non-zero if any dataset failed (so Railway/cron logs flag it).
 
 Exit codes:
@@ -35,6 +39,7 @@ from dataclasses import dataclass
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sync_delta import DATASETS  # noqa: E402
 from alerting import send_alert  # noqa: E402
+from cleanup_idle_tokens import cleanup_idle_tokens  # noqa: E402
 
 logger = logging.getLogger("sync_all")
 
@@ -121,6 +126,11 @@ def main() -> None:
         "--always-email", action="store_true",
         help="send email even on full success (default: only on warn/fail)",
     )
+    p.add_argument(
+        "--skip-cleanup", action="store_true",
+        help="skip post-sync idle-token cleanup on tier-2 runs "
+             "(default: cleanup runs on tier 2 only)",
+    )
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args()
 
@@ -157,6 +167,22 @@ def main() -> None:
     warned = sum(1 for r in results if r.rc == 1)
     if failed or warned or args.always_email:
         send_alert(subject, body)
+
+    # Post-sync idle-token cleanup — folded in from the former
+    # nyc-property-intel-cron-cleanup service. Tier-2-only so we preserve the
+    # prior weekly cadence; not running on tier-1 keeps daily syncs lean.
+    # cleanup_idle_tokens() catches its own exceptions and exits-0-always at
+    # the script boundary, but we wrap defensively here too — under no
+    # circumstance should a cleanup hiccup change the sync's exit code.
+    skip_cleanup = args.skip_cleanup or os.environ.get("SYNC_SKIP_CLEANUP") == "1"
+    if not args.only and args.tier == 2 and not skip_cleanup:
+        logger.info("running cleanup_idle_tokens (post-sync, tier=2)")
+        try:
+            asyncio.run(cleanup_idle_tokens(dry_run=False))
+        except Exception:
+            logger.exception("cleanup_idle_tokens crashed — sync exit code unchanged")
+    elif skip_cleanup:
+        logger.info("skipping post-sync cleanup (--skip-cleanup or SYNC_SKIP_CLEANUP=1)")
 
     if failed:
         sys.exit(2)
