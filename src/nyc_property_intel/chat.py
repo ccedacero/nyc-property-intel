@@ -354,15 +354,19 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
 
 # ── analyze_property daily limit ──────────────────────────────────────
 
-async def _count_analyze_trial(pool, token_hash: str) -> int:
-    """Return total analyze_property calls in the last 30 days for this token."""
+async def _count_analyze_today(pool, token_hash: str) -> int:
+    """Return analyze_property calls made today (UTC) for this token.
+
+    Resets at midnight UTC, matching the daily query counter in
+    mcp_daily_usage (which is keyed on CURRENT_DATE).
+    """
     try:
         row = await pool.fetchrow(
             """
             SELECT COUNT(*) AS cnt FROM mcp_usage_log
             WHERE token_hash = $1
               AND tool_name = 'analyze_property'
-              AND called_at >= NOW() - INTERVAL '30 days'
+              AND called_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
             """,
             token_hash,
         )
@@ -638,18 +642,23 @@ def make_chat_handlers(auth: TokenAuth):
             analyze_calls_this_request = 0
             pool = await auth._get_pool() if token_info else None
 
-            # Fetch 30-day analyze count for trial users
-            analyze_count_trial = 0
+            # Fetch today's analyze count for trial users (resets at midnight UTC).
+            analyze_count_today = 0
             if token_info and pool:
-                analyze_count_trial = await _count_analyze_trial(pool, token_info.token_hash)
+                analyze_count_today = await _count_analyze_today(pool, token_info.token_hash)
 
             async for chunk in _agentic_stream(anthropic_messages):
                 # Intercept tool_start for analyze_property to enforce limits
                 try:
                     parsed = json.loads(chunk.removeprefix("data: ").strip())
                     if parsed.get("type") == "tool_start" and parsed.get("name") == "analyze_property":
-                        if token_info and (analyze_count_trial + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
-                            yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n*You have used all 5 full analysis reports included in your trial. Upgrade to continue.*'})}\n\n"
+                        if token_info and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
+                            limit = settings.chat_analyze_trial_limit
+                            msg = (
+                                f"\n\n*You have used all {limit} full analysis reports for today. "
+                                "Your limit resets at midnight UTC.*"
+                            )
+                            yield f"data: {json.dumps({'type': 'text_delta', 'text': msg})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
                         if not token_info and anon_analyze_count >= 1:
@@ -662,7 +671,7 @@ def make_chat_handlers(auth: TokenAuth):
                 yield chunk
 
             # Record exactly one call per request. Use "analyze_property" when
-            # analyze ran so _count_analyze_trial stays accurate for the 30-day cap.
+            # analyze ran so _count_analyze_today stays accurate for the daily cap.
             if token_info:
                 try:
                     tool_name = "analyze_property" if analyze_calls_this_request else "web_chat"

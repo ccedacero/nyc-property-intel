@@ -79,9 +79,12 @@ class Settings(BaseSettings):
     chat_allowed_origins: str = "https://nycpropertyintel.com"
     # Free queries before email gate (no token required)
     chat_free_query_limit: int = 3
-    # Total tool-calls/day for trial tokens on web chat
+    # Total queries/day for trial tokens on web chat (resets at midnight UTC).
+    # Must match auth.PLAN_LIMITS["trial"] so the chat path and MCP path agree.
     chat_daily_query_limit: int = 10
-    # Max analyze_property calls over the 30-day trial period
+    # Max analyze_property calls/day for trial tokens (sub-cap of the daily total).
+    # Resets at midnight UTC. The remaining (chat_daily_query_limit -
+    # chat_analyze_trial_limit) queries are available for other tools / chat.
     chat_analyze_trial_limit: int = 5
 
     @field_validator("database_url")

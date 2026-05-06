@@ -38,7 +38,11 @@ TOKEN_PREFIX = "nyprop_"
 _CACHE_TTL = 60.0  # seconds before re-validating against DB
 
 PLAN_LIMITS: dict[str, int] = {
-    "trial": 999999,  # MVP validation: unlimited until paid tier exists
+    # Trial: 10 queries/day total (chat + MCP path). Of those 10, at most 5
+    # may be analyze_property calls — that sub-cap is enforced separately
+    # in chat.py via settings.chat_analyze_trial_limit. Both reset at
+    # midnight UTC (mcp_daily_usage is keyed on CURRENT_DATE).
+    "trial": 10,
     "pro": 500,
     "team": 2000,
     "dev": 999999,

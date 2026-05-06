@@ -32,7 +32,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp
-from nyc_property_intel.auth import TokenAuth
+from nyc_property_intel.auth import PLAN_LIMITS, TokenAuth
 from nyc_property_intel.chat import make_chat_handlers
 from nyc_property_intel.config import settings
 from nyc_property_intel.loops_webhook import make_webhook_handler
@@ -198,20 +198,27 @@ class _TokenAuthMiddleware:
             return
 
         # ── Rate limit check ──────────────────────────────────────────
+        # Use the lesser of the token's stored limit and the current PLAN_LIMITS
+        # for that plan. This lets us tighten plan caps (e.g. trial 999999 → 10)
+        # without backfilling existing rows — older tokens are clamped at read
+        # time, while still permitting per-token bespoke higher limits if we
+        # ever need them (the stored value wins when it's *lower* than the plan).
+        plan_cap = PLAN_LIMITS.get(token_info.plan, token_info.daily_limit)
+        effective_limit = min(token_info.daily_limit, plan_cap)
         allowed, current_count = await self._auth.check_rate_limit(
-            token_info.token_hash, token_info.daily_limit
+            token_info.token_hash, effective_limit
         )
         if not allowed:
             ph_capture(token_info.token_hash, "rate_limit_hit", {
                 "plan": token_info.plan,
-                "daily_limit": token_info.daily_limit,
+                "daily_limit": effective_limit,
                 "used": current_count,
             })
             resp = _json_response(
                 scope, 429,
                 {
                     "error": "Daily rate limit exceeded",
-                    "limit": token_info.daily_limit,
+                    "limit": effective_limit,
                     "used": current_count,
                     "resets": "midnight UTC",
                 },
@@ -222,7 +229,7 @@ class _TokenAuthMiddleware:
                 token_info.customer_email,
                 token_info.plan,
                 current_count,
-                token_info.daily_limit,
+                effective_limit,
             )
             await resp(scope, receive, send)
             return
