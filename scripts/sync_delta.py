@@ -569,6 +569,15 @@ HTTP_TIMEOUT_SEC = 180
 DRIFT_WARN_PCT = 5.0
 DRIFT_ERR_PCT = 10.0
 
+# Datasets where Socrata's `rowsCount` permanently disagrees with our local
+# count for documented reasons (frozen source, deduplicated PK versions, etc.).
+# See docs/known-issues.md and coverage_audit.py for the same list.
+# Drift checks are SKIPPED for these to avoid alert spam — the gap is expected.
+KNOWN_FROZEN_SOURCE: set[str] = {
+    "dobjobs",            # Socrata stopped 2020-05-21; pre-2020 unenumerable via $offset
+    "hpd_registrations",  # Socrata rowsCount counts duplicate-version rows; we dedupe by PK
+}
+
 
 # ── Socrata I/O ───────────────────────────────────────────────────────
 async def fetch_page(
@@ -1017,10 +1026,15 @@ async def sync_dataset(cfg: DatasetCfg, *, dry_run: bool, reset: bool) -> int:
             missing_pct = (expected - actual) / expected * 100
             logger.info("drift check: actual=%s expected=%s (missing %.2f%%)",
                         actual, expected, missing_pct)
-            if missing_pct >= DRIFT_ERR_PCT:
+            # Skip drift escalation for datasets with a documented permanent gap.
+            # See KNOWN_FROZEN_SOURCE comment + docs/known-issues.md.
+            if cfg.key in KNOWN_FROZEN_SOURCE:
+                logger.info("drift accepted: %s is in KNOWN_FROZEN_SOURCE — not alerting",
+                            cfg.key)
+            elif missing_pct >= DRIFT_ERR_PCT:
                 logger.error("MISSING >= %.0f%% — alert needed", DRIFT_ERR_PCT)
                 return 1
-            if missing_pct >= DRIFT_WARN_PCT:
+            elif missing_pct >= DRIFT_WARN_PCT:
                 logger.warning("missing >= %.0f%% — warn", DRIFT_WARN_PCT)
         else:
             logger.info("drift check: actual=%s expected=%s (ok)", actual, expected)
