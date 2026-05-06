@@ -133,6 +133,49 @@ Panel proposes: Free 14d/50q → **Pro $79/mo** (500 queries) → **Team $249/mo
 
 ---
 
+## ⏰ Time-sensitive reminders
+
+### Sunday 2026-05-10 (after 04:30 UTC) — delete `nyc-property-intel-cron-cleanup` service
+
+**Why**: PR #20 (merged 2026-05-06) consolidated the idle-token cleanup logic into the weekly tier-2 sync. The standalone `nyc-property-intel-cron-cleanup` service (id `a3ad54c1-ed92-4bed-bfba-dc05c5ee24ce`, schedule `0 4 * * 0`) is kept alive as a safety net until the consolidated path proves itself in production.
+
+**When**: After Sunday morning 2026-05-10:
+- 03:00 UTC: weekly cron fires the consolidated sync+cleanup
+- 04:00 UTC: standalone cleanup-cron fires (becomes a no-op by design)
+- 04:30 UTC onwards: safe to delete the standalone
+
+**Pre-delete verification**:
+```
+psql "$RAILWAY_DB" -c "
+SELECT count(*) FROM mcp_tokens
+WHERE notes LIKE '%auto-revoked: 21d idle no real calls%'
+  AND revoked_at > NOW() - INTERVAL '24 hours';
+"
+```
+Any non-error response (even 0) = consolidated path worked.
+
+**Delete command**:
+```
+TOKEN=$(python3 -c "import json; print(json.load(open('/Users/devtzi/.railway/config.json'))['user']['token'])")
+curl -X POST https://backboard.railway.com/graphql/v2 \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"query":"mutation { serviceDelete(id: \"a3ad54c1-ed92-4bed-bfba-dc05c5ee24ce\") }"}'
+```
+
+**Savings**: <$1/mo (hygiene only — one less service on the dashboard).
+
+### Today/Tomorrow — Resize or delete `postgres-volume` on `nyc-property-intel` via Railway UI
+
+**Why**: 40 GB orphan volume mounted on the MCP server (the actual Postgres has its own separate volume). Production code has zero references. See `docs/operational-changes-log.md` for full diagnosis.
+
+**Where**: Railway dashboard → `nyc-property-intel` service → Settings → Volumes → `postgres-volume` (40 GB / 5 GB used)
+
+**Recommended action**: detach + delete OR resize to 5 GB.
+
+**Savings**: ~$8.75–10/mo.
+
+---
+
 ## Other deferred items (not P0/P1 but worth tracking)
 
 - **`scripts/run_backfill.py`** auto-deploy issue: any merge to main redeploys the backfill service and kills in-flight runs. Configure the backfill service in Railway UI to NOT auto-deploy, OR move backfill code to a separate repo. Not urgent now (no scheduled backfills running).
