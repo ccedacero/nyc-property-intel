@@ -75,6 +75,15 @@
   var signupForm = document.getElementById("hero-signup-form");
   var signupSuccess = document.getElementById("hero-signup-success");
   var signupError = document.getElementById("hero-signup-error");
+  var formLoadedAtInput = document.getElementById("hero-form-loaded-at");
+
+  // Stamp form-load time as soon as the page boots so the time-on-page
+  // heuristic in the webhook can reject sub-2s submissions. Stored as
+  // ms-since-epoch string. If the input is missing (older cached HTML)
+  // we just no-op \u2014 webhook falls through to allow.
+  if (formLoadedAtInput) {
+    formLoadedAtInput.value = String(Date.now());
+  }
 
   if (signupForm) {
     signupForm.addEventListener("submit", function (e) {
@@ -93,7 +102,19 @@
       btn.disabled = true;
       btn.textContent = "Sending\u2026";
 
-      var body = new URLSearchParams({ email: email });
+      // Build body from all form fields so honeypot (`phone`) and
+      // `form_loaded_at` are forwarded to Loops as contact properties.
+      // Omit any honeypot value that legit users would never set; if a
+      // bot fills it, we want it to reach the webhook so we can reject.
+      var bodyParams = { email: email };
+      var phoneEl = signupForm.querySelector('input[name="phone"]');
+      if (phoneEl && phoneEl.value) {
+        bodyParams.phone = phoneEl.value;
+      }
+      if (formLoadedAtInput && formLoadedAtInput.value) {
+        bodyParams.form_loaded_at = formLoadedAtInput.value;
+      }
+      var body = new URLSearchParams(bodyParams);
 
       fetch("https://app.loops.so/api/newsletter-form/" + LOOPS_FORM_ID, {
         method: "POST",

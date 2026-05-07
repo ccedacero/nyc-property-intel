@@ -3,8 +3,9 @@
 Flow:
   1. Customer fills out your Loops form (early access signup)
   2. Loops fires a POST to /webhook/loops (contactCreated event)
-  3. We run anti-bot checks (disposable domain, MX, brand-prefix heuristic).
-     Failed checks → log + posthog event + return 200 OK without provisioning.
+  3. We run anti-bot checks (honeypot, time-on-page, source allow-list,
+     disposable domain, MX, brand-prefix heuristic). Failed checks → log +
+     posthog event + return 200 OK without provisioning.
   4. We generate a trial token and store it in mcp_tokens
   5. We call the Loops API to set mcp_token on the contact
   6. A Loops automation detects mcp_token is set → sends Email 2
@@ -22,6 +23,17 @@ Setup checklist (one-time, in Loops dashboard):
        Action:  Send email → [your token delivery email]
 
 Anti-bot layered defense (applied in order, after signature validation):
+  Layer 0a — honeypot field (`phone`)
+    Form has an off-screen `phone` input. If a contact arrives with a
+    non-empty `phone` property, it was filled by an HTML scraper.
+  Layer 0b — time-on-page heuristic (`form_loaded_at`)
+    JS stamps the form-load time (ms-since-epoch). If a contact arrives
+    with `form_loaded_at` < 2s ago, the submission was scripted.
+    Missing/unparsable values fall through (back-compat).
+  Layer 0c — Loops `source` allow-list
+    Reject contacts created via API/Import/CSV/Manual paths — we never
+    create contacts ourselves via those paths. Missing `source` falls
+    through (Loops docs are inconsistent on whether the field is set).
   Layer 1 — disposable email domain blocklist
     union(curated `disposable-email-domains` Python pkg, _CUSTOM_DISPOSABLE)
   Layer 2 — MX record validity (DNS lookup, 3s timeout, fail-open on transient)
@@ -39,6 +51,7 @@ import hashlib
 import hmac
 import json
 import logging
+import time
 
 import httpx
 from disposable_email_domains import blocklist as _DISPOSABLE_LIB_BLOCKLIST
@@ -96,6 +109,22 @@ _MAJOR_FREE_PROVIDERS: frozenset[str] = frozenset({
 })
 
 _DNS_TIMEOUT_SECONDS = 3.0
+
+# Time-on-page heuristic: a real human takes >2s to fill even a single
+# email field. Sub-2s submissions are scripted. Threshold is generous to
+# avoid false positives on fast power-users; bump up if abuse persists.
+_MIN_FORM_FILL_MS = 2000
+
+# Loops `source` values we explicitly REJECT. These are paths through
+# which we never legitimately create contacts (we only use the form).
+# Missing/unknown source falls through (allow) so we don't break on
+# Loops adding new source types.
+_REJECTED_LOOPS_SOURCES: frozenset[str] = frozenset({
+    "API",
+    "Import",
+    "CSV",
+    "Manual",
+})
 
 
 # ── Signature verification ────────────────────────────────────────────
@@ -217,6 +246,74 @@ def is_brand_prefix_suspicious(local: str, domain: str) -> bool:
     return True
 
 
+# ── Stopgap bot defenses (honeypot, time-on-page, source) ────────────
+
+
+def _contact_property(contact: dict, *names: str) -> str:
+    """Return the first non-empty contact property from `names`, lowercased,
+    or empty string if none present.
+
+    Loops form custom-field names are case-sensitive AND auto-camel-cased
+    on some plans; check the exact name and the camelCase variant.
+    """
+    for n in names:
+        v = contact.get(n)
+        if v is None:
+            continue
+        s = str(v).strip()
+        if s:
+            return s
+    return ""
+
+
+def is_honeypot_filled(contact: dict) -> bool:
+    """True if the off-screen `phone` honeypot field has any value.
+
+    Real users never see or fill this field. Bots that scrape the form
+    HTML and POST every input will populate it. Loops forwards arbitrary
+    custom contact properties to the webhook payload under the same name.
+    """
+    return _contact_property(contact, "phone", "Phone") != ""
+
+
+def is_too_fast(contact: dict, now_ms: int) -> bool:
+    """True if the `form_loaded_at` field is present AND submission was
+    less than _MIN_FORM_FILL_MS after page load.
+
+    Falls through (returns False) if the field is missing or unparsable —
+    we never reject a real user just because their browser dropped the
+    hidden input or the page was cached before this rollout.
+    """
+    raw = _contact_property(contact, "form_loaded_at", "formLoadedAt")
+    if not raw:
+        return False
+    try:
+        loaded_at_ms = int(raw)
+    except (TypeError, ValueError):
+        return False
+    # Future-dated values (clock skew, replay attacks) are also suspicious,
+    # but be lenient: only reject on the obvious "well in the past, sub-2s"
+    # window. A future-dated stamp produces a negative delta which fails
+    # the < _MIN_FORM_FILL_MS check (negative IS less than positive); guard
+    # by also requiring loaded_at <= now_ms.
+    if loaded_at_ms > now_ms:
+        return False  # clock skew; let other layers handle it
+    delta_ms = now_ms - loaded_at_ms
+    return delta_ms < _MIN_FORM_FILL_MS
+
+
+def is_unexpected_source(contact: dict) -> tuple[bool, str]:
+    """Return (rejected, source_value).
+
+    `rejected` is True if Loops `source` is in our explicit reject set
+    (API/Import/CSV/Manual — paths through which we never legitimately
+    create contacts). Missing/unknown source falls through (allow) so a
+    Loops change to source-naming doesn't block real users.
+    """
+    src = _contact_property(contact, "source", "Source")
+    return (src in _REJECTED_LOOPS_SOURCES, src)
+
+
 # ── Loops API ─────────────────────────────────────────────────────────
 
 async def _set_loops_contact_property(email: str, token: str) -> None:
@@ -281,11 +378,24 @@ def make_webhook_handler(auth: TokenAuth):
             logger.warning("Loops webhook: contactCreated payload missing email")
             return JSONResponse({"error": "Missing email"}, status_code=400)
 
+        # Read Loops `source` early so it can be tagged on every event for
+        # the dashboard pivot. Values seen so far: "Form" (good), occasional
+        # missing. We log it so we can decide whether to tighten the rule.
+        _src_rejected, src_value = is_unexpected_source(contact)
+        logger.info(
+            "Loops webhook: source=%r email=%s honeypot=%s",
+            src_value or "<missing>", email, is_honeypot_filled(contact),
+        )
+
         # Funnel-top event: fires for every signup that passes signature + payload
         # validation, BEFORE any rejection or token provisioning. Pairs with the
         # downstream signup_provisioned / signup_rejected_* events to compute
         # rejection rate per source.
-        ph_capture(email, "signup_form_submitted", {"source": "loops_webhook"})
+        ph_capture(
+            email,
+            "signup_form_submitted",
+            {"source": "loops_webhook", "loops_source": src_value or ""},
+        )
 
         local, domain = _split_email(email)
         if not domain:
@@ -294,6 +404,70 @@ def make_webhook_handler(auth: TokenAuth):
             return _reject_200("malformed_email", email)
 
         logger.info("Loops webhook: new signup — %s", email)
+
+        # ── Layer 0a: honeypot field ──────────────────────────────────
+        # Off-screen `phone` input on the form. Filled only by naive
+        # HTML scrapers. Catches the "scrape and POST every field" subset
+        # of bot traffic; misses direct-API attackers (those don't see
+        # the form at all).
+        if is_honeypot_filled(contact):
+            phone_val = _contact_property(contact, "phone", "Phone")
+            logger.warning(
+                "Loops webhook: rejected HONEYPOT — email=%s phone_len=%d",
+                email, len(phone_val),
+            )
+            ph_capture(
+                email,
+                "signup_rejected_honeypot",
+                {"source": "loops_webhook", "loops_source": src_value or ""},
+            )
+            return _reject_200("honeypot", email)
+
+        # ── Layer 0b: time-on-page heuristic ──────────────────────────
+        # JS stamps `form_loaded_at` (ms-since-epoch) on page load. A
+        # human takes >2s to fill even a single email field; sub-2s
+        # submissions are scripted. Missing/garbage values fall through
+        # so we don't reject users on cached pages or browsers that drop
+        # hidden inputs. Catches a different bot subset from honeypot.
+        now_ms = int(time.time() * 1000)
+        if is_too_fast(contact, now_ms):
+            raw = _contact_property(contact, "form_loaded_at", "formLoadedAt")
+            try:
+                delta = now_ms - int(raw)
+            except (TypeError, ValueError):
+                delta = -1
+            logger.warning(
+                "Loops webhook: rejected TOO_FAST — email=%s delta_ms=%d",
+                email, delta,
+            )
+            ph_capture(
+                email,
+                "signup_rejected_too_fast",
+                {
+                    "source": "loops_webhook",
+                    "delta_ms": delta,
+                    "loops_source": src_value or "",
+                },
+            )
+            return _reject_200("too_fast", email, delta_ms=delta)
+
+        # ── Layer 0c: Loops source allow-list ─────────────────────────
+        # We never legitimately create contacts via API/Import/CSV/Manual
+        # (audited 2026-05-06: zero `POST /api/v1/contacts` calls in the
+        # codebase; only `PUT /contacts/update` and `POST /transactional`).
+        # So a contactCreated webhook with one of those sources came from
+        # someone using a stolen API key or a manual Loops-dashboard import.
+        if _src_rejected:
+            logger.warning(
+                "Loops webhook: rejected UNEXPECTED_SOURCE — email=%s source=%r",
+                email, src_value,
+            )
+            ph_capture(
+                email,
+                "signup_rejected_unexpected_source",
+                {"source": "loops_webhook", "loops_source": src_value},
+            )
+            return _reject_200("unexpected_source", email, loops_source=src_value)
 
         # ── Layer 1: disposable domain blocklist ──────────────────────
         if is_disposable_domain(domain):

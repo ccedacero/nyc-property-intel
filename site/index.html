@@ -230,6 +230,23 @@
         <p class="hero-note">No credit card &middot; No account needed for first 3 queries &middot; Open source (MIT)</p>
         <form class="hero-signup" id="hero-signup-form" action="https://app.loops.so/api/newsletter-form/cmntqdkqy00y20iycvyyxby0m" method="POST" novalidate style="margin-top:2rem;">
           <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.75rem; text-align:center;">Connect via <strong style="color:var(--text-primary);">Claude Desktop or Claude Code</strong> — get your token emailed instantly:</p>
+          <!-- Honeypot: invisible to humans, irresistible to naive form-scrapers.
+               Webhook rejects any submission where this field is populated. -->
+          <div aria-hidden="true" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;">
+            <label for="hero-phone-hp">Phone (leave empty)</label>
+            <input
+              type="text"
+              name="phone"
+              id="hero-phone-hp"
+              tabindex="-1"
+              autocomplete="off"
+              value=""
+            >
+          </div>
+          <!-- Time-on-page heuristic: JS stamps this on page load; webhook
+               rejects submissions where now - form_loaded_at < 2000ms.
+               Empty/missing values fall through (back-compat). -->
+          <input type="hidden" name="form_loaded_at" id="hero-form-loaded-at" value="">
           <div class="hero-signup-fields">
             <input
               type="email"

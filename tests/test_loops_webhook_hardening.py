@@ -430,3 +430,218 @@ async def test_non_signup_event_skipped(captured_events) -> None:
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "testing.testEvent"
     assert auth.calls == []
+
+
+# ── Stopgap defenses (2026-05-06): honeypot, time-on-page, source ────
+
+
+def _payload_with_props(email: str = "alice@example.com", **props: Any) -> bytes:
+    """Build a Loops contactCreated payload with arbitrary extra contact properties.
+
+    Mirrors how Loops forwards form custom fields under contact.<name>.
+    """
+    contact: dict[str, Any] = {"email": email}
+    contact.update(props)
+    return json.dumps({"eventName": "contact.created", "contact": contact}).encode()
+
+
+# --- Layer 0a: honeypot (`phone`) ----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_honeypot_field_present_rejects(captured_events, patch_mx_ok) -> None:
+    """A populated `phone` field on a webhook payload means the form was
+    scraped by a bot. Reject 200 so Loops doesn't retry."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("bot@example.com", phone="+15551234567")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body)["skipped"] == "honeypot"
+    assert auth.calls == []
+    assert [e[1] for e in captured_events] == [
+        "signup_form_submitted",
+        "signup_rejected_honeypot",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_honeypot_field_empty_allowed(captured_events, patch_mx_ok) -> None:
+    """An empty-string `phone` (the default) must NOT trigger rejection."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", phone="")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body).get("email") == "alice@example.com"
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_honeypot_field_absent_allowed(captured_events, patch_mx_ok) -> None:
+    """Back-compat: legacy payloads without a `phone` field at all must still pass.
+
+    This is the existing-traffic case — Loops contacts created before this
+    change have no `phone` key, and they must continue to provision."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload("alice@example.com")  # no extra props
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_honeypot_field_whitespace_only_allowed(
+    captured_events, patch_mx_ok,
+) -> None:
+    """A `phone` field of `"   "` strips to empty → not a honeypot hit."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", phone="   ")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+# --- Layer 0b: time-on-page (`form_loaded_at`) ---------------------------
+
+
+@pytest.mark.asyncio
+async def test_too_fast_form_load_rejected(captured_events, patch_mx_ok) -> None:
+    """Submission less than 2s after the form-load stamp = scripted."""
+    import time as _time
+    now_ms = int(_time.time() * 1000)
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    # 500ms after page-load -> sub-2s -> reject
+    body = _payload_with_props("bot@example.com", form_loaded_at=str(now_ms - 500))
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body)["skipped"] == "too_fast"
+    assert auth.calls == []
+    assert "signup_rejected_too_fast" in [e[1] for e in captured_events]
+
+
+@pytest.mark.asyncio
+async def test_form_load_time_old_enough_allowed(
+    captured_events, patch_mx_ok,
+) -> None:
+    """5s after page-load → real human cadence → allow."""
+    import time as _time
+    now_ms = int(_time.time() * 1000)
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", form_loaded_at=str(now_ms - 5000))
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_form_load_time_missing_allowed(captured_events, patch_mx_ok) -> None:
+    """Back-compat: legacy payloads without form_loaded_at must still pass."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload("alice@example.com")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_form_load_time_unparsable_allowed(
+    captured_events, patch_mx_ok,
+) -> None:
+    """Garbage value in form_loaded_at must NOT reject — fail open."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", form_loaded_at="not-a-number")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_form_load_time_future_allowed(captured_events, patch_mx_ok) -> None:
+    """Future-dated stamp (clock skew) must NOT trigger too_fast — fail open."""
+    import time as _time
+    now_ms = int(_time.time() * 1000)
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props(
+        "alice@example.com", form_loaded_at=str(now_ms + 60_000),
+    )
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+# --- Layer 0c: Loops `source` allow-list ---------------------------------
+
+
+@pytest.mark.asyncio
+async def test_unexpected_source_api_rejected(captured_events, patch_mx_ok) -> None:
+    """Source=API → contact created via Loops API, not our form. Reject."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("api-bot@example.com", source="API")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body)["skipped"] == "unexpected_source"
+    assert auth.calls == []
+    assert "signup_rejected_unexpected_source" in [e[1] for e in captured_events]
+
+
+@pytest.mark.asyncio
+async def test_unexpected_source_import_rejected(
+    captured_events, patch_mx_ok,
+) -> None:
+    """Source=Import → CSV/manual import. Reject."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("imported@example.com", source="Import")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body)["skipped"] == "unexpected_source"
+    assert auth.calls == []
+
+
+@pytest.mark.asyncio
+async def test_form_source_allowed(captured_events, patch_mx_ok) -> None:
+    """Source=Form is the expected legitimate path → provision token."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", source="Form")
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert json.loads(resp.body).get("email") == "alice@example.com"
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_missing_source_allowed(captured_events, patch_mx_ok) -> None:
+    """Back-compat: payloads without a `source` key must still provision.
+
+    Loops docs are inconsistent on whether `source` is always populated;
+    failing closed on missing values would block real users on any
+    contact-created event Loops decides to send without that field."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload("alice@example.com")  # no `source` field
+    resp = await handle(_make_request(body, _sign(body)))
+    assert resp.status_code == 200
+    assert len(auth.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_loops_source_tagged_on_funnel_event(
+    captured_events, patch_mx_ok,
+) -> None:
+    """Funnel-top event must carry `loops_source` for dashboard pivots."""
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload_with_props("alice@example.com", source="Form")
+    await handle(_make_request(body, _sign(body)))
+    funnel_evt = next(e for e in captured_events if e[1] == "signup_form_submitted")
+    assert funnel_evt[2].get("loops_source") == "Form"
