@@ -66,11 +66,15 @@
 
   // ── Email signup form ───────────────────────────────────────────
   //
-  // Uses Loops.so newsletter form API.
-  // Setup: create a free account at loops.so, create an Audience form,
-  // copy your Form ID, and paste it below as LOOPS_FORM_ID.
+  // POSTs to our Railway backend `/api/signup` instead of the public
+  // Loops form ID directly. The backend runs the same anti-bot checks
+  // as the Loops webhook (disposable / MX / brand-prefix), then issues
+  // a token + magic link via the chat-flow primitives.
+  // See docs/signup-rebuild-plan-2026-05-06.md.
   //
-  var LOOPS_FORM_ID = "cmntqdkqy00y20iycvyyxby0m";
+  var SIGNUP_ENDPOINT =
+    "https://nyc-property-intel-production.up.railway.app/api/signup";
+  var SIGNUP_BTN_DEFAULT_LABEL = "Email me a token";
 
   var signupForm = document.getElementById("hero-signup-form");
   var signupSuccess = document.getElementById("hero-signup-success");
@@ -91,33 +95,48 @@
       }
 
       btn.disabled = true;
-      btn.textContent = "Sending\u2026";
+      btn.textContent = "Sending…";
 
-      var body = new URLSearchParams({ email: email });
-
-      fetch("https://app.loops.so/api/newsletter-form/" + LOOPS_FORM_ID, {
+      // POST as JSON — matches the backend handler's contract.
+      // The handler accepts:
+      //   { email, hp_field?, started_at_ms? }
+      // hp_field is the future honeypot (always absent from real users).
+      // started_at_ms is the future time-on-form check (Phase D).
+      fetch(SIGNUP_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email }),
       })
         .then(function (res) {
+          if (res.status === 429) throw new Error("rate_limited");
           if (!res.ok) throw new Error("server_error");
           return res.json();
         })
         .then(function (data) {
-          if (data.success) {
-            ph("signup_submitted", {});
+          // Backend contract: success returns {"ok": true}. Anti-bot
+          // rejections (disposable / no-MX / heuristic) ALSO return 200
+          // {"ok": true} silently — that's intentional so bots can't
+          // oracle the outcome. From the user's perspective, success or
+          // quiet rejection both show "Check your inbox", which is fine:
+          // a real user who happens to type a disposable address just
+          // won't get an email and will retry with their real one.
+          if (data && data.ok === true) {
+            ph("signup_submitted", { source: "api_signup" });
             signupForm.hidden = true;
             signupSuccess.hidden = false;
           } else {
-            throw new Error(data.message || "unknown_error");
+            throw new Error("unknown_error");
           }
         })
         .catch(function (err) {
           btn.disabled = false;
-          btn.textContent = "Get Access Token";
-          if (err.message === "server_error") {
-            signupError.textContent = "Something went wrong. Try again in a moment.";
+          btn.textContent = SIGNUP_BTN_DEFAULT_LABEL;
+          if (err.message === "rate_limited") {
+            signupError.textContent =
+              "Too many signups from this address. Try again in an hour.";
+          } else if (err.message === "server_error") {
+            signupError.textContent =
+              "Something went wrong. Try again in a moment.";
           } else {
             signupError.textContent = "Could not sign up. Please try again.";
           }
@@ -131,10 +150,18 @@
       ph("cta_clicked", { label: "github", href: el.getAttribute("href") });
     });
   });
-  var getAccessBtn = document.querySelector('a[href="#hero-signup-form"]');
+  // The hero form anchor was renamed from #hero-signup-form to
+  // #hero-signup-form-wrapper when the form was moved inside a <details>
+  // collapsible. The CTA below scrolls there AND opens the details so
+  // the form is visible without a second click.
+  var getAccessBtn = document.querySelector(
+    'a[href="#hero-signup-form-wrapper"]'
+  );
   if (getAccessBtn) {
     getAccessBtn.addEventListener("click", function () {
       ph("cta_clicked", { label: "get_access_nav" });
+      var wrapper = document.getElementById("hero-signup-form-wrapper");
+      if (wrapper) wrapper.open = true;
     });
   }
 

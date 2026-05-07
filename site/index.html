@@ -205,7 +205,7 @@
         <li><a href="#tools">Tools</a></li>
         <li><a href="#data-sources">Data</a></li>
         <li><a href="#install">Install</a></li>
-        <li><a href="chat.html" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>
+        <li><a href="/chat" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>
       </ul>
     </nav>
   </header>
@@ -223,36 +223,58 @@
           liens, permits, rent stabilization status, and ownership records from
           <strong>20+ official NYC databases</strong> &mdash; no spreadsheets, no browser tabs.
         </p>
-        <div class="hero-actions" style="display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; margin-bottom:1.25rem;">
-          <a href="chat.html" class="btn btn-primary">Try It Now &mdash; Free</a>
-          <a href="#hero-signup-form" class="btn btn-outline">Connect to Claude Desktop &rarr;</a>
+
+        <!-- Single dominant primary CTA — the casual visitor's path -->
+        <div class="hero-actions hero-actions-primary" style="display:flex; justify-content:center; margin-bottom:1.25rem;">
+          <a href="/chat" class="btn btn-primary btn-hero" style="padding:1rem 2.25rem; font-size:1.0625rem;">Try It Now &mdash; Free &rarr;</a>
         </div>
         <p class="hero-note">No credit card &middot; No account needed for first 3 queries &middot; Open source (MIT)</p>
-        <form class="hero-signup" id="hero-signup-form" action="https://app.loops.so/api/newsletter-form/cmntqdkqy00y20iycvyyxby0m" method="POST" novalidate style="margin-top:2rem;">
-          <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.75rem; text-align:center;">Connect via <strong style="color:var(--text-primary);">Claude Desktop or Claude Code</strong> — get your token emailed instantly:</p>
-          <div class="hero-signup-fields">
-            <input
-              type="email"
-              name="email"
-              id="hero-email"
-              class="signup-input"
-              placeholder="your@email.com"
-              autocomplete="email"
-              required
-              aria-label="Email address"
-            >
-            <button type="submit" class="btn btn-primary signup-btn">Get Access Token</button>
-          </div>
-          <p class="signup-error" id="hero-signup-error" role="alert" aria-live="polite"></p>
-        </form>
-        <div class="hero-signup-success" id="hero-signup-success" hidden>
-          <p class="signup-success-msg">&#x2713; Check your inbox &mdash; your token and setup instructions are on the way.</p>
-        </div>
+
         <div class="hero-actions-secondary" style="margin-top:1rem;">
           <a href="#how-it-works" class="link-subtle">See how it works &darr;</a>
           <span class="hero-note-sep">&middot;</span>
           <a href="https://github.com/ccedacero/nyc-property-intel" class="link-subtle" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
         </div>
+
+        <!-- Demoted: Loops/MCP form for power-users. Collapsed by default
+             so the hero stays focused on the dominant CTA above. -->
+        <details class="hero-power-user" id="hero-signup-form-wrapper" style="margin-top:2.5rem; max-width:620px; margin-left:auto; margin-right:auto; text-align:left;">
+          <summary class="hero-power-user-summary" style="cursor:pointer; color:var(--text-secondary); font-size:0.9375rem; padding:0.5rem 0; text-align:center; list-style:none;">
+            For Claude Desktop / Claude Code power-users &rarr;
+          </summary>
+          <div class="hero-power-user-body" style="margin-top:1rem; text-align:center;">
+            <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.75rem;">
+              Connect via the MCP protocol from your local Claude Desktop or Claude Code install.
+              Email a token to yourself, paste it into your MCP config, you&rsquo;re done.
+            </p>
+            <form
+              class="hero-signup"
+              id="hero-signup-form"
+              action="https://nyc-property-intel-production.up.railway.app/api/signup"
+              method="POST"
+              novalidate
+              style="margin-top:0.5rem;"
+            >
+              <div class="hero-signup-fields">
+                <input
+                  type="email"
+                  name="email"
+                  id="hero-email"
+                  class="signup-input"
+                  placeholder="your@email.com"
+                  autocomplete="email"
+                  required
+                  aria-label="Email address"
+                >
+                <button type="submit" class="btn btn-primary signup-btn">Email me a token</button>
+              </div>
+              <p class="signup-error" id="hero-signup-error" role="alert" aria-live="polite"></p>
+            </form>
+            <div class="hero-signup-success" id="hero-signup-success" hidden>
+              <p class="signup-success-msg">&#x2713; Check your inbox &mdash; your token and setup instructions are on the way.</p>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -855,12 +877,15 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     <section class="section final-cta" id="get-started">
       <div class="container">
         <h2>Ready to Run Your First Search?</h2>
-        <p class="section-intro">Your trial token is emailed the moment you sign up &mdash; no credit card, no setup required. Connect to Claude Desktop or Claude Code in minutes.</p>
-        <div class="final-cta-actions">
-          <a href="chat.html" class="btn btn-primary">Try It Now &mdash; Free</a>
-          <a href="#hero-signup-form" class="btn btn-outline">Get Your Access Token &rarr;</a>
+        <p class="section-intro">Ask about any NYC property in plain English &mdash; no signup needed for your first 3 queries.</p>
+        <div class="final-cta-actions" style="display:flex; justify-content:center;">
+          <a href="/chat" class="btn btn-primary btn-hero" style="padding:1rem 2.25rem; font-size:1.0625rem;">Try It Now &mdash; Free &rarr;</a>
         </div>
         <p class="hero-note" style="margin-top:1.25rem;">No credit card &middot; First 3 queries free without signup &middot; Open source (MIT)</p>
+        <p class="hero-note" style="margin-top:0.75rem;">
+          Power-user instead?
+          <a href="#hero-signup-form-wrapper" class="link-subtle">Get a token for Claude Desktop / Code &rarr;</a>
+        </p>
       </div>
     </section>
 

@@ -287,6 +287,26 @@ def make_webhook_handler(auth: TokenAuth):
         # rejection rate per source.
         ph_capture(email, "signup_form_submitted", {"source": "loops_webhook"})
 
+        # Forensic tripwire — once the homepage form switches to /api/signup
+        # (Phase B of the signup-rebuild), every hit on this route is one of:
+        #   (a) a Loops dashboard test fire (rare, easy to recognise by email),
+        #   (b) a stale browser cached against the old form action (transient),
+        #   (c) a bot still scripting the published Loops form ID directly.
+        # Logging the email + UA gives us the data we need to decide when it's
+        # safe to delete this route entirely. PostHog property names are kept
+        # short and stable so signup_dashboard / future SQL can group on them.
+        # See docs/signup-rebuild-plan-2026-05-06.md §C.
+        ph_capture(
+            email,
+            "signup_via_legacy_webhook",
+            {
+                "user_agent": (
+                    request.headers.get("user-agent", "")[:200] or None
+                ),
+                "event_name": event_name,
+            },
+        )
+
         local, domain = _split_email(email)
         if not domain:
             logger.warning("Loops webhook: malformed email '%s' — rejecting", email)

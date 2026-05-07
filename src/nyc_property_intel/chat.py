@@ -30,6 +30,12 @@ from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp, MCP_INSTRUCTIONS
 from nyc_property_intel.auth import PLAN_LIMITS, TRIAL_DAYS, TokenAuth, generate_token, hash_token, normalize_email
 from nyc_property_intel.config import settings
+from nyc_property_intel.loops_webhook import (
+    _split_email,
+    domain_has_mx,
+    is_brand_prefix_suspicious,
+    is_disposable_domain,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -814,3 +820,213 @@ def make_chat_handlers(auth: TokenAuth):
         return response
 
     return signup_handler, activate_handler, chat_handler
+
+
+# ── Public /api/signup handler (replaces direct-to-Loops form) ────────
+#
+# This endpoint is the new ingress for the homepage `Get Access Token`
+# form. It used to POST directly to the public Loops form ID
+# (`cmntqdkqy00y20iycvyyxby0m`) — see docs/signup-bot-architecture-2026-05-06.md.
+#
+# Behaviour:
+#   1. Validate JSON + email shape (400 on bad input).
+#   2. IP rate-limit (3 per IP per hour, reuses _check_signup_ip_rate_limit
+#      from the chat path so the two share a budget).
+#   3. Run anti-bot checks (disposable domain → MX → brand-prefix
+#      heuristic, reusing helpers from loops_webhook.py).
+#      Failed checks return 200 OK silently (so bots can't oracle the
+#      result) and fire a PostHog `signup_rejected_*` event.
+#   4. Issue or rotate the customer's token, write a magic-link row,
+#      send the activation email via the SAME Loops transactional template
+#      already used by the chat magic-link flow.
+#   5. Return 200 {"ok": true}. The frontend shows "Check your inbox".
+#
+# Future-compatible inputs (accepted, NOT YET enforced — Phase D will
+# wire these to actual Cloudflare Turnstile validation):
+#   - hp_field: honeypot field. If non-empty when present, drop silently.
+#   - turnstile_token: Cloudflare Turnstile token. When
+#     SIGNUP_REQUIRE_TURNSTILE=true (env var, default false), validated
+#     server-side. Today: accepted and ignored.
+#   - started_at_ms: unix-ms when form was loaded; used for time-on-form
+#     check (drops submissions <1.5s after load). Today: accepted, not
+#     enforced.
+
+def make_signup_endpoint_handler(auth: TokenAuth):
+    """Return a Starlette POST /api/signup handler bound to the given TokenAuth.
+
+    This is the backend replacement for the public Loops form ID. It runs
+    every existing anti-bot check, then issues a token + magic link via
+    the same chat-flow primitives, then returns 200 {"ok": true}.
+    """
+
+    async def signup_endpoint(request: Request) -> JSONResponse:
+        # ── Parse body ───────────────────────────────────────────────
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        # ── Honeypot stub (accepted today, dropped silently when set) ─
+        # When the frontend wires this up, bots that auto-fill every field
+        # will trip it. Today the field is always absent so this is a no-op.
+        hp_field = body.get("hp_field", "")
+        if isinstance(hp_field, str) and hp_field.strip():
+            # Silent drop — never let the bot know it tripped the wire.
+            ph_capture(
+                "anonymous",
+                "signup_rejected_honeypot",
+                {"source": "api_signup"},
+            )
+            return JSONResponse({"ok": True})
+
+        # ── IP rate limit ────────────────────────────────────────────
+        client_ip = _get_client_ip(request)
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
+
+        # ── Email shape ──────────────────────────────────────────────
+        email = str(body.get("email", "")).strip().lower()
+        if not email or len(email) > 254 or not _EMAIL_RE.match(email):
+            return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # Funnel-top event — fires for every well-formed POST that passes
+        # rate-limit + email-shape, regardless of whether the email gets
+        # a token. Pairs with the existing webhook event of the same name.
+        ph_capture(email, "signup_form_submitted", {"source": "api_signup"})
+
+        # ── Layer 1: disposable domain blocklist ─────────────────────
+        local, domain = _split_email(email)
+        if not domain:
+            return JSONResponse({"error": "Invalid email"}, status_code=400)
+        if is_disposable_domain(domain):
+            logger.warning(
+                "/api/signup rejected DISPOSABLE — email=%s domain=%s",
+                email, domain,
+            )
+            ph_capture(
+                email,
+                "signup_rejected_disposable",
+                {"domain": domain, "source": "api_signup"},
+            )
+            return JSONResponse({"ok": True})
+
+        # ── Layer 2: MX record validity ──────────────────────────────
+        has_mx, mx_reason = await domain_has_mx(domain)
+        if not has_mx:
+            logger.warning(
+                "/api/signup rejected NO_MX — email=%s domain=%s reason=%s",
+                email, domain, mx_reason,
+            )
+            ph_capture(
+                email,
+                "signup_rejected_mx",
+                {"domain": domain, "reason": mx_reason, "source": "api_signup"},
+            )
+            return JSONResponse({"ok": True})
+        # Transient DNS failures fall through (fail-open) — see domain_has_mx.
+
+        # ── Layer 3: brand-prefix-on-no-name-domain heuristic ────────
+        if is_brand_prefix_suspicious(local, domain):
+            logger.warning(
+                "/api/signup rejected HEURISTIC — email=%s local=%s domain=%s",
+                email, local, domain,
+            )
+            ph_capture(
+                email,
+                "signup_rejected_heuristic",
+                {
+                    "rule": "brand_prefix_no_name_domain",
+                    "local": local,
+                    "domain": domain,
+                    "source": "api_signup",
+                },
+            )
+            return JSONResponse({"ok": True})
+
+        # ── Issue / rotate token ─────────────────────────────────────
+        # Mirror chat.signup_handler's revoke-then-issue behaviour so
+        # repeated signups don't accumulate tokens. The duplicated code
+        # is flagged in docs/signup-rebuild-plan-2026-05-06.md as a
+        # follow-up extraction (`_create_or_rotate_token`).
+        email_canonical = _normalize_email(email)
+        try:
+            token, created = await auth.create_token(
+                email=email_canonical,
+                plan="trial",
+                notes="api_signup endpoint",
+            )
+        except Exception:
+            logger.exception("/api/signup DB error provisioning token for %s", email)
+            return JSONResponse({"error": "Service error"}, status_code=500)
+
+        try:
+            from datetime import datetime, timedelta, timezone
+            pool = await auth._get_pool()
+            if not created:
+                logger.info(
+                    "/api/signup re-signup for %s — revoking existing tokens",
+                    email_canonical,
+                )
+                await pool.execute(
+                    "UPDATE mcp_tokens SET revoked_at = NOW() "
+                    "WHERE customer_email = $1 AND revoked_at IS NULL",
+                    email_canonical,
+                )
+                token = generate_token()
+                t_hash = hash_token(token)
+                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+                await pool.execute(
+                    """
+                    INSERT INTO mcp_tokens
+                        (token_hash, token_prefix, customer_email, plan,
+                         daily_limit, expires_at, notes)
+                    VALUES ($1, $2, $3, 'trial', $4, $5, 'api_signup re-signup')
+                    ON CONFLICT (token_hash) DO NOTHING
+                    """,
+                    t_hash, token[:15] + "...", email_canonical,
+                    PLAN_LIMITS.get("trial", 10), expires_at,
+                )
+            else:
+                t_hash = hash_token(token)
+                # Tag the source so the signup dashboard can split api_signup
+                # vs. legacy webhook vs. chat signup. 'web' is also used by
+                # chat.signup_handler — both are website-originated.
+                await pool.execute(
+                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
+                    t_hash,
+                )
+            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
+        except Exception:
+            logger.exception(
+                "/api/signup failed to create magic link for %s", email_canonical,
+            )
+            return JSONResponse({"error": "Service error"}, status_code=500)
+
+        # Activation URL points at the chat magic-link page, which already
+        # knows how to consume a `t=<uuid>` query parameter via /api/activate
+        # and store the plaintext token in localStorage / HttpOnly cookie.
+        activation_url = f"{_SITE_BASE}/chat?t={link_id}"
+
+        if created:
+            ph_capture(
+                email_canonical,
+                "signup_provisioned",
+                {"plan": "trial", "source": "api_signup"},
+            )
+
+        # Email send is best-effort — the token is already in the DB and
+        # can be retrieved by an operator via scripts/manage_tokens.py if
+        # the email fails. This matches chat.signup_handler's behaviour.
+        try:
+            await _send_activation_email(email, activation_url)
+        except Exception:
+            logger.exception(
+                "/api/signup failed to send activation email to %s "
+                "(token is provisioned; resend via manage_tokens.py)",
+                email,
+            )
+
+        return JSONResponse({"ok": True})
+
+    return signup_endpoint

@@ -33,7 +33,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import PLAN_LIMITS, TokenAuth
-from nyc_property_intel.chat import make_chat_handlers
+from nyc_property_intel.chat import make_chat_handlers, make_signup_endpoint_handler
 from nyc_property_intel.config import settings
 from nyc_property_intel.loops_webhook import make_webhook_handler
 from nyc_property_intel.db import db_lifespan
@@ -358,6 +358,9 @@ def main() -> None:
         # propagate it here. SSE has no such requirement.
         webhook_handler = make_webhook_handler(auth)
         signup_handler, activate_handler, chat_handler = make_chat_handlers(auth)
+        # Public website signup endpoint — replaces the direct-to-Loops
+        # form ID. See docs/signup-rebuild-plan-2026-05-06.md.
+        api_signup_handler = make_signup_endpoint_handler(auth)
         allowed_origins = [
             o.strip()
             for o in settings.chat_allowed_origins.split(",")
@@ -441,6 +444,7 @@ def main() -> None:
                     Route("/health", health_handler, methods=["GET"]),
                     Route("/healthz", healthz_handler, methods=["GET"]),
                     Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                    Route("/api/signup", api_signup_handler, methods=["POST"]),
                     Route("/api/chat/signup", signup_handler, methods=["POST"]),
                     Route("/api/activate", activate_handler, methods=["POST"]),
                     Route("/api/chat", chat_handler, methods=["POST"]),
@@ -453,6 +457,7 @@ def main() -> None:
                 Route("/health", health_handler, methods=["GET"]),
                 Route("/healthz", healthz_handler, methods=["GET"]),
                 Route("/webhook/loops", webhook_handler, methods=["POST"]),
+                Route("/api/signup", api_signup_handler, methods=["POST"]),
                 Route("/api/chat/signup", signup_handler, methods=["POST"]),
                 Route("/api/activate", activate_handler, methods=["POST"]),
                 Route("/api/chat", chat_handler, methods=["POST"]),

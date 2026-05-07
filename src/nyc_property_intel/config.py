@@ -93,6 +93,15 @@ class Settings(BaseSettings):
     # across deploys (so the same visitor produces the same ip_hash).
     anon_ip_hash_secret: str = ""
 
+    # ── /api/signup Cloudflare Turnstile (deferred — accepted but NOT enforced) ──
+    # When True, the new POST /api/signup handler will validate the
+    # `turnstile_token` field server-side via Cloudflare's siteverify API
+    # using `signup_turnstile_secret`. Today both default to off — see
+    # docs/signup-rebuild-plan-2026-05-06.md §1 (deferred for follow-up
+    # PR; requires Cloudflare account setup first).
+    signup_require_turnstile: bool = False
+    signup_turnstile_secret: str = ""
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

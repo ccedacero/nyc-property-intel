@@ -301,9 +301,15 @@ async def test_disposable_domain_blocked_returns_200(captured_events, patch_mx_o
     # Token MUST NOT be provisioned.
     assert auth.calls == []
     event_names = [e[1] for e in captured_events]
-    # Funnel-top event fires first, then the rejection event.
-    assert event_names == ["signup_form_submitted", "signup_rejected_disposable"]
-    assert captured_events[1][2]["domain"] == "meyer-alpers.de"
+    # Funnel-top event fires first, then the forensic event (Phase C),
+    # then the rejection event. Other events MUST NOT appear.
+    assert event_names == [
+        "signup_form_submitted",
+        "signup_via_legacy_webhook",
+        "signup_rejected_disposable",
+    ]
+    # The rejection event is last and carries the offending domain.
+    assert captured_events[-1][2]["domain"] == "meyer-alpers.de"
 
 
 @pytest.mark.asyncio
@@ -331,7 +337,11 @@ async def test_lib_disposable_domain_blocked(captured_events, patch_mx_ok) -> No
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "disposable_domain"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_disposable"]
+    assert [e[1] for e in captured_events] == [
+        "signup_form_submitted",
+        "signup_via_legacy_webhook",
+        "signup_rejected_disposable",
+    ]
 
 
 @pytest.mark.asyncio
@@ -343,7 +353,11 @@ async def test_no_mx_blocked(captured_events, patch_mx_no_mx) -> None:
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "no_mx"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_mx"]
+    assert [e[1] for e in captured_events] == [
+        "signup_form_submitted",
+        "signup_via_legacy_webhook",
+        "signup_rejected_mx",
+    ]
 
 
 @pytest.mark.asyncio
@@ -372,8 +386,12 @@ async def test_brand_prefix_heuristic_blocked(captured_events, patch_mx_ok) -> N
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "heuristic_brand_prefix"
     assert auth.calls == []
-    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_heuristic"]
-    assert captured_events[1][2]["rule"] == "brand_prefix_no_name_domain"
+    assert [e[1] for e in captured_events] == [
+        "signup_form_submitted",
+        "signup_via_legacy_webhook",
+        "signup_rejected_heuristic",
+    ]
+    assert captured_events[-1][2]["rule"] == "brand_prefix_no_name_domain"
 
 
 @pytest.mark.asyncio
@@ -397,7 +415,11 @@ async def test_duplicate_email_skipped_with_event(captured_events, patch_mx_ok) 
     resp = await handle(_make_request(body, _sign(body)))
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "duplicate"
-    assert [e[1] for e in captured_events] == ["signup_form_submitted", "signup_rejected_duplicate"]
+    assert [e[1] for e in captured_events] == [
+        "signup_form_submitted",
+        "signup_via_legacy_webhook",
+        "signup_rejected_duplicate",
+    ]
 
 
 @pytest.mark.asyncio
@@ -430,3 +452,41 @@ async def test_non_signup_event_skipped(captured_events) -> None:
     assert resp.status_code == 200
     assert json.loads(resp.body)["skipped"] == "testing.testEvent"
     assert auth.calls == []
+
+
+# ── Phase C: forensic event for legacy webhook hits ──────────────────
+
+
+@pytest.mark.asyncio
+async def test_legacy_webhook_fires_forensic_event(
+    captured_events, patch_mx_ok,
+) -> None:
+    """After the homepage cuts over to /api/signup, every hit on this route
+    is interesting. The new `signup_via_legacy_webhook` event lets us see
+    in PostHog who is still POSTing to the published Loops form ID — the
+    data point that gates eventual deletion of this route. See
+    docs/signup-rebuild-plan-2026-05-06.md §C.
+    """
+    auth = FakeTokenAuth()
+    handle = make_webhook_handler(auth)
+    body = _payload("alice@example.com")
+    headers = _sign(body)
+    headers["user-agent"] = "ScriptedBot/1.0"
+    resp = await handle(_make_request(body, headers))
+    assert resp.status_code == 200
+
+    # The forensic event MUST fire alongside the existing funnel events.
+    event_names = [e[1] for e in captured_events]
+    assert "signup_via_legacy_webhook" in event_names, (
+        "forensic event missing — without it, signup_dashboard can't tell "
+        "Loops-form bots apart from new /api/signup traffic"
+    )
+    forensic = [e for e in captured_events if e[1] == "signup_via_legacy_webhook"][0]
+    # User-Agent is captured (truncated for safety) so we can spot common
+    # bot UA strings in the forensic logs.
+    assert forensic[2]["user_agent"] == "ScriptedBot/1.0"
+    # The PostHog event happens BEFORE token provisioning so we still capture
+    # the trace even when the email later gets dropped by an anti-bot layer.
+    assert event_names.index("signup_via_legacy_webhook") < event_names.index(
+        "signup_provisioned"
+    )
