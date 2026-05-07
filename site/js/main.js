@@ -93,6 +93,14 @@
       btn.disabled = true;
       btn.textContent = "Sending\u2026";
 
+      // Identify the visitor in PostHog so future events (including the
+      // autocaptured $ip / $geoip_* on this page) carry the email as a
+      // stable person property. This makes PostHog \u2194 mcp_tokens joins
+      // exact instead of timestamp-based.
+      if (typeof posthog !== "undefined" && email) {
+        posthog.identify(email, { email: email });
+      }
+
       var body = new URLSearchParams({ email: email });
 
       fetch("https://app.loops.so/api/newsletter-form/" + LOOPS_FORM_ID, {
