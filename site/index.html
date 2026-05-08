@@ -439,7 +439,7 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="tools">
       <div class="container">
-        <h2>18 Tools for Complete Due Diligence</h2>
+        <h2>18 Tools for NYC Property Due Diligence</h2>
         <p class="section-intro">
           Each tool queries official NYC public record data. Building and property data only &mdash; no demographic information, no tenant screening.
         </p>
@@ -605,9 +605,12 @@
         </div>
 
         <p class="data-note">
-          NYC Property Intel is not affiliated with the City of New York or any city agency.
+          NYC Property Intel is not affiliated with, endorsed by, or sponsored by the City of New York, any city agency, or the nycdb open-source project.
           All datasets are loaded into PostgreSQL. Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
           DOB job filings have full coverage from 2020 onward; some pre-2020 historical filings may be incomplete due to source-data limitations.
+          Data is provided &ldquo;as is&rdquo; under the
+          <a href="https://opendata.cityofnewyork.us/overview/#termsofuse" target="_blank" rel="noopener noreferrer">NYC Open Data Terms of Use</a>.
+          Trademarks (PLUTO, ACRIS, ZoLa, etc.) belong to their respective owners.
         </p>
       </div>
     </section>
@@ -802,7 +805,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">Is NYC Property Intel free?</summary>
             <div class="faq-a">
-              <p>Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version includes a free trial &mdash; sign up above and your personal token is emailed automatically. Your trial token gives you unlimited access for 30 days. Professional and team plans with higher limits are in development &mdash; <a href="#hero-signup-form">sign up</a> and we&rsquo;ll reach out when they launch.</p>
+              <p>Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version includes a free trial &mdash; sign up above and your personal token is emailed automatically. Your trial token includes <strong>10 queries per day for 30 days</strong> (with up to 5 of those being full due-diligence reports). Professional and team plans with higher limits are in development &mdash; <a href="#hero-signup-form">sign up</a> and we&rsquo;ll reach out when they launch.</p>
             </div>
           </details>
 
