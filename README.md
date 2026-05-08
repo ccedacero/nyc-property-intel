@@ -6,7 +6,7 @@ MCP server that gives Claude AI access to 20+ NYC public record datasets for rea
 
 ## Quickstart — Hosted (no local setup)
 
-Sign up at [nycpropertyintel.com](https://nycpropertyintel.com) to get a free trial token. Then:
+Sign up at [nycpropertyintel.com](https://nycpropertyintel.com) to get a free trial token (10 queries/day for 30 days, including up to 5 full due-diligence reports). Then:
 
 **Claude Code** — run once in your terminal:
 

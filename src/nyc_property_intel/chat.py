@@ -121,21 +121,61 @@ def _check_signup_ip_rate_limit(ip: str) -> bool:
 _normalize_email = normalize_email
 
 
+def _is_private_ip(ip: str) -> bool:
+    """RFC 1918 + loopback. Note: only 172.16.0.0/12 (172.16-172.31) is private,
+    NOT all of 172.x — Google for instance owns 172.217.x and that's public."""
+    if ip.startswith(("10.", "192.168.", "127.")):
+        return True
+    if ip.startswith("172."):
+        try:
+            return 16 <= int(ip.split(".")[1]) <= 31
+        except (ValueError, IndexError):
+            return False
+    return False
+
+
 def _get_client_ip(request: Request) -> str:
     # Railway's public networking runs through Fastly, which sets Fastly-Client-IP
     # to the real client IP before appending its own edge IP to X-Forwarded-For.
     # Check CDN-specific headers first, then fall back to XFF.
+    #
+    # SECURITY NOTE: these headers are spoofable by anyone who can reach the
+    # Railway hostname directly. Until we whitelist the Fastly IP range as
+    # the only trusted upstream, we log a warning when the immediate peer is
+    # not in any expected CDN range so spoofing attempts are detectable in
+    # production. See Fix 9 for the longer-term fix.
+    cdn_header_value = ""
+    cdn_header_name = ""
     for header in ("fastly-client-ip", "cf-connecting-ip", "x-real-ip"):
         val = request.headers.get(header, "").strip()
         if val:
-            return val
+            cdn_header_value = val
+            cdn_header_name = header
+            break
+
+    if cdn_header_value:
+        peer = request.client.host if request.client else None
+        # Heuristic tripwire: a CDN-trusted header is set but the immediate
+        # peer is private/loopback (i.e. probably localhost in tests, fine)
+        # OR appears to be a public IP that's NOT one of our known CDN
+        # ranges. Without a precise Fastly allowlist we just log and let
+        # the value through — flipping to fail-closed is a future hardening.
+        if peer and not _is_private_ip(peer):
+            # peer is public — could be a direct hit on the Railway hostname
+            # bypassing Fastly. Log so we can see this in Sentry / logs.
+            logger.warning(
+                "Spoofable CDN header set but peer is public: peer=%s header=%s value=%s",
+                peer, cdn_header_name, cdn_header_value,
+            )
+        return cdn_header_value
+
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
         # With Fastly in front, the rightmost XFF is the Fastly edge PoP IP, not
         # the client. Use the leftmost (first) non-private IP instead.
         ips = [ip.strip() for ip in forwarded.split(",")]
         for ip in ips:
-            if ip and not ip.startswith(("10.", "172.", "192.168.", "127.")):
+            if ip and not _is_private_ip(ip):
                 return ip
         return ips[0]
     return request.client.host if request.client else "unknown"
@@ -454,6 +494,153 @@ async def _record_anon_chat_query(
         logger.warning("Failed to record anon chat query: %s", exc)
 
 
+# ── Shared anti-bot check ─────────────────────────────────────────────
+#
+# Both /api/chat/signup (legacy chat-flow signup) and /api/signup (the
+# public homepage form) used to run anti-bot logic independently. The
+# chat-flow path skipped layers 1-3 entirely, so disposable / brand-prefix
+# bots had a clean ingress. Extract a single helper used by both endpoints
+# so they stay in sync. Returns a JSONResponse to bail out with (always
+# 200 OK to avoid oracle-ing the result), or None if the email passes.
+
+async def _anti_bot_check(email: str, source: str) -> JSONResponse | None:
+    """Run disposable-domain → MX → brand-prefix checks.
+
+    Returns a 200-OK JSONResponse (silent reject) if any layer fires, or
+    None if the email passes all checks. Emits the same PostHog
+    `signup_rejected_*` events as loops_webhook.py and the /api/signup
+    handler so funnel analytics stay consistent.
+    """
+    local, domain = _split_email(email)
+    if not domain:
+        # Caller already validated email shape with _EMAIL_RE so this should
+        # not happen in practice — but if it does, drop silently.
+        ph_capture(email, "signup_rejected_malformed", {"source": source})
+        return JSONResponse({"ok": True})
+
+    # Layer 1 — disposable domain
+    if is_disposable_domain(domain):
+        logger.warning(
+            "%s rejected DISPOSABLE — email=%s domain=%s",
+            source, email, domain,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_disposable",
+            {"domain": domain, "source": source},
+        )
+        return JSONResponse({"ok": True})
+
+    # Layer 2 — MX record validity (transient DNS failures fall through)
+    has_mx, mx_reason = await domain_has_mx(domain)
+    if not has_mx:
+        logger.warning(
+            "%s rejected NO_MX — email=%s domain=%s reason=%s",
+            source, email, domain, mx_reason,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_mx",
+            {"domain": domain, "reason": mx_reason, "source": source},
+        )
+        return JSONResponse({"ok": True})
+
+    # Layer 3 — brand-prefix on no-name domain
+    if is_brand_prefix_suspicious(local, domain):
+        logger.warning(
+            "%s rejected HEURISTIC — email=%s local=%s domain=%s",
+            source, email, local, domain,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_heuristic",
+            {
+                "rule": "brand_prefix_no_name_domain",
+                "local": local,
+                "domain": domain,
+                "source": source,
+            },
+        )
+        return JSONResponse({"ok": True})
+
+    return None
+
+
+async def _rotate_token_and_create_magic_link(
+    pool,
+    email_canonical: str,
+    client_ip: str,
+    *,
+    created: bool,
+    token: str,
+    rotate_notes: str,
+) -> str:
+    """Atomically rotate (revoke+issue) the token and create the magic-link row.
+
+    For new users (created=True) the already-issued token row is tagged
+    source='web' and the magic-link row is added. For existing users
+    (created=False) all three writes — revoke previous tokens, INSERT new
+    token, INSERT magic-link — run inside a single transaction so a
+    partial failure can't leave the customer with no active token.
+
+    For test compatibility ``pool`` may be a fake object that exposes
+    ``execute`` directly without ``acquire``/``transaction`` (e.g. the
+    in-test ``_FakePool``). We detect this and fall back to per-call
+    ``pool.execute`` writes.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    # Real asyncpg pools have .acquire(); test fakes don't. The fallback
+    # path is non-transactional but acceptable for unit tests that aren't
+    # exercising the failure-mid-rotation case.
+    has_transaction = hasattr(pool, "acquire")
+
+    async def _do_writes(executor) -> str:
+        nonlocal token
+        if not created:
+            logger.info(
+                "Web signup: %s re-signing up — revoking existing tokens and issuing fresh magic link",
+                email_canonical,
+            )
+            await executor.execute(
+                "UPDATE mcp_tokens SET revoked_at = NOW() "
+                "WHERE customer_email = $1 AND revoked_at IS NULL",
+                email_canonical,
+            )
+            token = generate_token()
+            t_hash = hash_token(token)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+            await executor.execute(
+                """
+                INSERT INTO mcp_tokens
+                    (token_hash, token_prefix, customer_email, plan,
+                     daily_limit, expires_at, notes)
+                VALUES ($1, $2, $3, 'trial', $4, $5, $6)
+                ON CONFLICT (token_hash) DO NOTHING
+                """,
+                t_hash, token[:15] + "...", email_canonical,
+                PLAN_LIMITS.get("trial", 10), expires_at, rotate_notes,
+            )
+        else:
+            t_hash = hash_token(token)
+            await executor.execute(
+                "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
+                t_hash,
+            )
+        # Delegate the magic-link insert to the module-level helper so
+        # tests that patch `_create_magic_link` continue to intercept it.
+        # Pass the executor (conn or pool) so this insert participates in
+        # the surrounding transaction when one exists.
+        return await _create_magic_link(executor, t_hash, token, client_ip)
+
+    if has_transaction:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                return await _do_writes(conn)
+    else:
+        return await _do_writes(pool)
+
+
 # ── Handler factory ───────────────────────────────────────────────────
 
 def make_chat_handlers(auth: TokenAuth):
@@ -461,20 +648,27 @@ def make_chat_handlers(auth: TokenAuth):
 
     async def signup_handler(request: Request) -> JSONResponse:
         """Provision a trial token and email an activation link to the user."""
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
-
-        # IP rate limit on signups — max 3 per IP per hour
+        # IP rate limit FIRST — before any expensive parsing / DNS work, so
+        # bots can't burn the 400 / 200 paths to enumerate or fingerprint.
         client_ip = _get_client_ip(request)
         if not _check_signup_ip_rate_limit(client_ip):
             logger.warning("Signup rate limit hit for IP %s", client_ip)
             return JSONResponse({"error": "Too many requests"}, status_code=429)
 
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # Anti-bot: disposable / MX / brand-prefix. Returns 200 OK silently
+        # on rejection so bots can't enumerate. Same checks as /api/signup.
+        rejection = await _anti_bot_check(email, source="chat_signup")
+        if rejection is not None:
+            return rejection
 
         # Normalize for deduplication — keep original for sending
         email_canonical = _normalize_email(email)
@@ -490,37 +684,12 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         try:
-            from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
-            if not created:
-                # Existing user: revoke all current tokens, then issue a fresh one.
-                # Without revocation, repeat sign-ups accumulate multiple valid tokens
-                # each with independent daily limits — bypassing the trial cap.
-                logger.info("Web chat signup: %s re-signing up — revoking existing tokens and issuing fresh magic link", email_canonical)
-                await pool.execute(
-                    "UPDATE mcp_tokens SET revoked_at = NOW() WHERE customer_email = $1 AND revoked_at IS NULL",
-                    email_canonical,
-                )
-                token = generate_token()
-                t_hash = hash_token(token)
-                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
-                await pool.execute(
-                    """
-                    INSERT INTO mcp_tokens
-                        (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
-                    VALUES ($1, $2, $3, 'trial', $4, $5, 'web chat re-signup')
-                    ON CONFLICT (token_hash) DO NOTHING
-                    """,
-                    t_hash, token[:15] + "...", email_canonical,
-                    PLAN_LIMITS.get("trial", 10), expires_at,
-                )
-            else:
-                t_hash = hash_token(token)
-                await pool.execute(
-                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                    t_hash,
-                )
-            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
+            link_id = await _rotate_token_and_create_magic_link(
+                pool, email_canonical, client_ip,
+                created=created, token=token,
+                rotate_notes="web chat re-signup",
+            )
         except Exception:
             logger.exception("Failed to create magic link for %s", email_canonical)
             return JSONResponse({"error": "Service error"}, status_code=500)
@@ -622,18 +791,25 @@ def make_chat_handlers(auth: TokenAuth):
         # Truncate history and validate last user message
         messages = raw_messages[-_MAX_HISTORY:]
         last_msg = messages[-1]
-        if last_msg.get("role") != "user":
-            return JSONResponse({"error": "Last message must be from user"}, status_code=400)
+        # Defend against malformed payloads: messages must be dicts. Without
+        # this guard `last_msg.get(...)` raises AttributeError if the client
+        # sends ints/strings, surfacing as 500 instead of 400.
+        if not isinstance(last_msg, dict) or last_msg.get("role") != "user":
+            return JSONResponse({"error": "Last message must be a user dict"}, status_code=400)
 
-        user_text = str(last_msg.get("content", ""))
+        # Content must be a string — null-byte strip below assumes str.
+        last_content = last_msg.get("content", "")
+        if not isinstance(last_content, str):
+            return JSONResponse({"error": "Message content must be a string"}, status_code=400)
+        user_text = last_content
         if not user_text.strip():
             return JSONResponse({"error": "Empty message"}, status_code=400)
         if len(user_text) > _MAX_MSG_LEN:
             return JSONResponse({"error": f"Message too long (max {_MAX_MSG_LEN} chars)"}, status_code=400)
 
-        # Sanitize: strip null bytes from all messages
+        # Sanitize: strip null bytes from all messages (only dicts with str content)
         for msg in messages:
-            if isinstance(msg.get("content"), str):
+            if isinstance(msg, dict) and isinstance(msg.get("content"), str):
                 msg["content"] = msg["content"].replace("\x00", "")
 
         # ── Auth: HttpOnly cookie (web), Bearer header (CLI/API), or free-tier cookie ──
@@ -676,7 +852,19 @@ def make_chat_handlers(auth: TokenAuth):
 
             is_authenticated = True
         else:
-            # Anonymous path — check signed cookie
+            # Anonymous path. Two checks:
+            #   (1) Cheap fast-path: signed cookie counter. Bots that clear
+            #       cookies trivially bypass this — that's why we follow up
+            #       with the IP-hash count below.
+            #   (2) Authoritative: COUNT(*) over the last 24h from
+            #       anon_chat_queries keyed on ip_hash. This is the upper
+            #       bound — once the IP-hash trips it, no cookie state can
+            #       extend the budget.
+            # Edge case: rotating IPs (cellular / mobile users) can hit the
+            # limit faster than expected because each IP starts fresh. We
+            # accept that false positive in exchange for closing the
+            # cookie-clearing bypass. Documented in
+            # docs/launch-playbook-pricing.md / launch-playbook-product-activation.md.
             cookie_val = request.cookies.get("nyprop_sess", "")
             query_count, anon_analyze_count = read_session_cookie(cookie_val) if cookie_val else (0, 0)
 
@@ -700,6 +888,40 @@ def make_chat_handlers(auth: TokenAuth):
             anon_ip_hash = ""
             logger.warning("Anon chat: no client IP available for hashing")
 
+        # Authoritative anon limit: COUNT(*) over last 24h by ip_hash.
+        # Closes the cookie-clearing bypass. Skipped when:
+        #   - request is authenticated (paid path, different limits apply)
+        #   - we have no IP hash (can't enforce; fail-open is safer than
+        #     blocking every anonymous user when extraction fails)
+        if not is_authenticated and anon_ip_hash:
+            try:
+                pool = await auth._get_pool()
+                row = await pool.fetchrow(
+                    """
+                    SELECT COUNT(*) AS cnt
+                    FROM anon_chat_queries
+                    WHERE ip_hash = $1
+                      AND called_at > NOW() - INTERVAL '24 hours'
+                    """,
+                    anon_ip_hash,
+                )
+                ip_count = int(row["cnt"]) if row and row["cnt"] is not None else 0
+            except Exception as exc:
+                # Table missing (migration not yet applied) or transient DB
+                # blip — fail open so a DB outage doesn't lock everyone out.
+                logger.warning("Anon IP-hash limit check failed (fail-open): %s", exc)
+                ip_count = 0
+
+            if ip_count >= settings.chat_free_query_limit:
+                return JSONResponse(
+                    {
+                        "error": "free_limit_reached",
+                        "message": "Enter your email to continue",
+                        "free_queries_used": ip_count,
+                    },
+                    status_code=402,
+                )
+
         # ── Build streaming response ──────────────────────────────────
         new_cookie_val: str | None = None
         if not is_authenticated:
@@ -717,7 +939,9 @@ def make_chat_handlers(auth: TokenAuth):
         raw_anthropic = [
             {"role": m["role"], "content": m["content"]}
             for m in messages
-            if m.get("role") in ("user", "assistant") and m.get("content")
+            if isinstance(m, dict)
+            and m.get("role") in ("user", "assistant")
+            and m.get("content")
         ]
         # Ensure the conversation starts with a user turn (never an injected assistant turn)
         anthropic_messages = []
@@ -860,6 +1084,14 @@ def make_signup_endpoint_handler(auth: TokenAuth):
     """
 
     async def signup_endpoint(request: Request) -> JSONResponse:
+        # ── IP rate limit FIRST ──────────────────────────────────────
+        # Was previously after JSON parse + honeypot, so bots could burn
+        # the 400 path with malformed JSON to fingerprint the server.
+        client_ip = _get_client_ip(request)
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
+
         # ── Parse body ───────────────────────────────────────────────
         try:
             body = await request.json()
@@ -879,12 +1111,6 @@ def make_signup_endpoint_handler(auth: TokenAuth):
             )
             return JSONResponse({"ok": True})
 
-        # ── IP rate limit ────────────────────────────────────────────
-        client_ip = _get_client_ip(request)
-        if not _check_signup_ip_rate_limit(client_ip):
-            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
-            return JSONResponse({"error": "Too many requests"}, status_code=429)
-
         # ── Email shape ──────────────────────────────────────────────
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
@@ -895,60 +1121,13 @@ def make_signup_endpoint_handler(auth: TokenAuth):
         # a token. Pairs with the existing webhook event of the same name.
         ph_capture(email, "signup_form_submitted", {"source": "api_signup"})
 
-        # ── Layer 1: disposable domain blocklist ─────────────────────
-        local, domain = _split_email(email)
-        if not domain:
-            return JSONResponse({"error": "Invalid email"}, status_code=400)
-        if is_disposable_domain(domain):
-            logger.warning(
-                "/api/signup rejected DISPOSABLE — email=%s domain=%s",
-                email, domain,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_disposable",
-                {"domain": domain, "source": "api_signup"},
-            )
-            return JSONResponse({"ok": True})
-
-        # ── Layer 2: MX record validity ──────────────────────────────
-        has_mx, mx_reason = await domain_has_mx(domain)
-        if not has_mx:
-            logger.warning(
-                "/api/signup rejected NO_MX — email=%s domain=%s reason=%s",
-                email, domain, mx_reason,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_mx",
-                {"domain": domain, "reason": mx_reason, "source": "api_signup"},
-            )
-            return JSONResponse({"ok": True})
-        # Transient DNS failures fall through (fail-open) — see domain_has_mx.
-
-        # ── Layer 3: brand-prefix-on-no-name-domain heuristic ────────
-        if is_brand_prefix_suspicious(local, domain):
-            logger.warning(
-                "/api/signup rejected HEURISTIC — email=%s local=%s domain=%s",
-                email, local, domain,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_heuristic",
-                {
-                    "rule": "brand_prefix_no_name_domain",
-                    "local": local,
-                    "domain": domain,
-                    "source": "api_signup",
-                },
-            )
-            return JSONResponse({"ok": True})
+        # ── Anti-bot: disposable / MX / brand-prefix ─────────────────
+        # Shared with chat.signup_handler so both endpoints stay in sync.
+        rejection = await _anti_bot_check(email, source="api_signup")
+        if rejection is not None:
+            return rejection
 
         # ── Issue / rotate token ─────────────────────────────────────
-        # Mirror chat.signup_handler's revoke-then-issue behaviour so
-        # repeated signups don't accumulate tokens. The duplicated code
-        # is flagged in docs/signup-rebuild-plan-2026-05-06.md as a
-        # follow-up extraction (`_create_or_rotate_token`).
         email_canonical = _normalize_email(email)
         try:
             token, created = await auth.create_token(
@@ -961,42 +1140,12 @@ def make_signup_endpoint_handler(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         try:
-            from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
-            if not created:
-                logger.info(
-                    "/api/signup re-signup for %s — revoking existing tokens",
-                    email_canonical,
-                )
-                await pool.execute(
-                    "UPDATE mcp_tokens SET revoked_at = NOW() "
-                    "WHERE customer_email = $1 AND revoked_at IS NULL",
-                    email_canonical,
-                )
-                token = generate_token()
-                t_hash = hash_token(token)
-                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
-                await pool.execute(
-                    """
-                    INSERT INTO mcp_tokens
-                        (token_hash, token_prefix, customer_email, plan,
-                         daily_limit, expires_at, notes)
-                    VALUES ($1, $2, $3, 'trial', $4, $5, 'api_signup re-signup')
-                    ON CONFLICT (token_hash) DO NOTHING
-                    """,
-                    t_hash, token[:15] + "...", email_canonical,
-                    PLAN_LIMITS.get("trial", 10), expires_at,
-                )
-            else:
-                t_hash = hash_token(token)
-                # Tag the source so the signup dashboard can split api_signup
-                # vs. legacy webhook vs. chat signup. 'web' is also used by
-                # chat.signup_handler — both are website-originated.
-                await pool.execute(
-                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                    t_hash,
-                )
-            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
+            link_id = await _rotate_token_and_create_magic_link(
+                pool, email_canonical, client_ip,
+                created=created, token=token,
+                rotate_notes="api_signup re-signup",
+            )
         except Exception:
             logger.exception(
                 "/api/signup failed to create magic link for %s", email_canonical,

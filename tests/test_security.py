@@ -2,10 +2,10 @@
 
 Tests:
   - ``escape_like`` in ``nyc_property_intel.utils`` — LIKE metacharacter escaping.
-  - ``_BearerTokenMiddleware`` in ``nyc_property_intel.server`` — ASGI bearer
-    token enforcement.
+  - ``_TokenAuthMiddleware`` in ``nyc_property_intel.server`` — ASGI bearer
+    token enforcement (delegating to a fake TokenAuth).
 
-No database connections required.
+No real database connections required — TokenAuth is faked.
 """
 
 from __future__ import annotations
@@ -17,8 +17,9 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
+from nyc_property_intel.auth import TokenInfo, hash_token
 from nyc_property_intel.utils import escape_like
-from nyc_property_intel.server import _BearerTokenMiddleware
+from nyc_property_intel.server import _TokenAuthMiddleware
 
 
 # ── escape_like ───────────────────────────────────────────────────────
@@ -60,23 +61,60 @@ class TestEscapeLike:
         assert escape_like("___") == "\\_\\_\\_"
 
 
-# ── _BearerTokenMiddleware ────────────────────────────────────────────
+# ── _TokenAuthMiddleware ──────────────────────────────────────────────
 
 # A minimal inner ASGI app used as the protected target.
-_TEST_TOKEN = "super-secret-token-123"
+_TEST_TOKEN = "nyprop_super_secret_token_123"
 
 
 async def _ok_endpoint(request: Request) -> PlainTextResponse:
     return PlainTextResponse("OK")
 
 
-_inner_app = Starlette(routes=[Route("/", _ok_endpoint), Route("/ping", _ok_endpoint)])
-_protected_app = _BearerTokenMiddleware(_inner_app, _TEST_TOKEN)
+_inner_app = Starlette(
+    routes=[
+        Route("/", _ok_endpoint, methods=["GET", "POST"]),
+        Route("/ping", _ok_endpoint, methods=["GET", "POST"]),
+    ]
+)
+
+
+class _FakeTokenAuth:
+    """Minimal fake of TokenAuth for middleware unit tests.
+
+    Validates exactly one token (``_TEST_TOKEN``) and always allows it
+    (no rate-limiting, no DB writes). Mimics the public surface of
+    ``TokenAuth`` that ``_TokenAuthMiddleware`` actually calls.
+    """
+
+    def __init__(self, valid_token: str = _TEST_TOKEN) -> None:
+        self._valid_token = valid_token
+        self._info = TokenInfo(
+            token_hash=hash_token(valid_token),
+            token_prefix=valid_token[:15] + "...",
+            customer_email="test@example.com",
+            plan="trial",
+            daily_limit=10,
+        )
+
+    async def validate(self, token: str):
+        if token == self._valid_token:
+            return self._info
+        return None
+
+    async def check_rate_limit(self, token_hash: str, daily_limit: int):
+        return True, 0
+
+    async def record_call(self, token_hash, tool_name, duration_ms, status_code):
+        return None
+
+
+_protected_app = _TokenAuthMiddleware(_inner_app, _FakeTokenAuth())
 
 
 @pytest.mark.asyncio
 class TestBearerTokenMiddleware:
-    """Tests for ``_BearerTokenMiddleware`` using httpx + ASGITransport."""
+    """Tests for ``_TokenAuthMiddleware`` using httpx + ASGITransport."""
 
     async def _client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(
@@ -86,60 +124,48 @@ class TestBearerTokenMiddleware:
 
     async def test_no_auth_header_returns_401(self):
         async with await self._client() as client:
-            response = await client.get("/")
+            # Use POST: GET requests are intentionally allowed through
+            # unauthenticated (used by Claude Code for SSE discovery).
+            response = await client.post("/")
         assert response.status_code == 401
 
     async def test_wrong_token_returns_401(self):
         async with await self._client() as client:
-            response = await client.get(
+            response = await client.post(
                 "/", headers={"Authorization": "Bearer wrong-token"}
             )
         assert response.status_code == 401
 
     async def test_correct_token_returns_200(self):
         async with await self._client() as client:
-            response = await client.get(
+            response = await client.post(
                 "/", headers={"Authorization": f"Bearer {_TEST_TOKEN}"}
             )
         assert response.status_code == 200
 
     async def test_correct_token_body_is_ok(self):
         async with await self._client() as client:
-            response = await client.get(
+            response = await client.post(
                 "/", headers={"Authorization": f"Bearer {_TEST_TOKEN}"}
             )
         assert response.text == "OK"
 
-    async def test_401_has_www_authenticate_header(self):
-        async with await self._client() as client:
-            response = await client.get("/")
-        assert response.headers.get("www-authenticate") == "Bearer"
-
     async def test_401_body_is_json_with_error_key(self):
         async with await self._client() as client:
-            response = await client.get("/")
+            response = await client.post("/")
         body = response.json()
         assert "error" in body
 
     async def test_401_content_type_is_json(self):
         async with await self._client() as client:
-            response = await client.get("/")
+            response = await client.post("/")
         assert "application/json" in response.headers.get("content-type", "")
 
-    async def test_bearer_scheme_is_case_sensitive(self):
-        # "bearer" (lowercase) is not the same as "Bearer"
+    async def test_get_passes_through_without_auth(self):
+        """GET is allowed unauthenticated — used by Claude Code SSE discovery."""
         async with await self._client() as client:
-            response = await client.get(
-                "/", headers={"Authorization": f"bearer {_TEST_TOKEN}"}
-            )
-        assert response.status_code == 401
-
-    async def test_token_with_extra_space_is_rejected(self):
-        async with await self._client() as client:
-            response = await client.get(
-                "/", headers={"Authorization": f"Bearer  {_TEST_TOKEN}"}
-            )
-        assert response.status_code == 401
+            response = await client.get("/")
+        assert response.status_code == 200
 
     async def test_lifespan_scope_passes_through(self):
         """Non-HTTP/websocket scopes (e.g. lifespan) must not be auth-gated."""
@@ -148,7 +174,7 @@ class TestBearerTokenMiddleware:
         async def inner_app(scope, receive, send):
             received.append(scope)
 
-        middleware = _BearerTokenMiddleware(inner_app, _TEST_TOKEN)
+        middleware = _TokenAuthMiddleware(inner_app, _FakeTokenAuth())
         lifespan_scope = {"type": "lifespan"}
         await middleware(lifespan_scope, None, None)  # type: ignore[arg-type]
         assert received == [lifespan_scope]

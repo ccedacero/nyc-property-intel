@@ -140,6 +140,57 @@ def _extract_tool_name(body: bytes) -> str | None:
     return None
 
 
+class _BodySizeLimitMiddleware:
+    """Reject requests whose Content-Length exceeds path-specific caps.
+
+    Caps:
+      /api/*  → 64 KB   (chat / signup / activate JSON bodies are tiny)
+      /mcp    → 256 KB  (MCP tool-call payloads can be larger)
+      else    → no cap
+
+    Returns 413 Payload Too Large with no body so the client retries with
+    a smaller payload rather than DoS-ing memory by streaming a multi-MB
+    request body. We only check the Content-Length header — chunked
+    requests without a length are rare against this app and Starlette's
+    own request-body buffering gives a second line of defense.
+    """
+
+    _API_CAP = 64 * 1024
+    _MCP_CAP = 256 * 1024
+
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        cap: int | None = None
+        if path.startswith("/api/"):
+            cap = self._API_CAP
+        elif path.startswith("/mcp") or path.startswith("/messages") or path.startswith("/sse"):
+            cap = self._MCP_CAP
+
+        if cap is not None:
+            headers = {k.lower(): v for k, v in scope.get("headers", [])}
+            cl_raw = headers.get(b"content-length", b"")
+            try:
+                content_length = int(cl_raw) if cl_raw else 0
+            except ValueError:
+                content_length = 0
+            if content_length > cap:
+                resp = _json_response(
+                    scope, 413,
+                    {"error": "Payload too large", "max_bytes": cap},
+                )
+                await resp(scope, receive, send)
+                return
+
+        await self._app(scope, receive, send)
+
+
 class _TokenAuthMiddleware:
     """Per-customer token auth middleware with rate limiting and usage logging.
 
@@ -463,6 +514,12 @@ def main() -> None:
                 Route("/api/chat", chat_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
+
+        # Body-size cap (innermost so it runs BEFORE CORS / route dispatch
+        # consumes the body). Wrap the app *before* CORSMiddleware so a
+        # too-large request returns 413 with the appropriate CORS headers
+        # added by the outer wrapper.
+        starlette_app = _BodySizeLimitMiddleware(starlette_app)
 
         starlette_app = CORSMiddleware(
             starlette_app,
