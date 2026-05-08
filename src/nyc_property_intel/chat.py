@@ -454,6 +454,153 @@ async def _record_anon_chat_query(
         logger.warning("Failed to record anon chat query: %s", exc)
 
 
+# ── Shared anti-bot check ─────────────────────────────────────────────
+#
+# Both /api/chat/signup (legacy chat-flow signup) and /api/signup (the
+# public homepage form) used to run anti-bot logic independently. The
+# chat-flow path skipped layers 1-3 entirely, so disposable / brand-prefix
+# bots had a clean ingress. Extract a single helper used by both endpoints
+# so they stay in sync. Returns a JSONResponse to bail out with (always
+# 200 OK to avoid oracle-ing the result), or None if the email passes.
+
+async def _anti_bot_check(email: str, source: str) -> JSONResponse | None:
+    """Run disposable-domain → MX → brand-prefix checks.
+
+    Returns a 200-OK JSONResponse (silent reject) if any layer fires, or
+    None if the email passes all checks. Emits the same PostHog
+    `signup_rejected_*` events as loops_webhook.py and the /api/signup
+    handler so funnel analytics stay consistent.
+    """
+    local, domain = _split_email(email)
+    if not domain:
+        # Caller already validated email shape with _EMAIL_RE so this should
+        # not happen in practice — but if it does, drop silently.
+        ph_capture(email, "signup_rejected_malformed", {"source": source})
+        return JSONResponse({"ok": True})
+
+    # Layer 1 — disposable domain
+    if is_disposable_domain(domain):
+        logger.warning(
+            "%s rejected DISPOSABLE — email=%s domain=%s",
+            source, email, domain,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_disposable",
+            {"domain": domain, "source": source},
+        )
+        return JSONResponse({"ok": True})
+
+    # Layer 2 — MX record validity (transient DNS failures fall through)
+    has_mx, mx_reason = await domain_has_mx(domain)
+    if not has_mx:
+        logger.warning(
+            "%s rejected NO_MX — email=%s domain=%s reason=%s",
+            source, email, domain, mx_reason,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_mx",
+            {"domain": domain, "reason": mx_reason, "source": source},
+        )
+        return JSONResponse({"ok": True})
+
+    # Layer 3 — brand-prefix on no-name domain
+    if is_brand_prefix_suspicious(local, domain):
+        logger.warning(
+            "%s rejected HEURISTIC — email=%s local=%s domain=%s",
+            source, email, local, domain,
+        )
+        ph_capture(
+            email,
+            "signup_rejected_heuristic",
+            {
+                "rule": "brand_prefix_no_name_domain",
+                "local": local,
+                "domain": domain,
+                "source": source,
+            },
+        )
+        return JSONResponse({"ok": True})
+
+    return None
+
+
+async def _rotate_token_and_create_magic_link(
+    pool,
+    email_canonical: str,
+    client_ip: str,
+    *,
+    created: bool,
+    token: str,
+    rotate_notes: str,
+) -> str:
+    """Atomically rotate (revoke+issue) the token and create the magic-link row.
+
+    For new users (created=True) the already-issued token row is tagged
+    source='web' and the magic-link row is added. For existing users
+    (created=False) all three writes — revoke previous tokens, INSERT new
+    token, INSERT magic-link — run inside a single transaction so a
+    partial failure can't leave the customer with no active token.
+
+    For test compatibility ``pool`` may be a fake object that exposes
+    ``execute`` directly without ``acquire``/``transaction`` (e.g. the
+    in-test ``_FakePool``). We detect this and fall back to per-call
+    ``pool.execute`` writes.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    # Real asyncpg pools have .acquire(); test fakes don't. The fallback
+    # path is non-transactional but acceptable for unit tests that aren't
+    # exercising the failure-mid-rotation case.
+    has_transaction = hasattr(pool, "acquire")
+
+    async def _do_writes(executor) -> str:
+        nonlocal token
+        if not created:
+            logger.info(
+                "Web signup: %s re-signing up — revoking existing tokens and issuing fresh magic link",
+                email_canonical,
+            )
+            await executor.execute(
+                "UPDATE mcp_tokens SET revoked_at = NOW() "
+                "WHERE customer_email = $1 AND revoked_at IS NULL",
+                email_canonical,
+            )
+            token = generate_token()
+            t_hash = hash_token(token)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
+            await executor.execute(
+                """
+                INSERT INTO mcp_tokens
+                    (token_hash, token_prefix, customer_email, plan,
+                     daily_limit, expires_at, notes)
+                VALUES ($1, $2, $3, 'trial', $4, $5, $6)
+                ON CONFLICT (token_hash) DO NOTHING
+                """,
+                t_hash, token[:15] + "...", email_canonical,
+                PLAN_LIMITS.get("trial", 10), expires_at, rotate_notes,
+            )
+        else:
+            t_hash = hash_token(token)
+            await executor.execute(
+                "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
+                t_hash,
+            )
+        # Delegate the magic-link insert to the module-level helper so
+        # tests that patch `_create_magic_link` continue to intercept it.
+        # Pass the executor (conn or pool) so this insert participates in
+        # the surrounding transaction when one exists.
+        return await _create_magic_link(executor, t_hash, token, client_ip)
+
+    if has_transaction:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                return await _do_writes(conn)
+    else:
+        return await _do_writes(pool)
+
+
 # ── Handler factory ───────────────────────────────────────────────────
 
 def make_chat_handlers(auth: TokenAuth):
@@ -461,20 +608,27 @@ def make_chat_handlers(auth: TokenAuth):
 
     async def signup_handler(request: Request) -> JSONResponse:
         """Provision a trial token and email an activation link to the user."""
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
-
-        # IP rate limit on signups — max 3 per IP per hour
+        # IP rate limit FIRST — before any expensive parsing / DNS work, so
+        # bots can't burn the 400 / 200 paths to enumerate or fingerprint.
         client_ip = _get_client_ip(request)
         if not _check_signup_ip_rate_limit(client_ip):
             logger.warning("Signup rate limit hit for IP %s", client_ip)
             return JSONResponse({"error": "Too many requests"}, status_code=429)
 
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # Anti-bot: disposable / MX / brand-prefix. Returns 200 OK silently
+        # on rejection so bots can't enumerate. Same checks as /api/signup.
+        rejection = await _anti_bot_check(email, source="chat_signup")
+        if rejection is not None:
+            return rejection
 
         # Normalize for deduplication — keep original for sending
         email_canonical = _normalize_email(email)
@@ -490,37 +644,12 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         try:
-            from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
-            if not created:
-                # Existing user: revoke all current tokens, then issue a fresh one.
-                # Without revocation, repeat sign-ups accumulate multiple valid tokens
-                # each with independent daily limits — bypassing the trial cap.
-                logger.info("Web chat signup: %s re-signing up — revoking existing tokens and issuing fresh magic link", email_canonical)
-                await pool.execute(
-                    "UPDATE mcp_tokens SET revoked_at = NOW() WHERE customer_email = $1 AND revoked_at IS NULL",
-                    email_canonical,
-                )
-                token = generate_token()
-                t_hash = hash_token(token)
-                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
-                await pool.execute(
-                    """
-                    INSERT INTO mcp_tokens
-                        (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
-                    VALUES ($1, $2, $3, 'trial', $4, $5, 'web chat re-signup')
-                    ON CONFLICT (token_hash) DO NOTHING
-                    """,
-                    t_hash, token[:15] + "...", email_canonical,
-                    PLAN_LIMITS.get("trial", 10), expires_at,
-                )
-            else:
-                t_hash = hash_token(token)
-                await pool.execute(
-                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                    t_hash,
-                )
-            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
+            link_id = await _rotate_token_and_create_magic_link(
+                pool, email_canonical, client_ip,
+                created=created, token=token,
+                rotate_notes="web chat re-signup",
+            )
         except Exception:
             logger.exception("Failed to create magic link for %s", email_canonical)
             return JSONResponse({"error": "Service error"}, status_code=500)
@@ -860,6 +989,14 @@ def make_signup_endpoint_handler(auth: TokenAuth):
     """
 
     async def signup_endpoint(request: Request) -> JSONResponse:
+        # ── IP rate limit FIRST ──────────────────────────────────────
+        # Was previously after JSON parse + honeypot, so bots could burn
+        # the 400 path with malformed JSON to fingerprint the server.
+        client_ip = _get_client_ip(request)
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
+
         # ── Parse body ───────────────────────────────────────────────
         try:
             body = await request.json()
@@ -879,12 +1016,6 @@ def make_signup_endpoint_handler(auth: TokenAuth):
             )
             return JSONResponse({"ok": True})
 
-        # ── IP rate limit ────────────────────────────────────────────
-        client_ip = _get_client_ip(request)
-        if not _check_signup_ip_rate_limit(client_ip):
-            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
-            return JSONResponse({"error": "Too many requests"}, status_code=429)
-
         # ── Email shape ──────────────────────────────────────────────
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
@@ -895,60 +1026,13 @@ def make_signup_endpoint_handler(auth: TokenAuth):
         # a token. Pairs with the existing webhook event of the same name.
         ph_capture(email, "signup_form_submitted", {"source": "api_signup"})
 
-        # ── Layer 1: disposable domain blocklist ─────────────────────
-        local, domain = _split_email(email)
-        if not domain:
-            return JSONResponse({"error": "Invalid email"}, status_code=400)
-        if is_disposable_domain(domain):
-            logger.warning(
-                "/api/signup rejected DISPOSABLE — email=%s domain=%s",
-                email, domain,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_disposable",
-                {"domain": domain, "source": "api_signup"},
-            )
-            return JSONResponse({"ok": True})
-
-        # ── Layer 2: MX record validity ──────────────────────────────
-        has_mx, mx_reason = await domain_has_mx(domain)
-        if not has_mx:
-            logger.warning(
-                "/api/signup rejected NO_MX — email=%s domain=%s reason=%s",
-                email, domain, mx_reason,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_mx",
-                {"domain": domain, "reason": mx_reason, "source": "api_signup"},
-            )
-            return JSONResponse({"ok": True})
-        # Transient DNS failures fall through (fail-open) — see domain_has_mx.
-
-        # ── Layer 3: brand-prefix-on-no-name-domain heuristic ────────
-        if is_brand_prefix_suspicious(local, domain):
-            logger.warning(
-                "/api/signup rejected HEURISTIC — email=%s local=%s domain=%s",
-                email, local, domain,
-            )
-            ph_capture(
-                email,
-                "signup_rejected_heuristic",
-                {
-                    "rule": "brand_prefix_no_name_domain",
-                    "local": local,
-                    "domain": domain,
-                    "source": "api_signup",
-                },
-            )
-            return JSONResponse({"ok": True})
+        # ── Anti-bot: disposable / MX / brand-prefix ─────────────────
+        # Shared with chat.signup_handler so both endpoints stay in sync.
+        rejection = await _anti_bot_check(email, source="api_signup")
+        if rejection is not None:
+            return rejection
 
         # ── Issue / rotate token ─────────────────────────────────────
-        # Mirror chat.signup_handler's revoke-then-issue behaviour so
-        # repeated signups don't accumulate tokens. The duplicated code
-        # is flagged in docs/signup-rebuild-plan-2026-05-06.md as a
-        # follow-up extraction (`_create_or_rotate_token`).
         email_canonical = _normalize_email(email)
         try:
             token, created = await auth.create_token(
@@ -961,42 +1045,12 @@ def make_signup_endpoint_handler(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         try:
-            from datetime import datetime, timedelta, timezone
             pool = await auth._get_pool()
-            if not created:
-                logger.info(
-                    "/api/signup re-signup for %s — revoking existing tokens",
-                    email_canonical,
-                )
-                await pool.execute(
-                    "UPDATE mcp_tokens SET revoked_at = NOW() "
-                    "WHERE customer_email = $1 AND revoked_at IS NULL",
-                    email_canonical,
-                )
-                token = generate_token()
-                t_hash = hash_token(token)
-                expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
-                await pool.execute(
-                    """
-                    INSERT INTO mcp_tokens
-                        (token_hash, token_prefix, customer_email, plan,
-                         daily_limit, expires_at, notes)
-                    VALUES ($1, $2, $3, 'trial', $4, $5, 'api_signup re-signup')
-                    ON CONFLICT (token_hash) DO NOTHING
-                    """,
-                    t_hash, token[:15] + "...", email_canonical,
-                    PLAN_LIMITS.get("trial", 10), expires_at,
-                )
-            else:
-                t_hash = hash_token(token)
-                # Tag the source so the signup dashboard can split api_signup
-                # vs. legacy webhook vs. chat signup. 'web' is also used by
-                # chat.signup_handler — both are website-originated.
-                await pool.execute(
-                    "UPDATE mcp_tokens SET source = 'web' WHERE token_hash = $1",
-                    t_hash,
-                )
-            link_id = await _create_magic_link(pool, t_hash, token, client_ip)
+            link_id = await _rotate_token_and_create_magic_link(
+                pool, email_canonical, client_ip,
+                created=created, token=token,
+                rotate_notes="api_signup re-signup",
+            )
         except Exception:
             logger.exception(
                 "/api/signup failed to create magic link for %s", email_canonical,
