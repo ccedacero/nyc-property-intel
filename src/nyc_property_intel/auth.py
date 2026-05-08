@@ -228,6 +228,13 @@ class TokenAuth:
         A slightly-stale read is acceptable — under concurrent load at
         the exact limit boundary a token may make 1-2 extra calls before
         the limit kicks in. This is fine for MVP.
+
+        On DB errors we fail OPEN (allow the request) so a transient DB
+        blip doesn't lock every customer out. The trade-off is that a
+        sustained DB outage means every token is effectively unlimited
+        until recovery — log loudly with exc_info so the failure surfaces
+        in Sentry / log aggregators rather than silently turning into a
+        rate-limit bypass.
         """
         try:
             pool = await self._get_pool()
@@ -240,8 +247,15 @@ class TokenAuth:
             )
             count = row["call_count"] if row else 0
             return count < daily_limit, count
-        except Exception as exc:
-            logger.error("Auth DB error during rate limit check: %s", exc)
+        except Exception:
+            # exc_info=True so Sentry captures the stack — without this,
+            # a DB outage silently disables rate limiting and we'd only
+            # notice via downstream cost/usage anomalies.
+            logger.error(
+                "rate_limit_check_failed_fail_open token_hash=%s",
+                token_hash[:16],
+                exc_info=True,
+            )
             return True, 0  # Fail open — don't block on DB errors
 
     # ── Usage recording ───────────────────────────────────────────────

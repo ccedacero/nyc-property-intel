@@ -121,21 +121,61 @@ def _check_signup_ip_rate_limit(ip: str) -> bool:
 _normalize_email = normalize_email
 
 
+def _is_private_ip(ip: str) -> bool:
+    """RFC 1918 + loopback. Note: only 172.16.0.0/12 (172.16-172.31) is private,
+    NOT all of 172.x — Google for instance owns 172.217.x and that's public."""
+    if ip.startswith(("10.", "192.168.", "127.")):
+        return True
+    if ip.startswith("172."):
+        try:
+            return 16 <= int(ip.split(".")[1]) <= 31
+        except (ValueError, IndexError):
+            return False
+    return False
+
+
 def _get_client_ip(request: Request) -> str:
     # Railway's public networking runs through Fastly, which sets Fastly-Client-IP
     # to the real client IP before appending its own edge IP to X-Forwarded-For.
     # Check CDN-specific headers first, then fall back to XFF.
+    #
+    # SECURITY NOTE: these headers are spoofable by anyone who can reach the
+    # Railway hostname directly. Until we whitelist the Fastly IP range as
+    # the only trusted upstream, we log a warning when the immediate peer is
+    # not in any expected CDN range so spoofing attempts are detectable in
+    # production. See Fix 9 for the longer-term fix.
+    cdn_header_value = ""
+    cdn_header_name = ""
     for header in ("fastly-client-ip", "cf-connecting-ip", "x-real-ip"):
         val = request.headers.get(header, "").strip()
         if val:
-            return val
+            cdn_header_value = val
+            cdn_header_name = header
+            break
+
+    if cdn_header_value:
+        peer = request.client.host if request.client else None
+        # Heuristic tripwire: a CDN-trusted header is set but the immediate
+        # peer is private/loopback (i.e. probably localhost in tests, fine)
+        # OR appears to be a public IP that's NOT one of our known CDN
+        # ranges. Without a precise Fastly allowlist we just log and let
+        # the value through — flipping to fail-closed is a future hardening.
+        if peer and not _is_private_ip(peer):
+            # peer is public — could be a direct hit on the Railway hostname
+            # bypassing Fastly. Log so we can see this in Sentry / logs.
+            logger.warning(
+                "Spoofable CDN header set but peer is public: peer=%s header=%s value=%s",
+                peer, cdn_header_name, cdn_header_value,
+            )
+        return cdn_header_value
+
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
         # With Fastly in front, the rightmost XFF is the Fastly edge PoP IP, not
         # the client. Use the leftmost (first) non-private IP instead.
         ips = [ip.strip() for ip in forwarded.split(",")]
         for ip in ips:
-            if ip and not ip.startswith(("10.", "172.", "192.168.", "127.")):
+            if ip and not _is_private_ip(ip):
                 return ip
         return ips[0]
     return request.client.host if request.client else "unknown"
@@ -751,18 +791,25 @@ def make_chat_handlers(auth: TokenAuth):
         # Truncate history and validate last user message
         messages = raw_messages[-_MAX_HISTORY:]
         last_msg = messages[-1]
-        if last_msg.get("role") != "user":
-            return JSONResponse({"error": "Last message must be from user"}, status_code=400)
+        # Defend against malformed payloads: messages must be dicts. Without
+        # this guard `last_msg.get(...)` raises AttributeError if the client
+        # sends ints/strings, surfacing as 500 instead of 400.
+        if not isinstance(last_msg, dict) or last_msg.get("role") != "user":
+            return JSONResponse({"error": "Last message must be a user dict"}, status_code=400)
 
-        user_text = str(last_msg.get("content", ""))
+        # Content must be a string — null-byte strip below assumes str.
+        last_content = last_msg.get("content", "")
+        if not isinstance(last_content, str):
+            return JSONResponse({"error": "Message content must be a string"}, status_code=400)
+        user_text = last_content
         if not user_text.strip():
             return JSONResponse({"error": "Empty message"}, status_code=400)
         if len(user_text) > _MAX_MSG_LEN:
             return JSONResponse({"error": f"Message too long (max {_MAX_MSG_LEN} chars)"}, status_code=400)
 
-        # Sanitize: strip null bytes from all messages
+        # Sanitize: strip null bytes from all messages (only dicts with str content)
         for msg in messages:
-            if isinstance(msg.get("content"), str):
+            if isinstance(msg, dict) and isinstance(msg.get("content"), str):
                 msg["content"] = msg["content"].replace("\x00", "")
 
         # ── Auth: HttpOnly cookie (web), Bearer header (CLI/API), or free-tier cookie ──
@@ -805,7 +852,19 @@ def make_chat_handlers(auth: TokenAuth):
 
             is_authenticated = True
         else:
-            # Anonymous path — check signed cookie
+            # Anonymous path. Two checks:
+            #   (1) Cheap fast-path: signed cookie counter. Bots that clear
+            #       cookies trivially bypass this — that's why we follow up
+            #       with the IP-hash count below.
+            #   (2) Authoritative: COUNT(*) over the last 24h from
+            #       anon_chat_queries keyed on ip_hash. This is the upper
+            #       bound — once the IP-hash trips it, no cookie state can
+            #       extend the budget.
+            # Edge case: rotating IPs (cellular / mobile users) can hit the
+            # limit faster than expected because each IP starts fresh. We
+            # accept that false positive in exchange for closing the
+            # cookie-clearing bypass. Documented in
+            # docs/launch-playbook-pricing.md / launch-playbook-product-activation.md.
             cookie_val = request.cookies.get("nyprop_sess", "")
             query_count, anon_analyze_count = read_session_cookie(cookie_val) if cookie_val else (0, 0)
 
@@ -829,6 +888,40 @@ def make_chat_handlers(auth: TokenAuth):
             anon_ip_hash = ""
             logger.warning("Anon chat: no client IP available for hashing")
 
+        # Authoritative anon limit: COUNT(*) over last 24h by ip_hash.
+        # Closes the cookie-clearing bypass. Skipped when:
+        #   - request is authenticated (paid path, different limits apply)
+        #   - we have no IP hash (can't enforce; fail-open is safer than
+        #     blocking every anonymous user when extraction fails)
+        if not is_authenticated and anon_ip_hash:
+            try:
+                pool = await auth._get_pool()
+                row = await pool.fetchrow(
+                    """
+                    SELECT COUNT(*) AS cnt
+                    FROM anon_chat_queries
+                    WHERE ip_hash = $1
+                      AND called_at > NOW() - INTERVAL '24 hours'
+                    """,
+                    anon_ip_hash,
+                )
+                ip_count = int(row["cnt"]) if row and row["cnt"] is not None else 0
+            except Exception as exc:
+                # Table missing (migration not yet applied) or transient DB
+                # blip — fail open so a DB outage doesn't lock everyone out.
+                logger.warning("Anon IP-hash limit check failed (fail-open): %s", exc)
+                ip_count = 0
+
+            if ip_count >= settings.chat_free_query_limit:
+                return JSONResponse(
+                    {
+                        "error": "free_limit_reached",
+                        "message": "Enter your email to continue",
+                        "free_queries_used": ip_count,
+                    },
+                    status_code=402,
+                )
+
         # ── Build streaming response ──────────────────────────────────
         new_cookie_val: str | None = None
         if not is_authenticated:
@@ -846,7 +939,9 @@ def make_chat_handlers(auth: TokenAuth):
         raw_anthropic = [
             {"role": m["role"], "content": m["content"]}
             for m in messages
-            if m.get("role") in ("user", "assistant") and m.get("content")
+            if isinstance(m, dict)
+            and m.get("role") in ("user", "assistant")
+            and m.get("content")
         ]
         # Ensure the conversation starts with a user turn (never an injected assistant turn)
         anthropic_messages = []
