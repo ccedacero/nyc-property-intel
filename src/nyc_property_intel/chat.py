@@ -46,8 +46,14 @@ _SITE_BASE = "https://nycpropertyintel.com"
 _LOOPS_API_BASE = "https://app.loops.so/api/v1"
 _CHAT_MODEL = "claude-sonnet-4-6"
 _MAX_TOKENS = 4096
-_MAX_ROUNDS = 5          # max agentic tool-call rounds per request
-_MAX_TOOL_CALLS = 5      # max individual tool calls per request
+_MAX_ROUNDS = 8          # max agentic tool-call rounds per request
+_MAX_TOOL_CALLS = 12     # max individual tool calls per request
+# Tools that don't count against the per-request budget. lookup_property
+# is a prerequisite (Claude must resolve a BBL before any data tool can
+# run) and may legitimately need 2-3 retries with different address
+# formats (esp. hyphenated Queens house numbers). Counting it would
+# starve the supplemental data tools.
+_BUDGET_EXEMPT_TOOLS = frozenset({"lookup_property"})
 _STREAM_TIMEOUT = 60.0   # seconds
 _MAX_MSG_LEN = 2000      # max user message length
 _MAX_HISTORY = 20        # max messages in conversation history
@@ -368,7 +374,8 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                     })
                     continue
 
-                tool_calls_made += 1
+                if block.name not in _BUDGET_EXEMPT_TOOLS:
+                    tool_calls_made += 1
                 yield f"data: {json.dumps({'type': 'tool_start', 'name': block.name})}\n\n"
 
                 try:
