@@ -45,7 +45,10 @@ _EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 _SITE_BASE = "https://nycpropertyintel.com"
 _LOOPS_API_BASE = "https://app.loops.so/api/v1"
 _CHAT_MODEL = "claude-sonnet-4-6"
-_MAX_TOKENS = 4096
+_MAX_TOKENS = 6144      # output ceiling per Anthropic API call. Full
+                         # due-diligence reports run 9 tools + a 10-section
+                         # markdown template, which can hit 3.5-4k output
+                         # tokens; 6144 prevents mid-report truncation.
 _MAX_ROUNDS = 8          # max agentic tool-call rounds per request
 _MAX_TOOL_CALLS = 12     # max individual tool calls per request
 # Tools that don't count against the per-request budget. lookup_property

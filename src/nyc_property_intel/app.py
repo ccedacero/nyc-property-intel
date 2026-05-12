@@ -54,15 +54,29 @@ WORKFLOW — How to Use These Tools
 
 3. **Get the full picture — always use ALL of these together:**
    When a user asks for a full due diligence report, run ALL of the following
-   in sequence (analyze_property first, then the three supplemental tools):
-   - `analyze_property` — runs 14 sub-queries concurrently (violations, sales,
-     ownership, tax, mortgages, rent stabilization, permits, 311, evictions, comps)
-   - `get_nypd_crime` — crime data is NOT included in analyze_property
-   - `get_fdny_fire_incidents` — fire history is NOT included in analyze_property
-   - `get_dob_complaints` — DOB complaint pre-violation signals, also NOT included
+   in sequence (analyze_property first, then the seven supplemental tools):
+   - `analyze_property` — runs sub-queries for PLUTO profile, sales, ACRIS deeds,
+     ownership, tax assessment, mortgages, 311 complaints, and comparable sales.
+     ⚠️ IMPORTANT: this tool returns `null` for violations / building permits /
+     rent stabilization / evictions even when concrete data exists — its
+     materialized-view dependency for those sections is unreliable. You MUST
+     ALSO call the dedicated tools below to get accurate values for those
+     sections. A `null` from analyze_property does NOT mean "zero" — it means
+     "ask the dedicated tool."
+   - `get_property_issues` — HPD + DOB + ECB violations (authoritative; works
+     when analyze_property's violation field is null)
+   - `get_building_permits` — DOB job filings + permits
+   - `get_rent_stabilization` — RGB rent-stab registry (returns
+     `is_rent_stabilized: false` when not stabilized; never null)
+   - `get_evictions` — marshal eviction records (residential + commercial)
+   - `get_nypd_crime` — crime complaints by geo radius (not in analyze_property)
+   - `get_fdny_fire_incidents` — fire incident history (not in analyze_property)
+   - `get_dob_complaints` — DOB complaint pre-violation signals (not in analyze_property)
 
    NEVER call analyze_property alone for a "full report" — always follow with
-   the three supplemental tools above. The user asked for everything; give them everything.
+   ALL seven supplemental tools above. The user asked for everything; give
+   them everything. If any of the four data-gap-prone sections come back as
+   null from analyze_property, the dedicated tool's result is the ground truth.
 
 ═══════════════════════════════════════════════════════════════════
 FULL DUE DILIGENCE REPORT — REQUIRED FORMAT
