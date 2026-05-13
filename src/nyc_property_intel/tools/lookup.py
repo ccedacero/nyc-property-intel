@@ -6,6 +6,7 @@ including building characteristics, zoning, assessed values, and owner info.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import logging
@@ -37,6 +38,24 @@ FROM mv_property_profile WHERE bbl = $1;"""
 _SQL_FALLBACK = f"""\
 SELECT {_PROFILE_COLUMNS}
 FROM pluto_latest WHERE bbl = $1;"""
+
+# Pulls the leading numeric house number out of a free-form address string.
+# Handles hyphenated Queens style (e.g. "40-22 24th St") by taking the first
+# segment. Returns None if no leading number is found (apartment numbers,
+# named buildings, etc. — in which case we skip the drift check).
+_HOUSE_NUMBER_RE = re.compile(r"^\s*(\d+)")
+
+
+def _parse_house_number(address: str | None) -> int | None:
+    if not address:
+        return None
+    m = _HOUSE_NUMBER_RE.match(address)
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except ValueError:
+        return None
 
 
 @mcp.tool()
@@ -117,17 +136,45 @@ async def lookup_property(
     row["bbl_formatted"] = bbl_info["bbl_formatted"]
 
     # Surface any mismatch between the user-supplied address and the PLUTO
-    # address so callers aren't confused when the geocoder resolves to a
-    # nearby lot.  Only populated when an address (not a BBL) was queried.
+    # address. The previous version said "Both refer to the same property"
+    # unconditionally, which was actively misleading — e.g. "100 Bay Street,
+    # Staten Island" resolved to "40 BAY STREET LANDING" (a different building
+    # 60 house numbers away). Now we (a) reject matches with a big house-
+    # number gap and (b) downgrade the note to a verification prompt instead
+    # of asserting equivalence (M5 fix).
     pluto_address = row.get("address")
     if address is not None and pluto_address is not None:
         row["address_queried"] = address
         row["address_pluto"] = pluto_address
+
+        queried_hn = _parse_house_number(address)
+        pluto_hn = _parse_house_number(pluto_address)
+        hn_drift = (
+            abs(queried_hn - pluto_hn)
+            if queried_hn is not None and pluto_hn is not None
+            else None
+        )
+
+        # Refuse the match when the house number drift is unambiguously large.
+        # 10 is roughly one block. Bigger gaps mean the geocoder snapped to a
+        # different building. Letting that through with a misleading
+        # "same property" note destroys credibility — better to ask the user
+        # to clarify.
+        if hn_drift is not None and hn_drift > 10:
+            raise ToolError(
+                f"Could not find an exact match for {address!r}. "
+                f"The closest PLUTO record is {pluto_address!r} (house number "
+                f"differs by {hn_drift}). These are likely different properties. "
+                f"Please verify the address — e.g. include the borough, ZIP, "
+                f"or a more specific street name."
+            )
+
         if address.strip().upper() != pluto_address.strip().upper():
             row["address_note"] = (
                 f"The address you searched ({address!r}) was resolved to BBL "
-                f"{bbl_info['bbl_formatted']}. PLUTO stores this lot as "
-                f"{pluto_address!r}. Both refer to the same property."
+                f"{bbl_info['bbl_formatted']}, which PLUTO stores as "
+                f"{pluto_address!r}. Closest match found — please verify "
+                f"this is the correct property."
             )
 
     # Condo detection: lot >= 1000 in Manhattan, lot >= 7501 in outer boroughs,
