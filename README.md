@@ -1,5 +1,6 @@
 # NYC Property Intel
 
+[![SafeSkill 88/100](https://img.shields.io/badge/SafeSkill-88%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/ccedacero-nyc-property-intel)
 MCP server that gives Claude AI access to 20+ NYC public record datasets for real estate due diligence. Ask Claude about any NYC property in plain English — violations, liens, sales history, ownership, permits, rent stabilization, zoning, fire history, crime data, and more.
 
 **This is a due diligence tool, not an appraisal tool.** It surfaces public record data only; it does not estimate property values.
