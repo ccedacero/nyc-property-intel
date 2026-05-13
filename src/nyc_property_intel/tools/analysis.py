@@ -17,7 +17,11 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
-from nyc_property_intel.utils import parse_bbl, validate_bbl
+from nyc_property_intel.utils import (
+    exemption_program_name,
+    parse_bbl,
+    validate_bbl,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +90,20 @@ SELECT ucbbl, uc2017, uc2016, uc2015, uc2014, est2017, unitsres
 FROM rentstab WHERE ucbbl = $1;"""
 
 _SQL_EXEMPTIONS = """\
-SELECT e.exmpcode, e.exname, e.curexmptot,
+-- M3 fix: dof_exemptions stores one row per (bbl, exmpcode, year/cycle),
+-- so a naïve SELECT returns the same exemption 4x with different curexmptot
+-- snapshots. DISTINCT ON (exmpcode) + MAX(curexmptot) collapses to one row
+-- per code, using the largest reported exempt value as the canonical
+-- snapshot. Matches the dedup behaviour in tools/tax.py::_SQL_EXEMPTIONS.
+SELECT DISTINCT ON (e.exmpcode)
+    e.exmpcode, e.exname, e.curexmptot,
     c.description AS code_description
 FROM dof_exemptions e
 LEFT JOIN dof_exemption_classification_codes c
     ON e.exmpcode = c.exemptcode
 WHERE e.bbl = $1
-ORDER BY e.curexmptot DESC NULLS LAST LIMIT 5;"""
+ORDER BY e.exmpcode, e.curexmptot DESC NULLS LAST
+LIMIT 5;"""
 
 # ── New summary SQL queries ──────────────────────────────────────────
 
@@ -361,10 +372,15 @@ def _build_financial_snapshot(
         last_sale_price = _safe_float(recent_sales[0].get("saleprice"))
         last_sale_date = recent_sales[0].get("saledate")
 
+    # M4 fix: `exname` holds the RECIPIENT (owner), not the exemption program
+    # name. Expose both as separate fields so downstream consumers can render
+    # "ICAP (recipient: ESRT EMPIRE STATE BUILDING, L.L.C.)" instead of
+    # conflating the two.
     exemption_list = [
         {
             "code": e.get("exmpcode"),
-            "name": (e.get("exname") or e.get("code_description") or "").strip(),
+            "exemption_name": exemption_program_name(e.get("exmpcode")),
+            "recipient": (e.get("exname") or e.get("code_description") or "").strip(),
             "value": e.get("curexmptot"),
         }
         for e in exemptions

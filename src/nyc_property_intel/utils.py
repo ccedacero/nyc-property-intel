@@ -238,6 +238,50 @@ _DATA_SOURCES: dict[str, dict[str, str]] = {
 }
 
 
+# NYC DOF exemption-code → human-readable name. The exemption file in PLUTO
+# / dof_exemptions stores the OWNER name in the `exname` column, not the
+# program name — i.e. for an ICAP exemption you get "ESRT EMPIRE STATE
+# BUILDING, L.L.C." (the recipient) not "Industrial / Commercial Abatement".
+# This dict supplies the program name so callers can present both (M4 fix).
+#
+# Codes verified against NYC DOF's published Property Tax Exemption Codes
+# table. Anything not in the dict falls back to "Exemption code <N>".
+_EXEMPTION_NAMES: dict[int, str] = {
+    1015: "Senior Citizen Homeowners' Exemption (SCHE)",
+    1017: "Disabled Homeowners' Exemption (DHE)",
+    1021: "Senior Citizen Homeowner Exemption (SCHE)",
+    1101: "Veterans (Basic)",
+    1102: "Veterans (Combat)",
+    1103: "Veterans (Disabled)",
+    1110: "Clergy",
+    1200: "Industrial / Commercial Incentive Program (ICIP)",
+    1985: "Industrial / Commercial Abatement Program (ICAP)",
+    1986: "Industrial / Commercial Abatement Program (ICAP)",
+    2110: "421a — New Multiple Dwelling",
+    2160: "J-51 — Rehab Tax Exemption",
+    2161: "J-51 — Rehab Tax Abatement",
+    5113: "Veterans",
+    5117: "Disabled Crime Victim / Good Samaritan",
+    5128: "STAR / Enhanced STAR",
+    5129: "STAR / Enhanced STAR",
+}
+
+
+def exemption_program_name(code: int | str | None) -> str:
+    """Map a DOF exemption code (e.g. 1985) to a human-readable program name.
+
+    Falls back to ``"Exemption code <N>"`` for codes not in the dictionary
+    so the field is always populated.
+    """
+    if code is None:
+        return "Exemption (unknown code)"
+    try:
+        code_int = int(str(code).strip())
+    except (TypeError, ValueError):
+        return f"Exemption code {code}"
+    return _EXEMPTION_NAMES.get(code_int, f"Exemption code {code_int}")
+
+
 def normalize_filter(value: str | None) -> str | None:
     """Normalize an optional filter string to uppercase, treating empty string as None.
 
