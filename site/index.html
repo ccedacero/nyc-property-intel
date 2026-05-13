@@ -101,7 +101,7 @@
             "name": "Is NYC Property Intel free?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version offers a free trial — sign up and your token is emailed automatically. You can also self-host by cloning the repo and loading NYC public data into PostgreSQL."
+              "text": "Yes, in tiers: anyone can try 3 free queries in the chat with no signup; after that, sign up for free to get a personal token with 10 queries per day for 30 days (including up to 5 full due-diligence reports); self-host is unlimited under the MIT license."
             }
           },
           {
@@ -682,7 +682,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
             </div>
 
             <div class="tab-content" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse" tabindex="0">
-              <p>No local setup required. <a href="#hero-signup-form">Sign up for early access</a> — your personal token and setup instructions will be emailed to you automatically.</p>
+              <p>No local setup required. <a href="#hero-signup-form-wrapper">Sign up for early access</a> — your personal token and setup instructions will be emailed to you automatically.</p>
               <p>Once you have your token:</p>
               <p><strong>Claude Code</strong> — one command:</p>
               <pre><code>claude mcp add --transport http nyc-property-intel \
@@ -805,7 +805,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">Is NYC Property Intel free?</summary>
             <div class="faq-a">
-              <p>Yes. NYC Property Intel is free and open-source under the MIT license. The hosted version includes a free trial &mdash; sign up above and your personal token is emailed automatically. Your trial token includes <strong>10 queries per day for 30 days</strong> (with up to 5 of those being full due-diligence reports). Professional and team plans with higher limits are in development &mdash; <a href="#hero-signup-form">sign up</a> and we&rsquo;ll reach out when they launch.</p>
+              <p>Yes, in tiers: (1) anyone can try <strong>3 free queries</strong> in the chat with no signup at all; (2) after that, <strong>sign up for free</strong> to get a personal token with <strong>10 queries per day for 30 days</strong> (including up to 5 full due-diligence reports); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development &mdash; <a href="#hero-signup-form-wrapper">sign up</a> and we&rsquo;ll reach out when they launch.</p>
             </div>
           </details>
 
