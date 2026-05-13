@@ -13,7 +13,12 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
-from nyc_property_intel.utils import data_freshness_note, format_currency, validate_bbl
+from nyc_property_intel.utils import (
+    data_freshness_note,
+    exemption_program_name,
+    format_currency,
+    validate_bbl,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,12 +121,22 @@ async def get_tax_info(bbl: str) -> dict:
         )
 
     # Exemptions
+    # M4 fix: the DOF table stores the OWNER in `exname` (e.g. "ESRT EMPIRE
+    # STATE BUILDING, L.L.C.") not the program name. We now expose:
+    #   - `code`            : raw DOF exemption code (e.g. 1985)
+    #   - `exemption_name`  : program name resolved from a code lookup
+    #                         (e.g. "Industrial / Commercial Abatement (ICAP)")
+    #   - `recipient`       : the owner string as stored in `exname`
+    # The previous `name` key (which actually held the recipient) is removed
+    # to force callers to disambiguate. _SQL_EXEMPTIONS already DISTINCTs on
+    # exmpcode so duplicates are not an issue here.
     try:
         exemptions = await fetch_all(_SQL_EXEMPTIONS, bbl)
         result["exemptions"] = [
             {
                 "code": e.get("exmpcode"),
-                "name": (e.get("exname") or e.get("code_description") or "").strip(),
+                "exemption_name": exemption_program_name(e.get("exmpcode")),
+                "recipient": (e.get("exname") or e.get("code_description") or "").strip(),
                 "exempt_value": e.get("curexmptot"),
                 "exempt_value_formatted": format_currency(e.get("curexmptot")),
                 "year": e.get("year"),

@@ -95,7 +95,7 @@ async def cmd_migrate(pool: asyncpg.Pool) -> None:
             token_hash       TEXT        NOT NULL REFERENCES mcp_tokens(token_hash),
             encrypted_token  TEXT        NOT NULL,
             created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            expires_at       TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '15 minutes',
+            expires_at       TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '24 hours',
             used_at          TIMESTAMPTZ,
             created_by_ip    TEXT
         );

@@ -17,7 +17,11 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
-from nyc_property_intel.utils import parse_bbl, validate_bbl
+from nyc_property_intel.utils import (
+    exemption_program_name,
+    parse_bbl,
+    validate_bbl,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +90,20 @@ SELECT ucbbl, uc2017, uc2016, uc2015, uc2014, est2017, unitsres
 FROM rentstab WHERE ucbbl = $1;"""
 
 _SQL_EXEMPTIONS = """\
-SELECT e.exmpcode, e.exname, e.curexmptot,
+-- M3 fix: dof_exemptions stores one row per (bbl, exmpcode, year/cycle),
+-- so a naïve SELECT returns the same exemption 4x with different curexmptot
+-- snapshots. DISTINCT ON (exmpcode) + MAX(curexmptot) collapses to one row
+-- per code, using the largest reported exempt value as the canonical
+-- snapshot. Matches the dedup behaviour in tools/tax.py::_SQL_EXEMPTIONS.
+SELECT DISTINCT ON (e.exmpcode)
+    e.exmpcode, e.exname, e.curexmptot,
     c.description AS code_description
 FROM dof_exemptions e
 LEFT JOIN dof_exemption_classification_codes c
     ON e.exmpcode = c.exemptcode
 WHERE e.bbl = $1
-ORDER BY e.curexmptot DESC NULLS LAST LIMIT 5;"""
+ORDER BY e.exmpcode, e.curexmptot DESC NULLS LAST
+LIMIT 5;"""
 
 # ── New summary SQL queries ──────────────────────────────────────────
 
@@ -327,13 +338,29 @@ def _safe_float(value: Any) -> float | None:
 def _build_property_summary(
     profile: dict[str, Any],
     bbl_info: dict[str, str],
+    ownership: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # M16 fix: PLUTO returns "" / NULL `ownername` for condo billing lots
+    # (1 Wall, One57, 432 Park, Empire State…). Fall back to the most recent
+    # ACRIS deed grantee from `mv_current_ownership` (already fetched by
+    # analyze_property in parallel via _fetch_ownership) so the system prompt's
+    # "lead with the owner" instruction doesn't produce "UNAVAILABLE OWNER"
+    # on every luxury building.
+    pluto_owner = profile.get("ownername")
+    owner_missing = pluto_owner is None or not str(pluto_owner).strip()
+    owner = pluto_owner
+    owner_source = "pluto"
+    if owner_missing and ownership and ownership.get("owner_name"):
+        owner = ownership["owner_name"]
+        owner_source = "acris_deed"
+
     return {
         "bbl": profile.get("bbl"),
         "bbl_formatted": bbl_info["bbl_formatted"],
         "address": profile.get("address"),
         "borough": bbl_info["borough_name"],
-        "owner": profile.get("ownername"),
+        "owner": owner,
+        "owner_source": owner_source,
         "building_class": profile.get("bldgclass"),
         "zoning_district": profile.get("zonedist1"),
         "year_built": profile.get("yearbuilt"),
@@ -361,10 +388,15 @@ def _build_financial_snapshot(
         last_sale_price = _safe_float(recent_sales[0].get("saleprice"))
         last_sale_date = recent_sales[0].get("saledate")
 
+    # M4 fix: `exname` holds the RECIPIENT (owner), not the exemption program
+    # name. Expose both as separate fields so downstream consumers can render
+    # "ICAP (recipient: ESRT EMPIRE STATE BUILDING, L.L.C.)" instead of
+    # conflating the two.
     exemption_list = [
         {
             "code": e.get("exmpcode"),
-            "name": (e.get("exname") or e.get("code_description") or "").strip(),
+            "exemption_name": exemption_program_name(e.get("exmpcode")),
+            "recipient": (e.get("exname") or e.get("code_description") or "").strip(),
             "value": e.get("curexmptot"),
         }
         for e in exemptions
@@ -394,12 +426,27 @@ def _build_development_potential(profile: dict[str, Any]) -> dict[str, Any]:
 
     unused_far: float | None = None
     unused_sqft: float | None = None
+    overbuilt_by_far: float | None = None
+    overbuilt_by_sqft: float | None = None
     is_maxed_out: bool | None = None
+    is_overbuilt: bool | None = None
 
+    # M1 fix: "unused FAR" cannot logically be negative. Landmark /
+    # grandfathered buildings (Empire State Building, Chrysler, etc.) often
+    # exceed the zoning that was written years after construction, so the
+    # built FAR is HIGHER than the current allowed FAR. Splitting the value
+    # into two non-negative fields lets the LLM render an honest
+    # "overbuilt — grandfathered" line instead of a nonsensical "-15.79
+    # unused FAR".
     if built_far is not None and max_allowed_far is not None:
-        unused_far = round(max_allowed_far - built_far, 2)
+        delta = max_allowed_far - built_far
+        unused_far = round(max(0.0, delta), 2)
+        overbuilt_by_far = round(max(0.0, -delta), 2)
         if lot_area is not None and lot_area > 0:
             unused_sqft = round(unused_far * lot_area)
+            overbuilt_by_sqft = round(overbuilt_by_far * lot_area)
+        is_overbuilt = delta < 0
+        # ≤ 0.1 FAR unused = effectively maxed out (rounding noise).
         is_maxed_out = unused_far <= 0.1
 
     return {
@@ -407,7 +454,10 @@ def _build_development_potential(profile: dict[str, Any]) -> dict[str, Any]:
         "max_allowed_far": max_allowed_far,
         "unused_far": unused_far,
         "unused_sqft": unused_sqft,
+        "overbuilt_by_far": overbuilt_by_far,
+        "overbuilt_by_sqft": overbuilt_by_sqft,
         "is_maxed_out": is_maxed_out,
+        "is_overbuilt": is_overbuilt,
     }
 
 
@@ -820,7 +870,7 @@ async def analyze_property(bbl: str) -> dict:
             logger.exception("Unexpected error in comp sales query: %s", exc)
 
     # ── Build standardized report sections ───────────────────────────
-    property_summary = _build_property_summary(profile, bbl_info)
+    property_summary = _build_property_summary(profile, bbl_info, ownership)
     financial_snapshot = _build_financial_snapshot(profile, recent_sales, exemptions)
     development_potential = _build_development_potential(profile)
     violations_and_compliance = _build_violations_and_compliance(

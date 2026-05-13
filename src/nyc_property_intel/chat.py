@@ -250,12 +250,19 @@ def _decrypt_token(encrypted: str) -> str | None:
 # ── Magic link DB helpers ─────────────────────────────────────────────
 
 async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client_ip: str = "") -> str:
-    """Insert a magic link row and return the UUID string."""
+    """Insert a magic link row and return the UUID string.
+
+    `expires_at` is set explicitly to NOW() + 24h instead of relying on
+    the column default. The schema default was bumped from 15min → 24h
+    in migration 012 and scripts/manage_tokens.py to match. Setting it
+    explicitly here means this code's TTL doesn't silently drift if the
+    column default is ever rolled back in prod (E2 fix).
+    """
     link_id = str(uuid.uuid4())
     await pool.execute(
         """
-        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip, expires_at)
+        VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours')
         """,
         link_id,
         token_hash,
@@ -658,12 +665,12 @@ def make_chat_handlers(auth: TokenAuth):
 
     async def signup_handler(request: Request) -> JSONResponse:
         """Provision a trial token and email an activation link to the user."""
-        # IP rate limit FIRST — before any expensive parsing / DNS work, so
-        # bots can't burn the 400 / 200 paths to enumerate or fingerprint.
+        # Body-size protection runs upstream in _BodySizeLimitMiddleware.
+        # Capture the IP so we can apply rate-limiting AFTER the email-shape
+        # check passes. Counting malformed-JSON / bad-email requests against
+        # the 3-per-hour IP budget locks NAT-shared users out for typos
+        # (E1 fix).
         client_ip = _get_client_ip(request)
-        if not _check_signup_ip_rate_limit(client_ip):
-            logger.warning("Signup rate limit hit for IP %s", client_ip)
-            return JSONResponse({"error": "Too many requests"}, status_code=429)
 
         try:
             body = await request.json()
@@ -673,6 +680,11 @@ def make_chat_handlers(auth: TokenAuth):
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # Email passed shape check — NOW count it against the IP budget.
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("Signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
 
         # Anti-bot: disposable / MX / brand-prefix. Returns 200 OK silently
         # on rejection so bots can't enumerate. Same checks as /api/signup.
@@ -1094,13 +1106,12 @@ def make_signup_endpoint_handler(auth: TokenAuth):
     """
 
     async def signup_endpoint(request: Request) -> JSONResponse:
-        # ── IP rate limit FIRST ──────────────────────────────────────
-        # Was previously after JSON parse + honeypot, so bots could burn
-        # the 400 path with malformed JSON to fingerprint the server.
+        # Body-size protection runs upstream in _BodySizeLimitMiddleware.
+        # Capture the IP up front but DO NOT count this hit against the
+        # 3-per-hour budget until we know the request is at least well-
+        # formed and the email looks valid. Otherwise a typo or malformed
+        # JSON locks every user behind the same NAT for an hour (E1 fix).
         client_ip = _get_client_ip(request)
-        if not _check_signup_ip_rate_limit(client_ip):
-            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
-            return JSONResponse({"error": "Too many requests"}, status_code=429)
 
         # ── Parse body ───────────────────────────────────────────────
         try:
@@ -1125,6 +1136,13 @@ def make_signup_endpoint_handler(auth: TokenAuth):
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # ── IP rate limit ────────────────────────────────────────────
+        # Applied AFTER email-shape validation so that typos / malformed
+        # bodies don't burn the budget for a whole NAT.
+        if not _check_signup_ip_rate_limit(client_ip):
+            logger.warning("/api/signup rate limit hit for IP %s", client_ip)
+            return JSONResponse({"error": "Too many requests"}, status_code=429)
 
         # Funnel-top event — fires for every well-formed POST that passes
         # rate-limit + email-shape, regardless of whether the email gets

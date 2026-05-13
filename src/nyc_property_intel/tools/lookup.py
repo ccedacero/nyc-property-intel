@@ -6,6 +6,7 @@ including building characteristics, zoning, assessed values, and owner info.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import logging
@@ -17,6 +18,40 @@ from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_one
 from nyc_property_intel.geoclient import resolve_address_to_bbl
 from nyc_property_intel.utils import data_freshness_note, parse_bbl, validate_bbl
+
+
+# Most-recent deed grantee for a BBL (M16 fix — condo billing-lot owner
+# fallback). Used when PLUTO's `ownername` is null/empty, which is the
+# default for condo billing lots (1 Wall, One57, 432 Park, Empire State).
+# partytype = 2 in ACRIS = Grantee (buyer / current owner on the deed).
+_SQL_DEED_GRANTEE = """\
+SELECT p.name AS deed_owner, m.docdate
+FROM real_property_legals l
+JOIN real_property_master m ON l.documentid = m.documentid
+JOIN real_property_parties p ON p.documentid = m.documentid
+WHERE l.borough = $1 AND l.block = $2::int AND l.lot = $3::int
+  AND m.doctype IN ('DEED', 'DEDL', 'DEDC', 'RPTT', 'CTOR', 'CORRD')
+  AND p.partytype = 2
+ORDER BY m.docdate DESC NULLS LAST
+LIMIT 1;
+"""
+
+
+async def _fetch_deed_owner(bbl_info: dict[str, str]) -> dict[str, Any] | None:
+    """Return the most recent ACRIS deed grantee for the BBL, or None."""
+    try:
+        return await fetch_one(
+            _SQL_DEED_GRANTEE,
+            bbl_info["borough"],
+            int(bbl_info["block"]),
+            int(bbl_info["lot"]),
+        )
+    except asyncpg.UndefinedTableError:
+        logger.info("ACRIS deed tables not available, skipping owner fallback")
+        return None
+    except (asyncpg.PostgresError, ValueError) as exc:
+        logger.warning("ACRIS deed-owner fallback failed: %s", exc)
+        return None
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +72,24 @@ FROM mv_property_profile WHERE bbl = $1;"""
 _SQL_FALLBACK = f"""\
 SELECT {_PROFILE_COLUMNS}
 FROM pluto_latest WHERE bbl = $1;"""
+
+# Pulls the leading numeric house number out of a free-form address string.
+# Handles hyphenated Queens style (e.g. "40-22 24th St") by taking the first
+# segment. Returns None if no leading number is found (apartment numbers,
+# named buildings, etc. — in which case we skip the drift check).
+_HOUSE_NUMBER_RE = re.compile(r"^\s*(\d+)")
+
+
+def _parse_house_number(address: str | None) -> int | None:
+    if not address:
+        return None
+    m = _HOUSE_NUMBER_RE.match(address)
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except ValueError:
+        return None
 
 
 @mcp.tool()
@@ -117,17 +170,45 @@ async def lookup_property(
     row["bbl_formatted"] = bbl_info["bbl_formatted"]
 
     # Surface any mismatch between the user-supplied address and the PLUTO
-    # address so callers aren't confused when the geocoder resolves to a
-    # nearby lot.  Only populated when an address (not a BBL) was queried.
+    # address. The previous version said "Both refer to the same property"
+    # unconditionally, which was actively misleading — e.g. "100 Bay Street,
+    # Staten Island" resolved to "40 BAY STREET LANDING" (a different building
+    # 60 house numbers away). Now we (a) reject matches with a big house-
+    # number gap and (b) downgrade the note to a verification prompt instead
+    # of asserting equivalence (M5 fix).
     pluto_address = row.get("address")
     if address is not None and pluto_address is not None:
         row["address_queried"] = address
         row["address_pluto"] = pluto_address
+
+        queried_hn = _parse_house_number(address)
+        pluto_hn = _parse_house_number(pluto_address)
+        hn_drift = (
+            abs(queried_hn - pluto_hn)
+            if queried_hn is not None and pluto_hn is not None
+            else None
+        )
+
+        # Refuse the match when the house number drift is unambiguously large.
+        # 10 is roughly one block. Bigger gaps mean the geocoder snapped to a
+        # different building. Letting that through with a misleading
+        # "same property" note destroys credibility — better to ask the user
+        # to clarify.
+        if hn_drift is not None and hn_drift > 10:
+            raise ToolError(
+                f"Could not find an exact match for {address!r}. "
+                f"The closest PLUTO record is {pluto_address!r} (house number "
+                f"differs by {hn_drift}). These are likely different properties. "
+                f"Please verify the address — e.g. include the borough, ZIP, "
+                f"or a more specific street name."
+            )
+
         if address.strip().upper() != pluto_address.strip().upper():
             row["address_note"] = (
                 f"The address you searched ({address!r}) was resolved to BBL "
-                f"{bbl_info['bbl_formatted']}. PLUTO stores this lot as "
-                f"{pluto_address!r}. Both refer to the same property."
+                f"{bbl_info['bbl_formatted']}, which PLUTO stores as "
+                f"{pluto_address!r}. Closest match found — please verify "
+                f"this is the correct property."
             )
 
     # Condo detection: lot >= 1000 in Manhattan, lot >= 7501 in outer boroughs,
@@ -141,6 +222,21 @@ async def lookup_property(
         or (not is_manhattan and lot_int >= 7501)
         or (condono is not None and condono != "")
     )
+
+    # M16 fix: PLUTO returns an empty `ownername` for condo billing lots
+    # (1 Wall, One57, 432 Park, Empire State, etc.). The system prompt
+    # tells the LLM to "lead with the owner", so without a fallback every
+    # luxury-building lookup leads with "UNAVAILABLE OWNER" — a credibility
+    # hit. Fall back to the most recent ACRIS deed grantee.
+    raw_owner = row.get("ownername")
+    owner_missing = raw_owner is None or not str(raw_owner).strip()
+    row["owner_source"] = "pluto"
+    if owner_missing and row["is_condo"]:
+        deed = await _fetch_deed_owner(bbl_info)
+        if deed and deed.get("deed_owner"):
+            row["ownername"] = deed["deed_owner"]
+            row["owner_source"] = "acris_deed"
+            row["owner_deed_date"] = deed.get("docdate")
 
     row["data_as_of"] = data_freshness_note(source_table)
 
