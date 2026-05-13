@@ -100,6 +100,39 @@ Reduced monthly Railway bill from ~$65–75/mo → estimated **~$25–35/mo** vi
 
 ---
 
+## 2026-05-12 — Daily-cron deploy fix + Show-HN preflight bug fixes
+
+### Service: `nyc-property-intel-cron` (daily) — converted from auto-deploy service to true scheduled cron
+
+- **What**: set `cronSchedule = "0 3 * * *"`, cleared `healthcheckPath` and `healthcheckTimeout` via Railway GraphQL `serviceInstanceUpdate`.
+- **Why**: service was misconfigured as a long-running service without `cronSchedule`, so every git push triggered a redeploy. The start command (`nyc-property-intel-sync`) runs to completion and exits, after which Railway's `/healthz` healthcheck has nothing to ping — deploy marked FAILED even though the data sync actually completed. Each PR merge showed a red ❌ from `@railway-app` despite the cron working.
+- **Side effect of the misconfig**: daily sync only fired on git pushes, not on a schedule. If we went a week without a push, tier-1 datasets stopped refreshing.
+- **Fix applied**:
+  ```bash
+  curl -X POST https://backboard.railway.com/graphql/v2 -H "Authorization: Bearer $TOKEN" \
+    -d '{"query":"mutation { serviceInstanceUpdate(serviceId: \"9c4f8c9d-ad73-46a3-98ae-8d8e93af1118\", environmentId: \"ef3f6030-e181-44c7-9483-df2ea2a75a9a\", input: { cronSchedule: \"0 3 * * *\", healthcheckPath: null, healthcheckTimeout: null }) }"}'
+  ```
+- **Verification**: confirmed via `serviceInstance` query — `cronSchedule = "0 3 * * *"`, healthcheck cleared. Same config pattern as `nyc-property-intel-cron-weekly` (which was working correctly).
+- **Effects going forward**:
+  - GitHub PR checks no longer show false-FAILED on this service
+  - Daily sync runs at 03:00 UTC every day regardless of git activity (improvement)
+  - First scheduled run: 2026-05-13 03:00 UTC
+- **Rollback**: same mutation with `cronSchedule: null, healthcheckPath: "/healthz", healthcheckTimeout: 300`.
+
+### Code fixes shipped same day (PRs #29 + #30) — Show HN preflight
+
+These are documented for context since they're tightly coupled to the cron-misconfig diagnosis:
+
+- **PR #29** (commit `cc89eba`): bumped chat tool-call budget from 5→12, rounds from 5→8, exempted `lookup_property` from the budget. Root cause was hyphenated Queens addresses ("34-10 9th St") tripping GeoClient retries that burned through the 5-call budget before supplemental tools ran. Symptom: chat returned "Several data sources hit a query limit this session." `src/nyc_property_intel/chat.py:49-50`.
+- **PR #30** (commit `ca3b364e`): expanded the system-prompt full-report requirement from 3 supplemental tools to 7 (`get_property_issues`, `get_building_permits`, `get_rent_stabilization`, `get_evictions` added). Root cause was `analyze_property` returning `null` for those four sections when its sub-queries hit edge cases — LLM correctly read null as "data unavailable." Bumped `_MAX_TOKENS` 4096→6144 to prevent mid-report truncation. `src/nyc_property_intel/app.py:55-77`, `src/nyc_property_intel/chat.py:48`.
+- **Deferred to post-launch**: refactor `tools/analysis.py` to return zero-shaped objects instead of null + replace `mv_violation_summary` materialized view with direct table query (Option B in investigation report).
+
+### Production outage 2026-05-08 → 2026-05-11 — also documented
+
+The MCP server was down from 2026-05-08 04:29 UTC through 2026-05-11 15:35 UTC. After the postgres-volume removal completed (per the 2026-05-06 advice), cold-start exceeded Railway's default 30s healthcheck timeout. PR #26 (`26788db`) bumped `healthcheckTimeout` 30→300 in `railway.toml` + added `PYTHONUNBUFFERED=1` to make startup logs visible. Data ingestion was unaffected during the outage (crons run independently from the MCP server).
+
+---
+
 ## Pending operator actions
 
 1. **Resize or delete `postgres-volume` (40 GB) on nyc-property-intel via Railway UI** — saves ~$8–10/mo
