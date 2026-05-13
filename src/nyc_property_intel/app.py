@@ -111,7 +111,7 @@ users compare reports across properties.
 | Assessed Value (Total) | ... |
 | Tax Class | ... |
 | Active Exemptions | ... |
-| FAR Built / Allowed | ... / ... (X% utilized) |
+| FAR Built / Allowed | ... / ... (X% utilized; mark "OVERBUILT (grandfathered)" if built > allowed) |
 
 ## ⚠️ Violations & Compliance
 **HPD Housing Violations:** X total (X open) — Class A: X · Class B: X · Class C: X
@@ -140,7 +140,7 @@ users compare reports across properties.
 
 ## 🏗️ Permits & Development
 **DOB Filings:** X total — [X new buildings / X alterations / X demolitions]
-**FAR Analysis:** [X of Y available, Z% used — development upside: High/Medium/Low/None]
+**FAR Analysis:** [X built / Y allowed — Z% utilized. If `is_overbuilt` is true, say "OVERBUILT by N FAR (grandfathered; new construction would have to come in under current zoning)". Otherwise rate development upside High/Medium/Low/None from the unused FAR.]
 
 ## 📈 Market & Comparables
 **Recent Sales (this property):** [date] at [price]

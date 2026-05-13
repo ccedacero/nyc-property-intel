@@ -426,12 +426,27 @@ def _build_development_potential(profile: dict[str, Any]) -> dict[str, Any]:
 
     unused_far: float | None = None
     unused_sqft: float | None = None
+    overbuilt_by_far: float | None = None
+    overbuilt_by_sqft: float | None = None
     is_maxed_out: bool | None = None
+    is_overbuilt: bool | None = None
 
+    # M1 fix: "unused FAR" cannot logically be negative. Landmark /
+    # grandfathered buildings (Empire State Building, Chrysler, etc.) often
+    # exceed the zoning that was written years after construction, so the
+    # built FAR is HIGHER than the current allowed FAR. Splitting the value
+    # into two non-negative fields lets the LLM render an honest
+    # "overbuilt — grandfathered" line instead of a nonsensical "-15.79
+    # unused FAR".
     if built_far is not None and max_allowed_far is not None:
-        unused_far = round(max_allowed_far - built_far, 2)
+        delta = max_allowed_far - built_far
+        unused_far = round(max(0.0, delta), 2)
+        overbuilt_by_far = round(max(0.0, -delta), 2)
         if lot_area is not None and lot_area > 0:
             unused_sqft = round(unused_far * lot_area)
+            overbuilt_by_sqft = round(overbuilt_by_far * lot_area)
+        is_overbuilt = delta < 0
+        # ≤ 0.1 FAR unused = effectively maxed out (rounding noise).
         is_maxed_out = unused_far <= 0.1
 
     return {
@@ -439,7 +454,10 @@ def _build_development_potential(profile: dict[str, Any]) -> dict[str, Any]:
         "max_allowed_far": max_allowed_far,
         "unused_far": unused_far,
         "unused_sqft": unused_sqft,
+        "overbuilt_by_far": overbuilt_by_far,
+        "overbuilt_by_sqft": overbuilt_by_sqft,
         "is_maxed_out": is_maxed_out,
+        "is_overbuilt": is_overbuilt,
     }
 
 
