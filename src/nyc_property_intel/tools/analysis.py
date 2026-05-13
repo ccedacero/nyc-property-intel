@@ -338,13 +338,29 @@ def _safe_float(value: Any) -> float | None:
 def _build_property_summary(
     profile: dict[str, Any],
     bbl_info: dict[str, str],
+    ownership: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # M16 fix: PLUTO returns "" / NULL `ownername` for condo billing lots
+    # (1 Wall, One57, 432 Park, Empire State…). Fall back to the most recent
+    # ACRIS deed grantee from `mv_current_ownership` (already fetched by
+    # analyze_property in parallel via _fetch_ownership) so the system prompt's
+    # "lead with the owner" instruction doesn't produce "UNAVAILABLE OWNER"
+    # on every luxury building.
+    pluto_owner = profile.get("ownername")
+    owner_missing = pluto_owner is None or not str(pluto_owner).strip()
+    owner = pluto_owner
+    owner_source = "pluto"
+    if owner_missing and ownership and ownership.get("owner_name"):
+        owner = ownership["owner_name"]
+        owner_source = "acris_deed"
+
     return {
         "bbl": profile.get("bbl"),
         "bbl_formatted": bbl_info["bbl_formatted"],
         "address": profile.get("address"),
         "borough": bbl_info["borough_name"],
-        "owner": profile.get("ownername"),
+        "owner": owner,
+        "owner_source": owner_source,
         "building_class": profile.get("bldgclass"),
         "zoning_district": profile.get("zonedist1"),
         "year_built": profile.get("yearbuilt"),
@@ -836,7 +852,7 @@ async def analyze_property(bbl: str) -> dict:
             logger.exception("Unexpected error in comp sales query: %s", exc)
 
     # ── Build standardized report sections ───────────────────────────
-    property_summary = _build_property_summary(profile, bbl_info)
+    property_summary = _build_property_summary(profile, bbl_info, ownership)
     financial_snapshot = _build_financial_snapshot(profile, recent_sales, exemptions)
     development_potential = _build_development_potential(profile)
     violations_and_compliance = _build_violations_and_compliance(

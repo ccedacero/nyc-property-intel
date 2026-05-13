@@ -19,6 +19,40 @@ from nyc_property_intel.db import fetch_one
 from nyc_property_intel.geoclient import resolve_address_to_bbl
 from nyc_property_intel.utils import data_freshness_note, parse_bbl, validate_bbl
 
+
+# Most-recent deed grantee for a BBL (M16 fix — condo billing-lot owner
+# fallback). Used when PLUTO's `ownername` is null/empty, which is the
+# default for condo billing lots (1 Wall, One57, 432 Park, Empire State).
+# partytype = 2 in ACRIS = Grantee (buyer / current owner on the deed).
+_SQL_DEED_GRANTEE = """\
+SELECT p.name AS deed_owner, m.docdate
+FROM real_property_legals l
+JOIN real_property_master m ON l.documentid = m.documentid
+JOIN real_property_parties p ON p.documentid = m.documentid
+WHERE l.borough = $1 AND l.block = $2::int AND l.lot = $3::int
+  AND m.doctype IN ('DEED', 'DEDL', 'DEDC', 'RPTT', 'CTOR', 'CORRD')
+  AND p.partytype = 2
+ORDER BY m.docdate DESC NULLS LAST
+LIMIT 1;
+"""
+
+
+async def _fetch_deed_owner(bbl_info: dict[str, str]) -> dict[str, Any] | None:
+    """Return the most recent ACRIS deed grantee for the BBL, or None."""
+    try:
+        return await fetch_one(
+            _SQL_DEED_GRANTEE,
+            bbl_info["borough"],
+            int(bbl_info["block"]),
+            int(bbl_info["lot"]),
+        )
+    except asyncpg.UndefinedTableError:
+        logger.info("ACRIS deed tables not available, skipping owner fallback")
+        return None
+    except (asyncpg.PostgresError, ValueError) as exc:
+        logger.warning("ACRIS deed-owner fallback failed: %s", exc)
+        return None
+
 logger = logging.getLogger(__name__)
 
 _PROFILE_COLUMNS = """\
@@ -188,6 +222,21 @@ async def lookup_property(
         or (not is_manhattan and lot_int >= 7501)
         or (condono is not None and condono != "")
     )
+
+    # M16 fix: PLUTO returns an empty `ownername` for condo billing lots
+    # (1 Wall, One57, 432 Park, Empire State, etc.). The system prompt
+    # tells the LLM to "lead with the owner", so without a fallback every
+    # luxury-building lookup leads with "UNAVAILABLE OWNER" — a credibility
+    # hit. Fall back to the most recent ACRIS deed grantee.
+    raw_owner = row.get("ownername")
+    owner_missing = raw_owner is None or not str(raw_owner).strip()
+    row["owner_source"] = "pluto"
+    if owner_missing and row["is_condo"]:
+        deed = await _fetch_deed_owner(bbl_info)
+        if deed and deed.get("deed_owner"):
+            row["ownername"] = deed["deed_owner"]
+            row["owner_source"] = "acris_deed"
+            row["owner_deed_date"] = deed.get("docdate")
 
     row["data_as_of"] = data_freshness_note(source_table)
 
