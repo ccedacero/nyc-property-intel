@@ -250,12 +250,19 @@ def _decrypt_token(encrypted: str) -> str | None:
 # ── Magic link DB helpers ─────────────────────────────────────────────
 
 async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client_ip: str = "") -> str:
-    """Insert a magic link row and return the UUID string."""
+    """Insert a magic link row and return the UUID string.
+
+    `expires_at` is set explicitly to NOW() + 24h instead of relying on
+    the column default. The schema default was bumped from 15min → 24h
+    in migration 012 and scripts/manage_tokens.py to match. Setting it
+    explicitly here means this code's TTL doesn't silently drift if the
+    column default is ever rolled back in prod (E2 fix).
+    """
     link_id = str(uuid.uuid4())
     await pool.execute(
         """
-        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip, expires_at)
+        VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours')
         """,
         link_id,
         token_hash,
