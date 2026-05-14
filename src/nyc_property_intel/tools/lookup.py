@@ -234,19 +234,40 @@ async def lookup_property(
                 f"{bbl_info['bbl_formatted']}, which PLUTO stores as "
                 f"{pluto_address!r}."
             )
-            # Threshold tuned low (>2) so wrong-substitutions like
-            # "4521 Broadway" → "4523 Broadway" (different building, different
-            # owner) fire the warning. Landmark drift cases (Empire State
-            # 350 → 338, drift=12) also fire, with copy that explains the
-            # landmark pattern. Below-threshold (drift 0-2) is treated as
-            # closest-match noise.
-            if hn_drift is not None and hn_drift > 2:
+            # PLUTO `landmark` is the strongest signal that drift is
+            # benign — famous landmarks routinely have postal/colloquial
+            # addresses different from what PLUTO stores (Empire State
+            # 350 → 338, Flatiron, One WTC, Chrysler, MetLife). For these
+            # we keep the informational `address_note` but DO NOT escalate
+            # to `address_warning`, which would otherwise make the LLM
+            # ask the user "please confirm this is the property" — wrong
+            # UX when the building's owner + landmark status make the
+            # match obviously correct.
+            #
+            # For non-landmark drift > 2 we keep the warning, since that
+            # IS the genuine wrong-substitution case ("4521 Broadway" →
+            # "4523 Broadway", different owner).
+            is_landmark = bool(str(row.get("landmark") or "").strip())
+            if hn_drift is not None and hn_drift > 2 and not is_landmark:
                 row["address_warning"] = (
                     f"Street-number differs by {hn_drift} from what you "
-                    f"typed. For famous landmarks (e.g. Empire State Building "
-                    f"= 350 5th Ave colloquially, but PLUTO stores as 338 5 "
-                    f"AVENUE), this is normal. For other addresses, please "
-                    f"verify the owner name matches the property you intended."
+                    f"typed. The resolved property may not be the building "
+                    f"you intended — please verify the owner name and "
+                    f"address match. If you meant a different building, "
+                    f"re-enter with a more specific address (include unit "
+                    f"number, cross-street, or zip)."
+                )
+            elif is_landmark and hn_drift is not None and hn_drift > 2:
+                # Landmark vanity-address case: keep the info note,
+                # but rewrite it so the LLM treats it as benign context
+                # rather than a flag.
+                row["address_note"] = (
+                    f"The address you searched ({address!r}) was resolved "
+                    f"to BBL {bbl_info['bbl_formatted']}. PLUTO records "
+                    f"this property under its official address "
+                    f"({pluto_address!r}), which differs from the "
+                    f"colloquial/postal address — this is normal for "
+                    f"named landmark buildings."
                 )
             else:
                 row["address_note"] += " Closest match found — please verify this is the correct property."
