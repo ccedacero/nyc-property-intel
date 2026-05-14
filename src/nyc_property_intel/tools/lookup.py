@@ -17,6 +17,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_one
 from nyc_property_intel.geoclient import resolve_address_to_bbl
+from nyc_property_intel.urls import zola_url
 from nyc_property_intel.utils import data_freshness_note, parse_bbl, validate_bbl
 
 
@@ -322,5 +323,11 @@ async def lookup_property(
         )
 
     row["data_as_of"] = data_freshness_note(source_table)
+
+    # Deep-link to NYC ZoLa for zoning/lot/landmark verification. Skipped
+    # silently when the BBL is malformed.
+    verify_url = zola_url(str(row["bbl"]))
+    if verify_url:
+        row["verify_url"] = verify_url
 
     return row

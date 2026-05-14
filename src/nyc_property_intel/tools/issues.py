@@ -16,6 +16,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all, fetch_one
+from nyc_property_intel.urls import dob_bis_url, hpd_violations_url
 from nyc_property_intel.utils import data_freshness_note, normalize_filter, validate_bbl
 
 logger = logging.getLogger(__name__)
@@ -227,7 +228,11 @@ async def get_property_issues(
     if source_upper in ("ECB", "ALL"):
         freshness_parts.append(data_freshness_note("ecb_violations"))
 
-    return {
+    # Deep-link to the most relevant city portal for the source(s) queried.
+    # HPD covers housing violations; DOB BIS covers DOB + ECB. If both data
+    # families are in scope we return both URLs so the LLM can render two
+    # links (HPD link in violation section, DOB link in compliance section).
+    result: dict[str, Any] = {
         "bbl": bbl,
         "summary": summary,
         "hpd_violations": hpd_violations,
@@ -236,3 +241,12 @@ async def get_property_issues(
         "total_returned": total_returned,
         "data_as_of": " | ".join(freshness_parts),
     }
+    if source_upper in ("HPD", "ALL"):
+        url = hpd_violations_url(bbl)
+        if url:
+            result["verify_url_hpd"] = url
+    if source_upper in ("DOB", "ECB", "ALL"):
+        url = dob_bis_url(bbl)
+        if url:
+            result["verify_url_dob"] = url
+    return result

@@ -54,6 +54,45 @@ class RunResult:
     log_tail: str     # last ~30 lines, for the email
 
 
+# Materialized views that need post-sync refresh. Order matters: profile
+# first (cheap), then violation summary which joins against it. CONCURRENTLY
+# is required so the chat-server can keep reading during the refresh — the
+# unique index created in scripts/create_views.sql makes this safe.
+_MV_REFRESH_TARGETS = (
+    "mv_property_profile",
+    "mv_violation_summary",
+)
+
+
+async def _refresh_materialized_views() -> None:
+    """REFRESH each MV in _MV_REFRESH_TARGETS, logging each result.
+
+    Failures on individual MVs are caught and logged but never re-raised:
+    a stale MV is a known-good fallback (the tools already handle
+    UndefinedTableError gracefully), so an MV refresh hiccup must NEVER
+    change the sync's exit code.
+    """
+    import asyncpg
+    dsn = os.environ.get("DATABASE_URL")
+    if not dsn:
+        logger.warning("DATABASE_URL not set, skipping MV refresh")
+        return
+    conn = await asyncpg.connect(dsn)
+    try:
+        for mv in _MV_REFRESH_TARGETS:
+            t0 = time.monotonic()
+            try:
+                await conn.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {mv}")
+                logger.info("refreshed %s in %.1fs", mv, time.monotonic() - t0)
+            except Exception as exc:
+                logger.warning(
+                    "failed to refresh %s after %.1fs: %s",
+                    mv, time.monotonic() - t0, exc,
+                )
+    finally:
+        await conn.close()
+
+
 def run_one(dataset_key: str) -> RunResult:
     """Run sync_delta.py for one dataset as a subprocess. Capture stderr+stdout."""
     here = os.path.dirname(os.path.abspath(__file__))
@@ -131,6 +170,11 @@ def main() -> None:
         help="skip post-sync idle-token cleanup on tier-2 runs "
              "(default: cleanup runs on tier 2 only)",
     )
+    p.add_argument(
+        "--skip-mv-refresh", action="store_true",
+        help="skip post-sync materialized-view refresh on tier-2 runs "
+             "(default: MVs refresh on tier 2 only)",
+    )
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args()
 
@@ -183,6 +227,22 @@ def main() -> None:
             logger.exception("cleanup_idle_tokens crashed — sync exit code unchanged")
     elif skip_cleanup:
         logger.info("skipping post-sync cleanup (--skip-cleanup or SYNC_SKIP_CLEANUP=1)")
+
+    # Post-sync materialized-view refresh — tier-2-only so the heavy MVs
+    # (mv_violation_summary is ~5 min) don't run on every daily sync. Without
+    # this, `lookup_property`/`get_property_issues` summaries drift relative
+    # to the underlying `hpd_violations`/`dob_violations` tables that sync
+    # nightly. CONCURRENTLY avoids blocking reads during refresh.
+    # Like cleanup, wrapped defensively — refresh failure must not change
+    # the sync's exit code.
+    if not args.only and args.tier == 2 and not args.skip_mv_refresh:
+        logger.info("refreshing materialized views (post-sync, tier=2)")
+        try:
+            asyncio.run(_refresh_materialized_views())
+        except Exception:
+            logger.exception("MV refresh crashed — sync exit code unchanged")
+    elif args.skip_mv_refresh:
+        logger.info("skipping MV refresh (--skip-mv-refresh)")
 
     if failed:
         sys.exit(2)
