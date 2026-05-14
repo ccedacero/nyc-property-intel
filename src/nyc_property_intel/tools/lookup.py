@@ -189,27 +189,32 @@ async def lookup_property(
             else None
         )
 
-        # Refuse the match when the house number drift is unambiguously large.
-        # 10 is roughly one block. Bigger gaps mean the geocoder snapped to a
-        # different building. Letting that through with a misleading
-        # "same property" note destroys credibility — better to ask the user
-        # to clarify.
-        if hn_drift is not None and hn_drift > 10:
-            raise ToolError(
-                f"Could not find an exact match for {address!r}. "
-                f"The closest PLUTO record is {pluto_address!r} (house number "
-                f"differs by {hn_drift}). These are likely different properties. "
-                f"Please verify the address — e.g. include the borough, ZIP, "
-                f"or a more specific street name."
-            )
-
+        # Surface house-number drift as a structured warning rather than
+        # refusing the match. Earlier M5 raised ToolError when drift > 10,
+        # but that REGRESSED famous-landmark lookups whose PLUTO
+        # street-number is "vanity-different" from the colloquial address:
+        #   - Empire State Building: "350 5th Ave" → PLUTO "338 5 AVENUE"
+        #     (drift=12; same BBL 1008350041, owner ESRT EMPIRE STATE BUILDING)
+        # Fix: trust the GeoClient-returned BBL, surface drift via a
+        # warning field. Real wrong-substitutions (e.g. "4521 Broadway" →
+        # "4523 Broadway", different owner) still produce a visible
+        # warning + the ownername field reveals the mismatch.
         if address.strip().upper() != pluto_address.strip().upper():
             row["address_note"] = (
                 f"The address you searched ({address!r}) was resolved to BBL "
                 f"{bbl_info['bbl_formatted']}, which PLUTO stores as "
-                f"{pluto_address!r}. Closest match found — please verify "
-                f"this is the correct property."
+                f"{pluto_address!r}."
             )
+            if hn_drift is not None and hn_drift > 5:
+                row["address_warning"] = (
+                    f"Street-number differs by {hn_drift} from what you "
+                    f"typed. For famous landmarks (e.g. Empire State Building "
+                    f"= 350 5th Ave colloquially, but PLUTO stores as 338 5 "
+                    f"AVENUE), this is normal. For other addresses, please "
+                    f"verify the owner name matches the property you intended."
+                )
+            else:
+                row["address_note"] += " Closest match found — please verify this is the correct property."
 
     # Condo detection: lot >= 1000 in Manhattan, lot >= 7501 in outer boroughs,
     # or condono field is present. The lot-number heuristic matches PLUTO's
