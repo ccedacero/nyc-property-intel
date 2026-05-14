@@ -307,6 +307,10 @@
       if (assistantText) {
         if (assistantEl) assistantEl.classList.remove("streaming");
         messages.push({ role: "assistant", content: assistantText });
+        // Show follow-up chips after each assistant response — progressive
+        // disclosure of the expensive full-DD path. Real users click; tire-
+        // kickers walk away. Click = explicit signal, $0.32 well-spent.
+        appendFollowupChips(assistantEl);
       }
 
       // If anon and now at limit, prompt for email
@@ -442,6 +446,38 @@
     messagesEl.appendChild(el);
     scrollToBottom();
     return el;
+  }
+
+  // Render 3 follow-up suggestion chips after each assistant response.
+  // Click = explicit user intent to dig deeper → fires a new query that
+  // re-uses conversation history so Claude knows which property to act on.
+  function appendFollowupChips(afterEl) {
+    const chips = document.createElement("div");
+    chips.className = "chat-followup-chips";
+    chips.setAttribute("role", "group");
+    chips.setAttribute("aria-label", "Follow-up suggestions");
+    chips.innerHTML = `
+      <button class="chat-followup-chip chat-followup-primary" type="button" data-query="Generate the full due diligence report on the property we just discussed">📋 Full DD report</button>
+      <button class="chat-followup-chip" type="button" data-query="Check any open violations on the property we just discussed">⚠️ Check violations</button>
+      <button class="chat-followup-chip" type="button" data-query="Show comparable sales nearby for the property we just discussed">📈 Comparable sales</button>
+    `;
+    if (afterEl && afterEl.parentNode) {
+      afterEl.parentNode.insertBefore(chips, afterEl.nextSibling);
+    } else {
+      messagesEl.appendChild(chips);
+    }
+    chips.querySelectorAll(".chat-followup-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (isStreaming) return;
+        textarea.value = btn.dataset.query;
+        textarea.dispatchEvent(new Event("input"));
+        // Auto-submit — explicit click = explicit intent, no need to make
+        // them hit Send too.
+        if (form.requestSubmit) form.requestSubmit();
+        else form.submit();
+      });
+    });
+    scrollToBottom();
   }
 
   function appendThinking() {
