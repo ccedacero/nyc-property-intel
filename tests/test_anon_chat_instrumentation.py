@@ -311,17 +311,18 @@ class TestChatHandlerAnonPath:
     async def test_free_limit_reached_does_not_record(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """If the visitor has already used 3 free queries the handler returns
-        402 BEFORE invoking the LLM — and we should NOT log a row, since no
-        product call was actually served."""
+        """If the visitor has already used their free queries the handler
+        returns 402 BEFORE invoking the LLM — and we should NOT log a row,
+        since no product call was actually served. Read the limit from
+        settings dynamically so the test stays correct on future tuning."""
         pool = _RecordingPool()
         auth = _FakeAuth(pool)
         _, _, chat_handler = make_chat_handlers(auth)
 
-        # Build a maxed-out signed cookie. Use the same cookie_secret as the
-        # handler will use.
         monkeypatch.setattr(settings, "cookie_secret", "test-cookie-secret")
-        cookie_val = make_session_cookie(query_count=3, analyze_count=1)
+        cookie_val = make_session_cookie(
+            query_count=settings.chat_free_query_limit, analyze_count=1
+        )
 
         body = json.dumps(
             {"messages": [{"role": "user", "content": "x"}]}
@@ -337,7 +338,7 @@ class TestChatHandlerAnonPath:
             if "anon_chat_queries" in sql
         ]
         assert anon_inserts == [], (
-            "The 3-query free limit must short-circuit BEFORE any anon "
+            "The free-limit gate must short-circuit BEFORE any anon "
             "tracking row is written — otherwise the email-gate page would "
             "register fake traffic on every retry."
         )
