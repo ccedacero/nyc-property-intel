@@ -79,6 +79,26 @@ FROM pluto_latest WHERE bbl = $1;"""
 # named buildings, etc. — in which case we skip the drift check).
 _HOUSE_NUMBER_RE = re.compile(r"^\s*(\d+)")
 
+# PLUTO writes literal placeholder strings (not NULL) when DOF has no billing
+# entity recorded. Treat all of these as "owner missing" so M16's ACRIS deed
+# fallback fires for condo billing lots (1 Wall, 432 Park, One57, etc.).
+_PLUTO_OWNER_PLACEHOLDERS = frozenset({
+    "UNAVAILABLE OWNER",
+    "OWNER UNAVAILABLE",
+    "NOT AVAILABLE",
+    "N/A",
+    "NA",
+})
+
+
+def _is_owner_missing(raw_owner: Any) -> bool:
+    if raw_owner is None:
+        return True
+    s = str(raw_owner).strip()
+    if not s:
+        return True
+    return s.upper() in _PLUTO_OWNER_PLACEHOLDERS
+
 
 def _parse_house_number(address: str | None) -> int | None:
     if not address:
@@ -205,7 +225,13 @@ async def lookup_property(
                 f"{bbl_info['bbl_formatted']}, which PLUTO stores as "
                 f"{pluto_address!r}."
             )
-            if hn_drift is not None and hn_drift > 5:
+            # Threshold tuned low (>2) so wrong-substitutions like
+            # "4521 Broadway" → "4523 Broadway" (different building, different
+            # owner) fire the warning. Landmark drift cases (Empire State
+            # 350 → 338, drift=12) also fire, with copy that explains the
+            # landmark pattern. Below-threshold (drift 0-2) is treated as
+            # closest-match noise.
+            if hn_drift is not None and hn_drift > 2:
                 row["address_warning"] = (
                     f"Street-number differs by {hn_drift} from what you "
                     f"typed. For famous landmarks (e.g. Empire State Building "
@@ -228,13 +254,17 @@ async def lookup_property(
         or (condono is not None and condono != "")
     )
 
-    # M16 fix: PLUTO returns an empty `ownername` for condo billing lots
-    # (1 Wall, One57, 432 Park, Empire State, etc.). The system prompt
-    # tells the LLM to "lead with the owner", so without a fallback every
-    # luxury-building lookup leads with "UNAVAILABLE OWNER" — a credibility
-    # hit. Fall back to the most recent ACRIS deed grantee.
+    # M16 fix: PLUTO often has no real `ownername` for condo billing lots
+    # (1 Wall, One57, 432 Park, Empire State, etc.) — either NULL or a
+    # literal placeholder like "UNAVAILABLE OWNER". The system prompt tells
+    # the LLM to "lead with the owner", so without a fallback every luxury-
+    # building lookup leads with that placeholder — a credibility hit.
+    # Fall back to the most recent ACRIS deed grantee for the billing lot.
+    # If that ALSO finds nothing (typical: deeds are filed against unit lots
+    # 1001+ in Manhattan / 7501+ outer, not the billing lot), surface an
+    # honest "condo billing lot" message rather than the raw placeholder.
     raw_owner = row.get("ownername")
-    owner_missing = raw_owner is None or not str(raw_owner).strip()
+    owner_missing = _is_owner_missing(raw_owner)
     row["owner_source"] = "pluto"
     if owner_missing and row["is_condo"]:
         deed = await _fetch_deed_owner(bbl_info)
@@ -242,6 +272,24 @@ async def lookup_property(
             row["ownername"] = deed["deed_owner"]
             row["owner_source"] = "acris_deed"
             row["owner_deed_date"] = deed.get("docdate")
+        else:
+            row["ownername"] = "Condominium — individual unit owners"
+            row["owner_source"] = "condo_aggregate_placeholder"
+            row["owner_note"] = (
+                "This BBL is the condo master/billing lot. Ownership is held "
+                "by individual unit owners on separate unit lots (typically "
+                "lot ≥ 1001 in Manhattan, ≥ 7501 in outer boroughs). Use a "
+                "specific unit's BBL to look up unit-level ownership."
+            )
+    elif owner_missing:
+        # Non-condo with placeholder ownername — surface a soft hint.
+        row["ownername"] = None
+        row["owner_source"] = "pluto_placeholder"
+        row["owner_note"] = (
+            "PLUTO has no owner of record for this BBL. This usually means "
+            "DOF has not assigned a billing entity (e.g. recently created "
+            "lot, government parcel)."
+        )
 
     row["data_as_of"] = data_freshness_note(source_table)
 
