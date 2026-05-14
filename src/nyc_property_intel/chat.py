@@ -61,6 +61,95 @@ _STREAM_TIMEOUT = 60.0   # seconds
 _MAX_MSG_LEN = 2000      # max user message length
 _MAX_HISTORY = 20        # max messages in conversation history
 
+# ── Smart routing: regex pre-flight ────────────────────────────────────
+# These patterns classify a user message BEFORE we hit Anthropic. The goal
+# is to reject obvious gibberish ("asdf", "hi", "what's the weather") with
+# a canned reply so it never costs a token, and to detect when the user
+# explicitly asked for a full due-diligence report (vs. a cheap single
+# lookup). Anything ambiguous falls through to the default "address" intent
+# which biases the system prompt toward a CONCISE response.
+_ADDRESS_SHAPE_RE = re.compile(
+    r"\b\d{1,5}[-\s]?\d{0,4}\s+[A-Za-z][A-Za-z0-9.\s]{2,}"
+    r"(?:st|street|ave|avenue|blvd|boulevard|rd|road|pl|place|"
+    r"dr|drive|ln|lane|ct|court|pkwy|parkway|hwy|highway|way|"
+    r"plaza|square|broadway)\b",
+    re.IGNORECASE,
+)
+# Supplementary pattern for Manhattan's numbered streets/avenues
+# ("350 5th Ave", "200 W 57th St") that the main pattern can't match
+# because its street-name token must start with a letter.
+_NUMERIC_STREET_RE = re.compile(
+    r"\b\d{1,5}[-\s]?\d{0,4}\s+(?:[NSEW]\.?\s+)?\d{1,3}(?:st|nd|rd|th)\s+"
+    r"(?:st|street|ave|avenue|blvd|boulevard|rd|road|pl|place)\b",
+    re.IGNORECASE,
+)
+_BBL_RE = re.compile(r"\b[1-5]\d{9}\b")
+_BOROUGH_RE = re.compile(
+    r"\b(bronx|brooklyn|queens|manhattan|staten\s+island|nyc|"
+    r"new\s+york|ny)\b", re.IGNORECASE,
+)
+_FULL_REPORT_RE = re.compile(
+    r"\b(due\s+diligence|full\s+report|complete\s+report|"
+    r"comprehensive|everything|all\s+(?:the\s+)?data|deep\s+dive|"
+    r"full\s+analysis|run\s+(?:a\s+)?(?:full\s+)?report)\b",
+    re.IGNORECASE,
+)
+# Supplementary pattern for industry shorthand the main pattern misses
+# ("full DD on ...", "complete DD"). "DD" alone is too ambiguous; require
+# a qualifier so we don't false-positive on plain "DD".
+_FULL_REPORT_SHORTHAND_RE = re.compile(
+    r"\b(?:full|complete|comprehensive)\s+DD\b", re.IGNORECASE,
+)
+_PROPERTY_KEYWORD_RE = re.compile(
+    r"\b(violation|owner|landlord|sales?\s+history|permit|complaint|"
+    r"hpd|dob|acris|lien|mortgage|zoning|condo|coop|building|"
+    r"property|address|bbl|tax\s+lot|deed)\b", re.IGNORECASE,
+)
+
+
+def _classify_intent(text: str) -> str:
+    """Return one of: 'gibberish', 'address', 'full_report'.
+
+    'gibberish' — message is too short or has no property-related signal;
+                  short-circuit with a canned help reply (no API call).
+    'address'   — looks property-related; agentic loop should default to
+                  the minimum tools (cheap path).
+    'full_report' — user explicitly asked for the full workup; agentic
+                  loop should run the 9-tool flow.
+    """
+    t = text.strip()
+    if len(t) < 4:
+        return "gibberish"
+    has_bbl = bool(_BBL_RE.search(t))
+    has_address = bool(
+        _ADDRESS_SHAPE_RE.search(t) or _NUMERIC_STREET_RE.search(t)
+    )
+    has_borough = bool(_BOROUGH_RE.search(t))
+    has_keyword = bool(_PROPERTY_KEYWORD_RE.search(t))
+    wants_full = bool(
+        _FULL_REPORT_RE.search(t) or _FULL_REPORT_SHORTHAND_RE.search(t)
+    )
+
+    looks_property_related = (
+        has_bbl or has_address
+        or (has_borough and has_keyword)
+        or (has_keyword and len(t.split()) >= 4)
+    )
+    if not looks_property_related:
+        return "gibberish"
+    if wants_full:
+        return "full_report"
+    return "address"
+
+
+_GIBBERISH_REPLY = (
+    "I help with NYC property due diligence. Try asking me about a "
+    "specific address — for example:\n\n"
+    "- *\"350 5th Ave, Manhattan\"* for a quick property profile\n"
+    "- *\"full DD report on 123 Atlantic Ave, Brooklyn\"* for the full workup\n"
+    "- *\"any violations at 1008367501?\"* (BBL also works)\n"
+)
+
 # Module-level Anthropic client (created lazily)
 _anthropic_client: anthropic.AsyncAnthropic | None = None
 
