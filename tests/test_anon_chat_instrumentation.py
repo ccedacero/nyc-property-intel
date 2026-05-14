@@ -213,8 +213,11 @@ class TestChatHandlerAnonPath:
         monkeypatch.setattr(chat_module, "_ANON_IP_HASH_FALLBACK", None)
         monkeypatch.setattr(chat_module, "_agentic_stream", _fake_agentic_stream)
 
+        # NOTE: Must be a property-related query so the regex pre-flight
+        # in chat._classify_intent doesn't short-circuit it as gibberish.
+        # Bare "hello" / "hi" never reaches the agentic loop anymore.
         body = json.dumps(
-            {"messages": [{"role": "user", "content": "hello"}]}
+            {"messages": [{"role": "user", "content": "350 5th Ave Manhattan"}]}
         ).encode()
         request = _make_request(body)
         response = await chat_handler(request)
@@ -255,8 +258,9 @@ class TestChatHandlerAnonPath:
 
         monkeypatch.setattr(chat_module, "_agentic_stream", _fake_agentic_stream)
 
+        # Property-related query to pass the regex pre-flight (see note above).
         body = json.dumps(
-            {"messages": [{"role": "user", "content": "hi"}]}
+            {"messages": [{"role": "user", "content": "350 5th Ave Manhattan"}]}
         ).encode()
         # client=None forces request.client to be None, simulating a totally
         # missing client identity.
