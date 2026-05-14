@@ -78,14 +78,13 @@ class Settings(BaseSettings):
     # Comma-separated origins allowed to call /api/chat (CORS)
     chat_allowed_origins: str = "https://nycpropertyintel.com"
     # Free queries before email gate (no token required).
-    # IP-hash scoped over a 24h rolling window. 5 is the chosen balance:
-    # generous enough for one curious user to evaluate (try 2-3
-    # properties), tight enough to bound COGS exposure given the
-    # ~$0.32 cost of full DD reports. Trial value-prop (10/day for 30
-    # days = ~300 total) creates clear signup incentive. Shared NATs
-    # still hit it eventually but average household / small office is
-    # only 1-2 active users at once.
-    chat_free_query_limit: int = 5
+    # IP-hash scoped over a 24h rolling window. 3 is the chosen balance:
+    # enough for one curious user to try a couple of properties, tight
+    # enough to bound COGS exposure given the ~$0.32 cost of full DD
+    # reports. Trial value-prop (10/day for 30 days = ~300 total) creates
+    # a clear signup incentive. Shared NATs still hit it eventually but
+    # the average household / small office is only 1-2 active users at once.
+    chat_free_query_limit: int = 3
     # Total queries/day for trial tokens on web chat (resets at midnight UTC).
     # Must match auth.PLAN_LIMITS["trial"] so the chat path and MCP path agree.
     chat_daily_query_limit: int = 10

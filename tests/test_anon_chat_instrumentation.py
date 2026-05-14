@@ -213,9 +213,6 @@ class TestChatHandlerAnonPath:
         monkeypatch.setattr(chat_module, "_ANON_IP_HASH_FALLBACK", None)
         monkeypatch.setattr(chat_module, "_agentic_stream", _fake_agentic_stream)
 
-        # NOTE: Must be a property-related query so the regex pre-flight
-        # in chat._classify_intent doesn't short-circuit it as gibberish.
-        # Bare "hello" / "hi" never reaches the agentic loop anymore.
         body = json.dumps(
             {"messages": [{"role": "user", "content": "350 5th Ave Manhattan"}]}
         ).encode()

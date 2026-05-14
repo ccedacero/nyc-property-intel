@@ -198,10 +198,14 @@ class TestBuildViolationsAndCompliance:
         assert result["hpd_litigations"]["total_cases"] == 3
         assert result["hpd_litigations"]["harassment_findings"] == 2
 
-    def test_hpd_litigations_zero_total_returns_none(self):
+    def test_hpd_litigations_zero_total_returns_explicit_no_history(self):
+        # When the litigations summary exists but total_cases is 0, the section
+        # returns an explicit "no history" marker rather than None. This lets
+        # the LLM say "no HPD litigation on record" with confidence instead of
+        # treating absence-of-row as ambiguous.
         litigations = {"total_cases": 0, "open_cases": 0, "harassment_findings": 0, "most_recent_case": None}
         result = _build_violations_and_compliance(self._violations, None, litigations, None)
-        assert result["hpd_litigations"] is None
+        assert result["hpd_litigations"] == {"total_cases": 0, "has_litigation_history": False}
 
     def test_permits_section(self):
         permits = {"total_filings": 5, "new_buildings": 0, "alterations": 4, "demolitions": 1, "most_recent_filing": "2022-06-01"}
