@@ -50,9 +50,15 @@ async def _fetch_deed_owner(bbl_info: dict[str, str]) -> dict[str, Any] | None:
     ToolError, which the old narrow except clause did not catch.
     """
     try:
+        # `real_property_legals.borough` is smallint, but parse_bbl
+        # returns the borough as a string ("1"-"5"). asyncpg refuses to
+        # auto-coerce str → smallint, so cast explicitly here.
+        # Without this, the deed query silently fails on EVERY condo
+        # billing lot and ~8% of luxury condos that have a real ACRIS
+        # grantee end up showing the generic placeholder.
         return await fetch_one(
             _SQL_DEED_GRANTEE,
-            bbl_info["borough"],
+            int(bbl_info["borough"]),
             int(bbl_info["block"]),
             int(bbl_info["lot"]),
         )
