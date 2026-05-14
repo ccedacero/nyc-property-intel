@@ -1040,6 +1040,38 @@ def make_chat_handlers(auth: TokenAuth):
             # anon_analyze_count still holds the value from THIS request (0 or 1).
             new_cookie_val = make_session_cookie(query_count + 1, max(anon_analyze_count, 1))
 
+        # ── Smart-routing pre-flight ──────────────────────────────────
+        # Reject obvious gibberish ("asdf", "hi", "what's the weather")
+        # BEFORE any Anthropic API call. We still advance the quota
+        # counter (cookie) so spamming junk doesn't get free queries.
+        intent = _classify_intent(user_text)
+
+        if intent == "gibberish":
+            async def gibberish_stream():
+                yield f"data: {json.dumps({'type': 'text_delta', 'text': _GIBBERISH_REPLY})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            resp = StreamingResponse(
+                gibberish_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                    "Connection": "keep-alive",
+                },
+            )
+            if new_cookie_val:
+                resp.set_cookie(
+                    "nyprop_sess",
+                    new_cookie_val,
+                    httponly=True,
+                    secure=True,
+                    samesite="none",  # cross-origin: Vercel → Railway
+                    max_age=86400 * 7,
+                    path="/api",
+                )
+            return resp
+
         # Build messages in Anthropic format. Strip any client-supplied assistant
         # turns — they could be fabricated to inject instructions into Claude's context.
         # We only trust user turns from the client; assistant turns come from our own
