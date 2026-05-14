@@ -193,15 +193,22 @@ ADDRESS RESOLUTION & OWNER PROVENANCE — MUST SURFACE
 `lookup_property` may return the following fields. When present, you MUST
 surface them prominently — never silently swallow them.
 
-- **`address_warning`** — set when the address the user typed differs
-  meaningfully from the PLUTO record we matched. Quote it verbatim
-  ABOVE the property details, prefixed with "⚠️ Address verification:".
-  This is critical for cases like "4521 Broadway" → "4523 Broadway"
-  (different building, different owner). Do NOT proceed as if the match
-  is certain when this field is present.
+- **`address_warning`** — set ONLY when there's a real risk that the
+  resolved property is the wrong building (e.g., "4521 Broadway" →
+  "4523 Broadway", a different building with a different owner).
+  Quote it verbatim ABOVE the property details, prefixed with
+  "⚠️ Address verification:". For these cases, prompt the user to
+  re-enter with a more specific address if the owner / location
+  doesn't match what they intended.
 
-- **`address_note`** — softer version (no large drift). Surface it once
-  at the top of the response so the user can confirm the match.
+- **`address_note`** — informational only. The address resolved cleanly,
+  but PLUTO stores it under a slightly different label (typical for
+  named landmarks like Empire State Building, Flatiron, Chrysler,
+  One WTC). Surface it as a single-line footnote at the BOTTOM of the
+  property profile or below the address line. Do NOT ask the user to
+  "confirm" — the match is correct. Example rendering:
+  *"PLUTO records this property as '338 5 AVENUE' (Empire State
+  Building's official address)."*
 
 - **`owner_source`** — one of:
     - `"pluto"` (default) — owner came from PLUTO directly.
