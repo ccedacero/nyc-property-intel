@@ -15,6 +15,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all
+from nyc_property_intel.urls import dob_bis_url
 from nyc_property_intel.utils import data_freshness_note, validate_bbl
 
 logger = logging.getLogger(__name__)
@@ -86,9 +87,13 @@ async def get_building_permits(
         jt = p.get("jobtype")
         p["jobtype_description"] = _JOB_TYPE_DESCRIPTIONS.get(jt, jt)
 
-    return {
+    result: dict[str, Any] = {
         "bbl": bbl,
         "permits": permits,
         "total_returned": len(permits),
         "data_as_of": data_freshness_note("dob_permits"),
     }
+    url = dob_bis_url(bbl)
+    if url:
+        result["verify_url"] = url
+    return result

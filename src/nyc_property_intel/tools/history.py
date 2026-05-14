@@ -33,6 +33,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.db import fetch_all
+from nyc_property_intel.urls import acris_lookup_hint
 from nyc_property_intel.utils import (
     data_freshness_note,
     format_currency,
@@ -267,5 +268,12 @@ async def get_property_history(
     result["data_as_of"] = (
         "; ".join(result["data_sources"]) if result["data_sources"] else "No data sources queried."
     )
+
+    # ACRIS is session-gated and does not support deep-linking. Surface a
+    # plain-text hint instead of a URL so the LLM can show users how to
+    # navigate ACRIS themselves.
+    hint = acris_lookup_hint(bbl)
+    if hint:
+        result["verify_hint"] = hint
 
     return result
