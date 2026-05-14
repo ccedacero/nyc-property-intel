@@ -77,8 +77,12 @@ class Settings(BaseSettings):
     web_chat_token_key: str = ""
     # Comma-separated origins allowed to call /api/chat (CORS)
     chat_allowed_origins: str = "https://nycpropertyintel.com"
-    # Free queries before email gate (no token required)
-    chat_free_query_limit: int = 3
+    # Free queries before email gate (no token required).
+    # IP-hash scoped over a 24h rolling window. 10 gives shared-NAT
+    # users (offices, families, coworking) enough headroom while still
+    # creating signup incentive: trial = 10/day for 30 DAYS (~300 total)
+    # whereas anon = 10/day per IP. 30-day persistence is the value prop.
+    chat_free_query_limit: int = 10
     # Total queries/day for trial tokens on web chat (resets at midnight UTC).
     # Must match auth.PLAN_LIMITS["trial"] so the chat path and MCP path agree.
     chat_daily_query_limit: int = 10
