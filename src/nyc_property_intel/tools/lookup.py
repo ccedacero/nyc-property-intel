@@ -38,7 +38,16 @@ LIMIT 1;
 
 
 async def _fetch_deed_owner(bbl_info: dict[str, str]) -> dict[str, Any] | None:
-    """Return the most recent ACRIS deed grantee for the BBL, or None."""
+    """Return the most recent ACRIS deed grantee for the BBL, or None.
+
+    This is a best-effort enrichment path — any failure (missing tables,
+    DB timeout, wrapped ToolError from db.fetch_one, malformed BBL) must
+    return None so lookup_property can fall through to the friendly
+    "condo aggregate" placeholder rather than 500-ing the whole tool call.
+    Production hit this on every condo billing lot (432 Park, 1 Wall,
+    220 CPS) because db.fetch_one wraps asyncpg.PostgresError as
+    ToolError, which the old narrow except clause did not catch.
+    """
     try:
         return await fetch_one(
             _SQL_DEED_GRANTEE,
@@ -49,7 +58,7 @@ async def _fetch_deed_owner(bbl_info: dict[str, str]) -> dict[str, Any] | None:
     except asyncpg.UndefinedTableError:
         logger.info("ACRIS deed tables not available, skipping owner fallback")
         return None
-    except (asyncpg.PostgresError, ValueError) as exc:
+    except Exception as exc:
         logger.warning("ACRIS deed-owner fallback failed: %s", exc)
         return None
 
