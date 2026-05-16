@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>NYC Property Intel — AI-Powered Due Diligence for NYC Real Estate</title>
-  <meta name="description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases: violations, liens, sales history, permits &amp; rent stabilization. Open source.">
-  <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude AI real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
+  <title>NYC Property Intel — Know the building before you sign, offer, or file</title>
+  <meta name="description" content="NYC real estate due diligence from 20+ official city public record datasets — violations, liens, sales history, permits, rent stabilization, ownership. Free MCP server for Claude. Open source (MIT).">
+  <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
   <meta name="author" content="NYC Property Intel">
   <meta name="theme-color" content="#0f172a">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="NYC Property Intel — AI-Powered Due Diligence for NYC Real Estate">
-  <meta property="og:description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases. Violations, sales, ownership, zoning, fire history, crime data — one query.">
+  <meta property="og:title" content="NYC Property Intel — Know the building before you sign, offer, or file">
+  <meta property="og:description" content="NYC real estate due diligence from 20+ official city public record datasets. Violations, sales, ownership, zoning, fire history, crime data — one query.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="NYC Property Intel">
   <meta property="og:url" content="https://nycpropertyintel.com/">
@@ -25,8 +25,8 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NYC Property Intel — Due Diligence from Public Records">
-  <meta name="twitter:description" content="Free MCP server giving Claude AI access to 20+ NYC public record databases for property due diligence.">
+  <meta name="twitter:title" content="NYC Property Intel — Know the building before you sign, offer, or file">
+  <meta name="twitter:description" content="NYC real estate due diligence from 20+ official city public record datasets, in one query.">
   <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
   <meta name="twitter:creator" content="@nycpropertyintel">
   <meta name="twitter:site" content="@nycpropertyintel">
@@ -149,7 +149,7 @@
             "name": "How do I find NYC rent stabilized buildings?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "You can check whether an NYC building has rent-stabilized units using NYC Property Intel's get_rent_stabilization tool. It returns unit counts by year from 2007 to 2017 sourced from HCR/RGB registration data. A declining count over time may indicate deregulation. You can also ask: 'Is [address] rent stabilized?' and Claude will pull the data automatically."
+              "text": "You can check whether an NYC building has rent-stabilized units using NYC Property Intel's get_rent_stabilization tool. It returns unit counts by year for 2007–2017, derived from NYC DOF property tax bills via taxbills.nyc / JustFix.nyc. A declining count over time may indicate deregulation. You can also ask: 'Is [address] rent stabilized?' and Claude will pull the data automatically."
             }
           },
           {
@@ -217,18 +217,18 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="hero" id="hero">
       <div class="container">
-        <h1>NYC Property Due Diligence<br>in Minutes, Not Hours</h1>
+        <h1>Know the building<br>before you sign, offer, or file.</h1>
         <p class="hero-sub">
           Ask about any NYC property in plain English. Get violations, sales history,
-          liens, permits, rent stabilization status, and ownership records from
-          <strong>20+ official NYC databases</strong> &mdash; no spreadsheets, no browser tabs.
+          liens, permits, rent stabilization, and ownership from
+          <strong>20+ official city datasets</strong>. One query instead of an afternoon of tab-switching.
         </p>
 
         <!-- Single dominant primary CTA — the casual visitor's path -->
         <div class="hero-actions hero-actions-primary" style="display:flex; justify-content:center; margin-bottom:1.25rem;">
           <a href="/chat" class="btn btn-primary btn-hero" style="padding:1rem 2.25rem; font-size:1.0625rem;">Try It Now &mdash; Free &rarr;</a>
         </div>
-        <p class="hero-note">No credit card &middot; No account needed for first 3 queries &middot; Open source (MIT)</p>
+        <p class="hero-note">First 3 queries free, no signup &middot; Open source (MIT)</p>
 
         <div class="hero-actions-secondary" style="margin-top:1rem;">
           <a href="#how-it-works" class="link-subtle">See how it works &darr;</a>
@@ -244,8 +244,7 @@
           </summary>
           <div class="hero-power-user-body" style="margin-top:1rem; text-align:center;">
             <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.75rem;">
-              Connect via the MCP protocol from your local Claude Desktop or Claude Code install.
-              Email a token to yourself, paste it into your MCP config, you&rsquo;re done.
+              For Claude Desktop or Claude Code. Email yourself a token, paste it into your MCP config, restart Claude.
             </p>
             <form
               class="hero-signup"
@@ -283,7 +282,7 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="problem">
       <div class="container">
-        <h2>Due Diligence Takes Too Long</h2>
+        <h2>NYC due diligence lives across 20+ city websites.</h2>
         <p class="section-intro">
           Before making an offer on an NYC property, you need to check violations,
           sales history, liens, permits, zoning, and ownership records. That data
@@ -301,9 +300,9 @@
             <p>Manual searches across multiple systems, copying data between browser tabs and spreadsheets.</p>
           </div>
           <div class="card">
-            <div class="card-number">Hidden</div>
+            <div class="card-number">Overlooked</div>
             <div class="card-label">Deal-killing violations</div>
-            <p>Open HPD Class C violations, DOB stop-work orders, and tax liens transfer to the buyer at closing.</p>
+            <p>Open HPD Class C violations, DOB stop-work orders, and tax liens &mdash; you inherit them when you close.</p>
           </div>
         </div>
       </div>
@@ -319,7 +318,7 @@
           <div class="step">
             <div class="step-number">1</div>
             <h3>Connect to Claude</h3>
-            <p>Use the <strong>hosted version</strong> &mdash; connect in minutes with one terminal command, no local setup required. Or self-host by cloning the repo and loading NYC public data into PostgreSQL.</p>
+            <p>Use the <strong>hosted version</strong> &mdash; one terminal command and you&rsquo;re connected. Or self-host by cloning the repo and loading NYC public data into PostgreSQL.</p>
           </div>
           <div class="step">
             <div class="step-number">2</div>
@@ -363,7 +362,7 @@
       <div class="container">
         <h2>See It In Action</h2>
         <p class="section-intro">
-          Just describe what you need in plain English. Claude picks the right tools, runs the city database queries, and synthesizes a clear response &mdash; no forms, no browser tabs, no manual data entry.
+          Describe what you need. Claude picks the tools, runs the queries, and writes back in plain English. No forms to fill in.
         </p>
 
         <div class="demo-grid">
@@ -411,7 +410,7 @@
           <div class="demo-card demo-card-featured">
             <div class="demo-label">Full Due Diligence</div>
             <p class="demo-prompt-label">You ask Claude:</p>
-            <div class="demo-query">"Full due diligence report on 250 West Street, Manhattan &mdash; I&rsquo;m considering making an offer"</div>
+            <div class="demo-query">"Full due diligence report on 250 West Street, Manhattan &mdash; before I sign anything"</div>
             <div class="demo-tools-row">
               <span class="demo-tool">analyze_property</span>
               <span class="demo-tool-note">&mdash; runs all sub-queries concurrently</span>
@@ -439,118 +438,138 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="tools">
       <div class="container">
-        <h2>18 Tools for NYC Property Due Diligence</h2>
+        <h2>18 Tools, 20+ NYC Datasets</h2>
         <p class="section-intro">
-          Each tool queries official NYC public record data. Building and property data only &mdash; no demographic information, no tenant screening.
+          Each tool queries one or more official NYC public datasets. Building and property records only &mdash; no demographics, no tenant screening.
         </p>
 
         <div class="tools-grid">
           <div class="tool-card">
-            <h3><span class="tool-name">lookup_property</span></h3>
-            <p>Look up a property by address or BBL. Returns the full profile: owner, building class, zoning, lot dimensions, assessed values, year built. <strong>Always call this first</strong> &mdash; you need a BBL before using other tools.</p>
+            <h3 class="tool-display-name">Property Lookup</h3>
+            <code class="tool-name-code">lookup_property</code>
+            <p>Drop in any NYC address. Get owner of record, year built, zoning, lot size, unit count, building class, and assessed value. The baseline every other check runs against.</p>
             <div class="tool-sources">PLUTO &middot; PAD &middot; GeoClient</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_property_issues</span></h3>
-            <p>HPD housing violations, DOB building code violations, and ECB/OATH fines. Filter by severity class (A/B/C), status (open/closed), and date range. Class C violations are immediately hazardous.</p>
+            <h3 class="tool-display-name">Violations &amp; Fines</h3>
+            <code class="tool-name-code">get_property_issues</code>
+            <p>Every open housing violation, building code violation, and unpaid <abbr title="Environmental Control Board / Office of Administrative Trials and Hearings — city's hearing court for fines">ECB/OATH</abbr> fine on the property. Filter by severity (Class C = immediately hazardous), status, or date. See instantly whether a building is in good standing or quietly racking up tens of thousands in penalties.</p>
             <div class="tool-sources">HPD Violations &middot; DOB Violations &middot; ECB Violations</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_property_history</span></h3>
-            <p>Sales records from DOF and ownership transfers from ACRIS deed records. See sale prices, dates, buyer/seller names, and document types. DOF sales back to 2003; ACRIS deed transfers back to 1966.</p>
+            <h3 class="tool-display-name">Ownership &amp; Sale History</h3>
+            <code class="tool-name-code">get_property_history</code>
+            <p>The full chain of ownership through <abbr title="Automated City Register Information System — NYC's record of every deed, mortgage, and lien since 1966">ACRIS</abbr> deeds and DOF transfers. Every sale price, every flip, every LLC handoff going back decades. Spot rapid resales, repeated LLC handoffs, and ownership patterns worth investigating further.</p>
             <div class="tool-sources">DOF Sales &middot; DOF Annual Sales &middot; ACRIS</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_hpd_complaints</span></h3>
-            <p>Tenant-reported complaints from HPD. Complaints are leading indicators &mdash; they show what tenants are reporting before formal violations are issued. Filter by category, status, and date.</p>
+            <h3 class="tool-display-name">Tenant Complaints</h3>
+            <code class="tool-name-code">get_hpd_complaints</code>
+            <p>What tenants are calling 311 and <abbr title="Housing Preservation &amp; Development — the city agency tenants call about heat, mold, leaks, and rats">HPD</abbr> about: heat, hot water, mold, pests, leaks, harassment. Complaints show up months before formal violations. A spike usually means the landlord has stopped maintaining the building.</p>
             <div class="tool-sources">HPD Complaints</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_hpd_litigations</span></h3>
-            <p>Housing court cases filed by HPD against building owners. Shows case types, open judgements, and harassment findings. A litigated building is a serious red flag.</p>
+            <h3 class="tool-display-name">HPD Lawsuits</h3>
+            <code class="tool-name-code">get_hpd_litigations</code>
+            <p>Active and historical lawsuits HPD has brought against the landlord &mdash; typically for failing to fix serious violations. Open HPD litigation means the city is actively suing the owner. One of the strongest red flags in the dataset.</p>
             <div class="tool-sources">HPD Litigations</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_hpd_registration</span></h3>
-            <p>Building owner and agent registration records. Who is legally registered as the owner, managing agent, and head officer? Useful for identifying bad actors and LLC ownership structures.</p>
+            <h3 class="tool-display-name">Landlord Registration</h3>
+            <code class="tool-name-code">get_hpd_registration</code>
+            <p>Who&rsquo;s legally on the hook for this building? Pulls the HPD registration: managing agent, head officer, owner contact, registration status. Expired or missing registrations are themselves a violation &mdash; and usually mean a building run off the books.</p>
             <div class="tool-sources">HPD Registrations</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_building_permits</span></h3>
-            <p>DOB permit and job filings: new buildings, alterations, demolitions, and sign permits. See scope of work, estimated cost, job status, and applicant name.</p>
+            <h3 class="tool-display-name">Permits &amp; Construction</h3>
+            <code class="tool-name-code">get_building_permits</code>
+            <p>Every <abbr title="Department of Buildings — issues construction permits and tracks unsafe conditions">DOB</abbr> permit pulled on the property &mdash; what work was approved, when, by whom, and whether it was ever signed off. Spot unpermitted work, stalled renovations, gut jobs, or open jobs that could block a Certificate of Occupancy.</p>
             <div class="tool-sources">DOB Jobs (BIS)</div>
             <p style="color:var(--text-secondary); font-size:0.8125rem; margin-top:0.5rem; font-style:italic;">Full coverage 2020&ndash;present. Some pre-2020 historical filings may be incomplete due to source-data limitations.</p>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_liens_and_encumbrances</span></h3>
-            <p>DOF tax lien sale list entries and ACRIS mortgage records. Shows outstanding liens, lender names, amounts, and satisfactions. Essential for assessing a property&rsquo;s debt profile.</p>
+            <h3 class="tool-display-name">Liens &amp; Encumbrances</h3>
+            <code class="tool-name-code">get_liens_and_encumbrances</code>
+            <p>Outstanding mortgages, tax liens, mechanic&rsquo;s liens, judgments, and other claims recorded in ACRIS. Anything that would have to be cleared at closing &mdash; or that signals a distressed owner &mdash; shows up here.</p>
             <div class="tool-sources">DOF Tax Liens &middot; ACRIS</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_tax_info</span></h3>
-            <p>Property tax assessments, market value estimates, and active exemptions. Shows tax class, assessed values (land and total), taxable value, and programs like 421a, J-51, or STAR.</p>
+            <h3 class="tool-display-name">Tax Status</h3>
+            <code class="tool-name-code">get_tax_info</code>
+            <p>Assessed value, tax class, annual bill, exemptions (J-51, 421-a, SCRIE/DRIE), and unpaid balance. Spot owners behind on taxes, properties headed to a lien sale, or buildings with abatements about to expire.</p>
             <div class="tool-sources">DOF Assessments &middot; DOF Exemptions</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_rent_stabilization</span></h3>
-            <p>Rent-stabilized unit counts by year (2007&ndash;2017). See how many units were stabilized, the trend over time, and whether the building appears to have destabilized units.</p>
-            <div class="tool-sources">Rent Stabilization (HCR/RGB)</div>
+            <h3 class="tool-display-name">Rent Stabilization</h3>
+            <code class="tool-name-code">get_rent_stabilization</code>
+            <p>How many units in the building are rent-stabilized &mdash; and how that count has shifted year over year. A steady drop often signals illegal deregulation or buyout pressure. Essential for tenants checking their rights and buyers underwriting rent rolls.</p>
+            <div class="tool-sources">Rent Stabilization (via taxbills.nyc / JustFix.nyc, 2007&ndash;2017)</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">search_comps</span></h3>
-            <p>Find comparable sales in the same zip code. Filter by building class, date range, and price. Returns price per square foot, building details, and quarterly market trend statistics.</p>
+            <h3 class="tool-display-name">Comparable Sales</h3>
+            <code class="tool-name-code">search_comps</code>
+            <p>Recent arms-length sales of similar buildings nearby. Filter by class, size, and distance. Strips out the non-market transfers (LLC swaps, family deeds) that skew listing-site comps. A research input, not a substitute for a licensed appraisal.</p>
+            <p style="color:var(--text-secondary); font-size:0.8125rem; margin-top:0.5rem; font-style:italic;">Research only. Not for valuations used in credit, lending, or appraisal decisions.</p>
             <div class="tool-sources">DOF Sales</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">search_neighborhood_stats</span></h3>
-            <p>Area-level aggregates by zip code or neighborhood name. Property stock counts, median sale prices, violation rates, rent stabilization share, and quarterly price trends.</p>
+            <h3 class="tool-display-name">Neighborhood Stats</h3>
+            <code class="tool-name-code">search_neighborhood_stats</code>
+            <p>Zoom out from one building to the block &mdash; median sale prices, violation density, crime trends, permit activity, turnover rates. Tell whether your building&rsquo;s issues are normal for the area or wildly out of line.</p>
             <div class="tool-sources">PLUTO &middot; DOF Sales &middot; HPD &middot; Rent Stabilization</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_fdny_fire_incidents</span></h3>
-            <p>FDNY fire and emergency incident history for the zip code area. Returns incident classification, highest alarm level, and units assigned. Note: the FDNY dataset does not include street-level address fields &mdash; results reflect the full zip code, not a single building.</p>
+            <h3 class="tool-display-name">Fire Incidents (FDNY)</h3>
+            <code class="tool-name-code">get_fdny_fire_incidents</code>
+            <p>Every <abbr title="Fire Department — tracks every fire, smoke condition, and emergency response">FDNY</abbr> response in the zip code &mdash; structural fires, electrical incidents, gas leaks, smoke conditions. Repeat incidents often point to aging wiring, deferred maintenance, or unsafe gas lines the seller won&rsquo;t disclose. Note: the FDNY dataset reports by zip code, not single building.</p>
             <div class="tool-sources">FDNY NFIRS &middot; NYC Open Data 8m42-w767</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_311_complaints</span></h3>
-            <p>311 service request complaints at or near a property. Covers noise, rodents, illegal dumping, heat/hot water, graffiti, illegal parking, and ~200 other complaint types. Leading indicator of neighborhood quality and active building issues.</p>
+            <h3 class="tool-display-name">311 Complaints</h3>
+            <code class="tool-name-code">get_311_complaints</code>
+            <p>Non-emergency complaints from neighbors &mdash; noise, sanitation, illegal construction, blocked sidewalks. The clearest signal of how a building runs day-to-day. A surge in 311s usually precedes DOB or HPD action by months.</p>
             <div class="tool-sources">NYC 311 &middot; NYC Open Data erm2-nwe9</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_evictions</span></h3>
-            <p>Marshal-executed evictions by address. Shows residential vs. commercial breakdown, apartment-level data, and marshal information. High eviction rates signal tenant instability and cash-flow risk. Data from 2017 onward.</p>
+            <h3 class="tool-display-name">Eviction History</h3>
+            <code class="tool-name-code">get_evictions</code>
+            <p>Marshal-executed evictions at the building, going back years. High counts &mdash; especially in rent-stabilized units &mdash; are a pattern that warrants closer review by counsel. Essential for tenants vetting a landlord, and for buyers underwriting tenant stability.</p>
             <div class="tool-sources">NYC Marshal Evictions &middot; NYC Open Data 6z8x-wfk4</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_dob_complaints</span></h3>
-            <p>Complaints filed directly with the Department of Buildings &mdash; the earliest public signal of construction or safety issues, before formal violations are issued. Includes category descriptions (illegal conversion, no permit, elevator defects, etc.).</p>
+            <h3 class="tool-display-name">DOB Complaints</h3>
+            <code class="tool-name-code">get_dob_complaints</code>
+            <p>Construction and safety complaints filed with the Department of Buildings &mdash; illegal work, structural concerns, facade hazards, elevator failures. These trigger fast inspector response and often escalate to violations or stop-work orders.</p>
             <div class="tool-sources">DOB Complaints &middot; NYC Open Data eabe-havv</div>
           </div>
 
           <div class="tool-card">
-            <h3><span class="tool-name">get_nypd_crime</span></h3>
-            <p>NYPD crime complaints within a configurable radius of the property (default 300 m &asymp; 3 blocks). Uses geospatial radius search on the property&rsquo;s exact coordinates. Returns felony/misdemeanor breakdown, top offense types, and year-over-year trend.</p>
+            <h3 class="tool-display-name">Neighborhood Crime</h3>
+            <code class="tool-name-code">get_nypd_crime</code>
+            <p>NYPD complaint data within ~3 blocks of the building (adjustable). Felonies vs. misdemeanors, top offense types, year-over-year trend. Real geospatial search on the exact address &mdash; not a precinct-wide average that hides block-level risk.</p>
             <div class="tool-sources">NYPD Complaint Data &middot; NYC Open Data 5uac-w243</div>
           </div>
 
           <div class="tool-card tool-card-featured">
-            <h3><span class="tool-name">analyze_property</span></h3>
-            <p>The full picture. Runs all sub-queries concurrently and returns a comprehensive summary: property profile, financial snapshot, development potential (FAR analysis), risk factors, tax status, rent stabilization, comparable market data, and key observations flagging anything unusual.</p>
+            <h3 class="tool-display-name">Full Property Report</h3>
+            <code class="tool-name-code">analyze_property</code>
+            <p>One click. Every core dataset, in parallel &mdash; building profile, ownership, sales, violations, complaints, litigations, tax, liens, rent stabilization, and comps. Returns a full due-diligence report with a plain-English summary flagging anything unusual. Run this before you sign or wire a deposit. <em style="color:var(--text-secondary); font-style:normal; font-size:0.875rem;">(For neighborhood crime, fire incidents, and DOB complaints, use the dedicated tools above.)</em></p>
+            <p style="color:var(--text-secondary); font-size:0.8125rem; margin-top:0.5rem; font-style:italic;">Research only. Not for valuations used in credit, lending, or appraisal decisions.</p>
             <div class="tool-sources">PLUTO &middot; HPD &middot; DOB &middot; DOF &middot; ACRIS &middot; Rent Stabilization</div>
           </div>
         </div>
@@ -564,10 +583,10 @@
       <div class="container">
         <h2>Data Sources</h2>
         <p class="section-intro">
-          All data is sourced from official <strong>NYC Open Data</strong> and city agency databases,
+          All data comes from <strong>NYC Open Data</strong> and city agency databases,
           loaded into PostgreSQL on Railway via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project
-          (~19 million rows). The NYC Open Data Socrata API is used as a fallback only when local tables are unavailable.
-          <strong>HPD and DOB violations update daily. PLUTO updates quarterly. DOF sales update monthly.</strong>
+          as a local mirror for query performance. The NYC Open Data Socrata API is used as a fallback only when local tables are unavailable.
+          <strong>Freshness depends on when each agency publishes and on our ingest pipeline catching the update. Verify any data point against the source agency before acting on it.</strong>
         </p>
 
         <div class="data-table-wrapper">
@@ -593,7 +612,7 @@
               <tr><td>DOF Assessments</td><td>DOF</td><td>Property tax valuations and assessment rolls</td></tr>
               <tr><td>DOF Exemptions</td><td>DOF</td><td>Property tax exemption records</td></tr>
               <tr><td>DOF Tax Liens</td><td>DOF</td><td>Properties with outstanding tax liens</td></tr>
-              <tr><td>Rent Stabilization</td><td>HCR/RGB</td><td>Rent-stabilized unit counts by building</td></tr>
+              <tr><td>Rent Stabilization</td><td>taxbills.nyc / JustFix.nyc (derived from DOF)</td><td>Rent-stabilized unit counts by building (2007&ndash;2017)</td></tr>
               <tr><td>ACRIS</td><td>DOF/ACRIS</td><td>Deeds, mortgages, liens, satisfactions, UCC filings</td></tr>
               <tr><td>FDNY Fire Incidents</td><td>FDNY</td><td>Fire &amp; emergency incident history by zip/borough (2013&ndash;present)</td></tr>
               <tr><td>311 Service Requests</td><td>311/DOITT</td><td>Noise, rodents, heat, dumping, and 200+ complaint types</td></tr>
@@ -606,7 +625,7 @@
 
         <p class="data-note">
           NYC Property Intel is not affiliated with, endorsed by, or sponsored by the City of New York, any city agency, or the nycdb open-source project.
-          All datasets are loaded into PostgreSQL. Update frequency varies by source: PLUTO quarterly, DOF sales monthly, HPD/DOB violations daily.
+          All datasets are loaded into PostgreSQL. Update frequency varies by source and by our ingest pipeline; users should verify any record against the source agency before relying on it.
           DOB job filings have full coverage from 2020 onward; some pre-2020 historical filings may be incomplete due to source-data limitations.
           Data is provided &ldquo;as is&rdquo; under the
           <a href="https://opendata.cityofnewyork.us/overview/#termsofuse" target="_blank" rel="noopener noreferrer">NYC Open Data Terms of Use</a>.
@@ -622,7 +641,15 @@
       <div class="container">
         <h2>Installation</h2>
 
-        <p class="section-intro">Use the <strong>Hosted</strong> tab below to connect without any local setup, or follow steps 1–3 to run the server yourself.</p>
+        <p class="section-intro">Most people just use the <a href="/chat">web chat</a> &mdash; no install, no setup, 3 free queries with no signup. The steps below are for using the tool directly inside Claude Desktop or Claude Code.</p>
+
+        <div class="install-easiest-callout">
+          <div class="install-easiest-text">
+            <strong>Just want to try it?</strong>
+            <span class="install-easiest-sub">Skip the install. The web chat works in any browser.</span>
+          </div>
+          <a href="/chat" class="btn btn-primary install-easiest-btn">Open the web chat &rarr;</a>
+        </div>
 
         <div class="install-steps">
           <div class="install-step">
@@ -647,12 +674,13 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <div class="install-step">
             <h3>3. Add to Claude</h3>
             <div class="install-tabs" role="tablist" aria-label="Installation method">
-              <button class="tab-btn active" data-tab="claude-desktop" role="tab" aria-selected="true" aria-controls="claude-desktop" id="tab-claude-desktop" tabindex="0">Claude Desktop</button>
-              <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code" tabindex="-1">Claude Code</button>
-              <button class="tab-btn" data-tab="hosted-sse" role="tab" aria-selected="false" aria-controls="hosted-sse" id="tab-hosted-sse" tabindex="-1">Hosted</button>
+              <button class="tab-btn active" data-tab="hosted-sse" role="tab" aria-selected="true" aria-controls="hosted-sse" id="tab-hosted-sse" tabindex="0">Hosted <span class="tab-badge">Recommended</span></button>
+              <button class="tab-btn" data-tab="claude-desktop" role="tab" aria-selected="false" aria-controls="claude-desktop" id="tab-claude-desktop" tabindex="-1">Claude Desktop (self-host)</button>
+              <button class="tab-btn" data-tab="claude-code" role="tab" aria-selected="false" aria-controls="claude-code" id="tab-claude-code" tabindex="-1">Claude Code (self-host)</button>
             </div>
 
-            <div class="tab-content active" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop" tabindex="0">
+            <div class="tab-content" id="claude-desktop" role="tabpanel" aria-labelledby="tab-claude-desktop" tabindex="0">
+              <p class="tab-clarifier"><strong>Self-host setup.</strong> Runs the server against your own local Postgres. You load NYC public data yourself via <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> (steps 1&ndash;2 above, ~2.5 hours). For a no-setup option, use the <strong>Hosted</strong> tab.</p>
               <p>Add to <code>claude_desktop_config.json</code> (Settings &gt; Developer &gt; Edit Config):</p>
               <pre><code>{
   "mcpServers": {
@@ -669,6 +697,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
             </div>
 
             <div class="tab-content" id="claude-code" role="tabpanel" aria-labelledby="tab-claude-code" tabindex="0">
+              <p class="tab-clarifier"><strong>Self-host setup.</strong> Same as Claude Desktop, but for Claude Code. Requires the server running locally against your own Postgres. For a no-setup option, use the <strong>Hosted</strong> tab.</p>
               <p>The <code>.mcp.json</code> file auto-registers when you open the project directory. Or add manually to <code>~/.claude.json</code>:</p>
               <pre><code>{
   "mcpServers": {
@@ -681,8 +710,9 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 }</code></pre>
             </div>
 
-            <div class="tab-content" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse" tabindex="0">
-              <p>No local setup required. <a href="#hero-signup-form-wrapper">Sign up for early access</a> — your personal token and setup instructions will be emailed to you automatically.</p>
+            <div class="tab-content active" id="hosted-sse" role="tabpanel" aria-labelledby="tab-hosted-sse" tabindex="0">
+              <p class="tab-clarifier"><strong>Recommended for most users.</strong> We host the server and database. You just paste a token into your Claude Desktop or Claude Code config &mdash; no local Postgres, no nycdb load. Skip steps 1 and 2 above.</p>
+              <p>No install. <a href="#hero-signup-form-wrapper">Sign up</a> and we&rsquo;ll email your access token and setup steps.</p>
               <p>Once you have your token:</p>
               <p><strong>Claude Code</strong> — one command:</p>
               <pre><code>claude mcp add --transport http nyc-property-intel \
@@ -738,9 +768,11 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
               <li>Provide demographic data about neighborhoods or building occupants</li>
               <li>Screen or evaluate tenants or prospective tenants</li>
               <li>Perform analysis based on the race, color, national origin, religion, sex,
-                  familial status, disability, age, sexual orientation, gender identity,
-                  marital status, citizenship status, lawful source of income, or any other
-                  protected characteristic of any person</li>
+                  familial status, disability, age, sexual orientation, gender identity or
+                  expression, marital status, partnership status, citizenship or immigration
+                  status, lawful source of income, uniformed service, arrest or conviction
+                  record, or any other characteristic protected by federal, state, or local
+                  law</li>
               <li>Rank neighborhoods by &ldquo;desirability&rdquo; based on resident characteristics</li>
               <li>Provide income profiling or socioeconomic analysis of occupants</li>
             </ul>
@@ -772,23 +804,34 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section class="section" id="audience">
       <div class="container">
-        <h2>Built for NYC Real Estate Professionals</h2>
+        <h2>For the people who actually read the records</h2>
+        <p class="audience-disclaimer">NYC Property Intel is a software research tool, not a licensed real estate broker, salesperson, or appraiser. Use the data; bring your own professionals.</p>
+
+        <h3 class="audience-subhead">For Professionals</h3>
         <div class="grid grid-2">
           <div class="card">
             <h3>Investors</h3>
-            <p>Screen properties for violations, liens, and development potential before making offers. Understand a building&rsquo;s full regulatory risk profile from public records in minutes, not hours.</p>
+            <p>Check open HPD and DOB violations, outstanding liens, FAR utilization, and recorded ownership before you sign a letter of intent.</p>
           </div>
           <div class="card">
             <h3>Attorneys</h3>
-            <p>Pull ACRIS deed history, violation records, and tax lien data during transaction due diligence. Cross-reference ownership records across city databases without switching browser tabs.</p>
+            <p>Pull ACRIS deed history, violation records, and tax lien data during transaction due diligence. Cross-reference ownership records across city databases without switching tabs.</p>
           </div>
           <div class="card">
             <h3>Brokers</h3>
-            <p>Research building details, sales history, and comparable transactions from official city records when evaluating listings or preparing a broker&rsquo;s opinion of value.</p>
+            <p>Pull sales history, ownership, and recent comps from official city records during pre-listing research. Cite the raw data alongside your own market analysis.</p>
           </div>
           <div class="card">
             <h3>Property Developers</h3>
-            <p>Evaluate development sites quickly. Check FAR utilization, existing permits, open stop-work orders, and zoning before a letter of intent. Know the regulatory picture before committing to a deal.</p>
+            <p>Check FAR utilization, existing permits, open stop-work orders, and zoning before a letter of intent. Know the regulatory picture before committing to a deal.</p>
+          </div>
+        </div>
+
+        <h3 class="audience-subhead audience-subhead-personal">For Renters &amp; Homebuyers</h3>
+        <div class="grid grid-1-wide">
+          <div class="card card-personal">
+            <h3>Renters &amp; Homebuyers</h3>
+            <p><strong>Know before you sign.</strong> Before you commit to a lease or put in an offer, pull the building&rsquo;s full history: housing-code violations (HPD), neighbor 311 complaints, past evictions, rent-stabilization status, and fire incidents (FDNY). See what listings typically don&rsquo;t include.</p>
           </div>
         </div>
       </div>
@@ -812,7 +855,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">What data sources does NYC Property Intel use?</summary>
             <div class="faq-a">
-              <p>NYC Property Intel aggregates data from 20+ official NYC public record datasets: PLUTO (property profiles), HPD violations and complaints, DOB violations and permits, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incidents, NYPD crime complaints, 311 service requests, marshal eviction records, and more. All data is loaded from NYC Open Data into PostgreSQL via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project (~19 million rows). The Socrata API is used as a fallback only.</p>
+              <p>NYC Property Intel aggregates data from 20+ official NYC public record datasets: PLUTO (property profiles), HPD violations and complaints, DOB violations and permits, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incidents, NYPD crime complaints, 311 service requests, marshal eviction records, and more. All data is loaded from NYC Open Data into PostgreSQL via the <a href="https://github.com/nycdb/nycdb" target="_blank" rel="noopener noreferrer">nycdb</a> project as a local mirror for query performance. The Socrata API is used as a fallback only.</p>
             </div>
           </details>
 
@@ -833,14 +876,14 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">How do I check NYC property tax liens?</summary>
             <div class="faq-a">
-              <p>Ask Claude: <em>&ldquo;Does [address] have any tax liens?&rdquo;</em> The <code>get_liens_and_encumbrances</code> tool returns outstanding DOF tax liens from the annual lien sale list and ACRIS mortgage records &mdash; lender names, outstanding amounts, and satisfaction status. Active tax liens transfer to the buyer at closing, making this a required check before any offer.</p>
+              <p>Ask Claude: <em>&ldquo;Does [address] have any tax liens?&rdquo;</em> The <code>get_liens_and_encumbrances</code> tool returns outstanding DOF tax liens from the annual lien sale list and ACRIS mortgage records &mdash; lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property &mdash; you inherit them when you close. Worth checking before any offer.</p>
             </div>
           </details>
 
           <details class="faq-item">
             <summary class="faq-q">How do I find NYC rent stabilized buildings?</summary>
             <div class="faq-a">
-              <p>Ask Claude: <em>&ldquo;Is [address] rent stabilized?&rdquo;</em> The <code>get_rent_stabilization</code> tool returns rent-stabilized unit counts by year from 2007 to 2017 sourced from HCR/RGB registration data. A declining count over time may indicate deregulation &mdash; a critical factor in cash-flow underwriting for multifamily properties.</p>
+              <p>Ask Claude: <em>&ldquo;Is [address] rent stabilized?&rdquo;</em> The <code>get_rent_stabilization</code> tool returns rent-stabilized unit counts by year for 2007&ndash;2017, derived from NYC DOF property tax bills via taxbills.nyc / JustFix.nyc. A declining count over time may indicate deregulation &mdash; a critical factor in cash-flow underwriting for multifamily properties. (2018&ndash;present coverage planned.)</p>
             </div>
           </details>
 
@@ -879,12 +922,12 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     <!-- ── Final CTA ──────────────────────────────────────────────── -->
     <section class="section final-cta" id="get-started">
       <div class="container">
-        <h2>Ready to Run Your First Search?</h2>
+        <h2>Look up a building.</h2>
         <p class="section-intro">Ask about any NYC property in plain English &mdash; no signup needed for your first 3 queries.</p>
         <div class="final-cta-actions" style="display:flex; justify-content:center;">
           <a href="/chat" class="btn btn-primary btn-hero" style="padding:1rem 2.25rem; font-size:1.0625rem;">Try It Now &mdash; Free &rarr;</a>
         </div>
-        <p class="hero-note" style="margin-top:1.25rem;">No credit card &middot; First 3 queries free without signup &middot; Open source (MIT)</p>
+        <p class="hero-note" style="margin-top:1.25rem;">First 3 queries free, no signup &middot; Open source (MIT)</p>
         <p class="hero-note" style="margin-top:0.75rem;">
           Power-user instead?
           <a href="#hero-signup-form-wrapper" class="link-subtle">Get a token for Claude Desktop / Code &rarr;</a>
@@ -918,9 +961,11 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
         </p>
         <p>
           All real estate data is subject to the
-          <a href="https://www.hud.gov/program_offices/fair_housing_equal_opp/fair_housing_act_overview" target="_blank" rel="noopener noreferrer">Federal Fair Housing Act</a>,
-          which makes it illegal to discriminate based on race, color, religion, sex, handicap,
-          familial status, or national origin.
+          <a href="https://www.hud.gov/program_offices/fair_housing_equal_opp/fair_housing_act_overview" target="_blank" rel="noopener noreferrer">Federal Fair Housing Act</a>
+          and to New York State and New York City Human Rights Laws, which together make it illegal
+          to discriminate based on race, color, religion, national origin, sex, disability,
+          familial status, age, sexual orientation, gender identity, marital status, citizenship status,
+          or lawful source of income.
         </p>
       </div>
 
@@ -938,5 +983,43 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 
   <script src="js/main.js?v=20260425b" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
+
+  <!-- Auto-expand <details> when navigated via anchor link (added 2026-05-16).
+       See docs/site-copy-update-spec-2026-05-16.md -->
+  <script>
+  (function () {
+    function openDetailsForHash() {
+      var hash = window.location.hash;
+      if (!hash || hash === '#') return;
+      var target;
+      try { target = document.querySelector(hash); } catch (e) { return; }
+      if (!target) return;
+      if (target.tagName === 'DETAILS' && !target.open) {
+        target.open = true;
+      } else {
+        var details = target.closest && target.closest('details');
+        if (details && !details.open) details.open = true;
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', openDetailsForHash);
+    } else {
+      openDetailsForHash();
+    }
+    window.addEventListener('hashchange', openDetailsForHash);
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!link) return;
+      var href = link.getAttribute('href');
+      if (!href || href === '#') return;
+      var target;
+      try { target = document.querySelector(href); } catch (err) { return; }
+      if (!target) return;
+      if (target.tagName === 'DETAILS' && !target.open) {
+        target.open = true;
+      }
+    });
+  })();
+  </script>
 </body>
 </html>
