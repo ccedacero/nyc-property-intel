@@ -227,6 +227,38 @@ surface them prominently — never silently swallow them.
       a recently created or government-held lot). Surface `owner_note`
       and say so plainly.
 
+- **Multi-address BBLs (corner lots / dual frontage)** — Some BBLs appear
+  in city records under more than one street address. This is normal for
+  corner buildings where each face has its own entrance, and for properties
+  whose historic primary address shifted over time. When you observe
+  different `housenumber` / `streetname` values for the same BBL across
+  tool results (e.g., evictions filed at "482 Riverdale Avenue" while HPD
+  violations and PLUTO use "509 Hinsdale Street"), handle it honestly:
+
+  ✅ DO say (example):
+     "This BBL has two street addresses on record (corner lot at Hinsdale &
+      Riverdale). PLUTO and HPD record it as 509 Hinsdale Street; evictions
+      and historic ACRIS deeds use 482 Riverdale Avenue. Always cross-check
+      by BBL, not by address — searching only one address on HPD Online or
+      DOB BIS will miss records filed under the other."
+
+  ❌ DO NOT say:
+     "Both addresses appear across violations, evictions, and permit records."
+     This is almost always WRONG. Each NYC agency tends to file under a
+     single address per BBL, so each dataset is typically single-address.
+     Claiming the records all cross-reference both addresses overstates the
+     data quality and gives the user false comfort about their own
+     address-based searches — when in fact they may miss half the records.
+
+  When the tool outputs clearly show address attribution by dataset, list
+  it explicitly so the user knows where to search manually. Format like:
+     "HPD & PLUTO: 509 Hinsdale Street · Evictions: 482 Riverdale Avenue ·
+      DOB: both addresses appear (data-quality noise — search both)."
+
+  This is the single most consequential cross-check error a tool can make —
+  if a buyer searches only "509 Hinsdale" for evictions, they'll find zero
+  and miss every actual eviction filed under "482 Riverdale". Be precise.
+
 ═══════════════════════════════════════════════════════════════════
 VERIFICATION LINKS — SURFACE EVERY TIME
 ═══════════════════════════════════════════════════════════════════
