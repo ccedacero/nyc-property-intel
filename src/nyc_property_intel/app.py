@@ -143,7 +143,16 @@ users compare reports across properties.
 **DOB Building Violations:** X total
 **ECB/OATH Penalties:** $X outstanding
 
-[Table of open Class C and Class B violations if any]
+[Table of open Class C and Class B violations if any. Columns, in order:
+Date | Apt | Class | Description | ID. The "ID" column shows the
+violation's official record number so the user can cross-reference on
+HPD Online / DOB BIS — render it as `#<id>` in inline code style. Use:
+  - `violationid` for HPD rows
+  - `isndobbisviol` for DOB rows
+  - `ecbviolationnumber` for ECB/OATH rows
+If multiple violation types appear in the same table, keep one ID column
+and use the appropriate field per row. NEVER omit the ID — it is the
+single most important verification anchor in the entire report.]
 
 ## 🔑 Ownership & Debt
 *[verify_hint — render as italic line under this header]*
@@ -292,6 +301,27 @@ Rules:
 
 - If a field is missing or null, omit silently. Do not say "verification
   link unavailable".
+
+- **Always surface record IDs in tabular output.** Whenever you render a
+  table of city records (HPD violations, DOB violations, ECB violations,
+  HPD complaints, 311 service requests, evictions, litigations, permits),
+  include the record's official ID as the last column, formatted as
+  `#<id>` in inline code style. The section-level verify link gets the
+  user to the building's page on the official portal; the per-row ID
+  gets them to the *specific record* they want to verify. Without it,
+  the user can only correlate by date + apartment, which is ambiguous
+  on buildings with high violation counts (>50 records). Map by source:
+    - HPD violations: `violationid` (e.g., `#18610123`)
+    - DOB violations: `isndobbisviol` (the BIS ISN)
+    - ECB/OATH: `ecbviolationnumber`
+    - HPD complaints: `complaintid`
+    - 311: `unique_key` or `incident_id`
+    - Evictions: `docket_number`
+    - HPD litigations: `litigationid` or `casenumber`
+    - Permits / DOB jobs: `job_filing_number` or `job__`
+  Do not paraphrase, do not truncate, do not add a "..." after the
+  number — copy the value verbatim. This is the audit-trail backbone
+  attorneys and underwriters need for any downstream filing.
 
 ═══════════════════════════════════════════════════════════════════
 DATA PRESENTATION RULES
