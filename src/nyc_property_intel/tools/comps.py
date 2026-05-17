@@ -232,13 +232,23 @@ async def search_comps(
                 f"{null_sqft_count} comp(s) have no gross sqft recorded — "
                 "common for condo/co-op unit sales. Price per sqft is N/A for those records."
             )
+        # Empty result set with no exception means the query ran but found
+        # nothing matching the filters. Give the caller (Claude) an
+        # actionable hint instead of silently returning [].
+        if len(comps) == 0:
+            result["comps_note"] = (
+                f"No comparable sales found in zip {effective_zip} matching these "
+                f"filters in the last {months} months. Try widening the filters "
+                "(longer time window, broader sqft range, or remove the price cap), "
+                "or search a neighboring zip."
+            )
     except asyncpg.UndefinedTableError:
         logger.info("dof_sales table not loaded yet — skipping comps")
         result["comps"] = []
         result["num_comps_found"] = 0
         result["comps_note"] = (
-            "Sales data table (dof_sales) is not yet loaded. "
-            "This data will be available after Phase B data ingestion."
+            "Sales data table is not loaded in this environment — comparable "
+            "sales search is unavailable. Please report this if you see it on prod."
         )
 
     # ── Market statistics ─────────────────────────────────────────────

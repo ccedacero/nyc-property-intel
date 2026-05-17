@@ -159,7 +159,9 @@ class TestDomainHasMx:
             "resolve",
             side_effect=dns.resolver.NoAnswer(),
         ):
-            ok, reason = await domain_has_mx("no-mx.example")
+            # Use a non-reserved TLD so the reserved-TLD short-circuit
+            # doesn't fire — we want to exercise the DNS path here.
+            ok, reason = await domain_has_mx("no-mx-domain.com")
         assert ok is False
         assert reason == "no_mx"
 
@@ -172,7 +174,7 @@ class TestDomainHasMx:
             "resolve",
             side_effect=dns.resolver.NXDOMAIN(),
         ):
-            ok, reason = await domain_has_mx("does-not-exist.invalid")
+            ok, reason = await domain_has_mx("does-not-exist-domain.com")
         assert ok is False
         assert reason == "no_mx"
 
@@ -185,9 +187,42 @@ class TestDomainHasMx:
             "dns.resolver.Resolver.resolve",
             side_effect=dns.exception.Timeout(),
         ):
-            ok, reason = await domain_has_mx("flaky.example")
+            ok, reason = await domain_has_mx("flaky-domain.com")
         assert ok is True
-        assert reason == "transient"
+
+    @pytest.mark.asyncio
+    async def test_reserved_tld_invalid_short_circuits(self) -> None:
+        """RFC 2606 .invalid must hard-reject without a DNS lookup."""
+        ok, reason = await domain_has_mx("anything.invalid")
+        assert ok is False
+        assert reason == "reserved_tld"
+
+    @pytest.mark.asyncio
+    async def test_reserved_tld_test_short_circuits(self) -> None:
+        ok, reason = await domain_has_mx("foo.test")
+        assert ok is False
+        assert reason == "reserved_tld"
+
+    @pytest.mark.asyncio
+    async def test_reserved_tld_example_short_circuits(self) -> None:
+        ok, reason = await domain_has_mx("hi.example")
+        assert ok is False
+        assert reason == "reserved_tld"
+
+    @pytest.mark.asyncio
+    async def test_reserved_tld_localhost_short_circuits(self) -> None:
+        ok, reason = await domain_has_mx("box.localhost")
+        assert ok is False
+        assert reason == "reserved_tld"
+
+    @pytest.mark.asyncio
+    async def test_reserved_tld_does_not_call_dns(self) -> None:
+        """Belt-and-braces: confirm DNS is never invoked for reserved TLDs."""
+        with patch("dns.resolver.Resolver.resolve") as resolve_mock:
+            ok, reason = await domain_has_mx("qa-test-probe.invalid")
+        assert ok is False
+        assert reason == "reserved_tld"
+        resolve_mock.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_resolves_returns_true(self) -> None:

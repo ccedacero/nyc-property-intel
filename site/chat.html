@@ -16,15 +16,32 @@
   <meta property="og:site_name" content="NYC Property Intel">
   <meta property="og:url" content="https://nycpropertyintel.com/chat">
   <meta property="og:image" content="https://nycpropertyintel.com/assets/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="NYC Property Intel — chat interface for NYC public-record due diligence">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NYC Property Intel — Try It Free">
+  <meta name="twitter:description" content="Ask about any NYC property. AI-powered due diligence from 20+ public record databases.">
+  <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
+  <meta name="twitter:creator" content="@nycpropertyintel">
+  <meta name="twitter:site" content="@nycpropertyintel">
 
   <link rel="canonical" href="https://nycpropertyintel.com/chat">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260425b">
-  <link rel="stylesheet" href="css/chat.css?v=20260425b">
+
+  <!-- Network hints — first chat query reaches Railway; pre-warm the connection -->
+  <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
+  <link rel="preconnect" href="https://us.i.posthog.com" crossorigin>
+  <link rel="preconnect" href="https://us-assets.i.posthog.com" crossorigin>
+
+  <link rel="stylesheet" href="css/style.css?v=20260517">
+  <link rel="stylesheet" href="css/chat.css?v=20260517">
 
   <!-- PostHog analytics -->
-  <script src="js/posthog-init.js?v=20260425b"></script>
+  <script src="js/posthog-init.js?v=20260517" defer></script>
 </head>
 <body class="chat-page-body">
   <a href="#chat-input" class="skip-link">Skip to chat input</a>
@@ -91,11 +108,13 @@
           </button>
         </div>
 
-        <!-- Auth status -->
+        <!-- Auth status — label is populated by chat.js init() to reflect
+             actual state. Leaving an empty span avoids flashing the anon
+             message to users who already have a stored token (B10). -->
         <div class="chat-auth-status" id="chat-auth-status" aria-live="polite">
           <div class="auth-badge">
             <span class="auth-dot anon" id="auth-dot"></span>
-            <span id="auth-label">3 free queries · No account needed</span>
+            <span id="auth-label"></span>
           </div>
         </div>
 
@@ -111,8 +130,10 @@
             <h1 class="chat-welcome-title">NYC Property Intel</h1>
             <p class="chat-welcome-sub">
               Type an address or BBL to get started. I'll return violations,
-              sales history, liens, permits, ownership records, and more from
-              20+ official NYC city databases.
+              sales, liens, permits, and ownership from 20+ official NYC datasets.
+            </p>
+            <p class="chat-welcome-hint">
+              Quick lookups: 8&ndash;15 sec &middot; Full due-diligence reports: 30&ndash;60 sec
             </p>
             <div class="welcome-pills">
               <button class="chat-suggestion-pill" type="button">Look up 350 5th Ave, Manhattan</button>
@@ -169,13 +190,27 @@
     </div>
   </div>
 
+  <!-- Slim footer — gives /chat users a way to navigate without the burger
+       menu, and bumps the Terms/Privacy/Fair Housing links to ≥0.8125rem
+       (B4 — was a 0.7rem muted-gray microcopy line under the input). -->
+  <footer class="chat-footer">
+    <nav class="container chat-footer-nav" aria-label="Footer navigation">
+      <a href="/">Home</a>
+      <a href="/legal#terms">Terms</a>
+      <a href="/legal#privacy">Privacy</a>
+      <a href="/legal#fair-housing-policy">Fair Housing</a>
+      <a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <span class="chat-footer-copy">&copy; 2026 NYC Property Intel</span>
+    </nav>
+  </footer>
+
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <!-- SCRIPTS                                                        -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <script src="js/vendor/marked.min.js?v=20260425b"></script>
   <script src="js/vendor/purify.min.js?v=20260425b"></script>
-  <script src="js/main.js?v=20260425b" defer></script>
-  <script src="js/chat.js?v=20260425b" defer></script>
+  <script src="js/main.js?v=20260517" defer></script>
+  <script src="js/chat.js?v=20260517" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

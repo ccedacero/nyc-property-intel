@@ -901,7 +901,10 @@ async def analyze_property(bbl: str) -> dict:
     if not recent_sales:
         data_gaps.append("No DOF sales records found for this property")
     if ownership is None:
-        data_gaps.append("Deed ownership unavailable — ACRIS tables may not be loaded (Phase C)")
+        data_gaps.append(
+            "Deed ownership unavailable — ACRIS records did not return for this BBL "
+            "(common for condo unit lots where ownership lives on the billing lot)"
+        )
     if hpd_complaints_sum is None:
         data_gaps.append("HPD complaints unavailable — hpd_complaints_and_problems not loaded")
     if hpd_litigations_sum is None:
@@ -913,7 +916,9 @@ async def analyze_property(bbl: str) -> dict:
     if complaints_311_sum is None:
         data_gaps.append("311 complaints unavailable — nyc_311_complaints not loaded")
     if mortgages_sum is None:
-        data_gaps.append("Mortgage records unavailable — ACRIS tables may not be loaded (Phase C)")
+        data_gaps.append(
+            "Mortgage records unavailable — no ACRIS mortgage filings returned for this BBL"
+        )
     if not comp_sales:
         data_gaps.append("No comparable sales found in this zip code within the last 12 months")
 

@@ -147,16 +147,41 @@ def is_disposable_domain(domain: str) -> bool:
     return domain in _DISPOSABLE_LIB_BLOCKLIST or domain in _CUSTOM_DISPOSABLE
 
 
+# IANA reserved TLDs that are guaranteed to never have real mail records.
+# Hard-reject these BEFORE the MX lookup so the existing "transient = fail-open"
+# branch can't silently let a bot like `qa-test+probe@anything.invalid` through.
+# RFC 2606 (.test/.example/.invalid/.localhost), plus a few internal-network
+# TLDs that should never appear in user signup forms.
+_RESERVED_TLDS = frozenset({
+    "invalid",
+    "test",
+    "example",
+    "localhost",
+    "local",
+    "internal",
+    "lan",
+    "home",
+    "corp",
+})
+
+
 async def domain_has_mx(domain: str) -> tuple[bool, str]:
     """DNS-resolve MX records for `domain`.
 
     Returns:
-      (True, "ok")       — at least one MX record found
-      (False, "no_mx")   — domain resolves but has no MX records (NoAnswer/NXDOMAIN)
-      (True, "transient") — DNS error / timeout; fail-open per spec, but caller
-                            can log the reason. We do NOT block on transient
-                            failures so flaky DNS doesn't reject real users.
+      (True, "ok")            — at least one MX record found
+      (False, "no_mx")        — domain resolves but has no MX records (NoAnswer/NXDOMAIN)
+      (False, "reserved_tld") — domain ends in an IANA reserved TLD (RFC 2606 et al.)
+      (True, "transient")     — DNS error / timeout; fail-open per spec, but caller
+                                can log the reason. We do NOT block on transient
+                                failures so flaky DNS doesn't reject real users.
     """
+    # Reserved-TLD short-circuit: skip DNS entirely so the fail-open transient
+    # branch can't admit bot signups using .invalid/.test/etc.
+    tld = domain.rsplit(".", 1)[-1].lower() if "." in domain else domain.lower()
+    if tld in _RESERVED_TLDS:
+        return (False, "reserved_tld")
+
     # dnspython is synchronous; run in a thread with a tight timeout so we
     # don't block the event loop.
     import dns.exception
