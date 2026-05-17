@@ -50,7 +50,15 @@ _MAX_TOKENS = 6144      # output ceiling per Anthropic API call. Full
                          # markdown template, which can hit 3.5-4k output
                          # tokens; 6144 prevents mid-report truncation.
 _MAX_ROUNDS = 8          # max agentic tool-call rounds per request
-_MAX_TOOL_CALLS = 12     # max individual tool calls per request
+# Was 12. A full DD prompt legitimately needs analyze_property + 7 supplementals
+# (per MCP_INSTRUCTIONS in app.py) plus the drill-down tools the model adds when
+# the user asks for "everything" (get_tax_info, get_liens_and_encumbrances,
+# search_comps). 12 short-circuited those drill-downs with a generic budget
+# error that the model paraphrased as "tool unavailable" in the narrative —
+# verified against a 2026-05-17 full-DD session on BBL 3-03835-0021. 16 gives
+# the canonical flow real headroom; cost is still bounded by _MAX_ROUNDS=8 and
+# per-call 45s timeouts.
+_MAX_TOOL_CALLS = 16     # max individual tool calls per request
 # Tools that don't count against the per-request budget. lookup_property
 # is a prerequisite (Claude must resolve a BBL before any data tool can
 # run) and may legitimately need 2-3 retries with different address
@@ -377,11 +385,30 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                     continue
 
                 if tool_calls_made >= _MAX_TOOL_CALLS:
+                    # Surface the dropped tool name + limit so the model can
+                    # explicitly say "I hit my per-request tool budget before
+                    # I could call X" instead of paraphrasing as "tool
+                    # unavailable" — which reads as a product failure.
+                    budget_error = {
+                        "error": "tool_call_budget_exceeded",
+                        "tool": block.name,
+                        "limit": _MAX_TOOL_CALLS,
+                        "message": (
+                            f"This request has already used its {_MAX_TOOL_CALLS}-tool "
+                            f"budget. The {block.name} call was not executed. The data "
+                            "exists; ask a follow-up scoped to this tool and it will run."
+                        ),
+                    }
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
-                        "content": "<tool_result>\n" + json.dumps({"error": "Tool call budget exceeded"}) + "\n</tool_result>",
+                        "content": "<tool_result>\n" + json.dumps(budget_error) + "\n</tool_result>",
                     })
+                    logger.warning(
+                        "tool_call_budget_exceeded: dropped tool=%s (limit=%d)",
+                        block.name,
+                        _MAX_TOOL_CALLS,
+                    )
                     continue
 
                 if block.name not in _BUDGET_EXEMPT_TOOLS:
