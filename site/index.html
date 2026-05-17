@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>NYC Property Intel — Know the building before you sign, offer, or file</title>
-  <meta name="description" content="NYC real estate due diligence from 20+ official city public record datasets — violations, liens, sales history, permits, rent stabilization, ownership. Free MCP server for Claude. Open source (MIT).">
+  <meta name="description" content="NYC property due diligence in one query. Violations, liens, sales, permits, ownership from 20+ official city datasets. Free. Open source.">
   <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
   <meta name="author" content="NYC Property Intel">
@@ -172,8 +172,10 @@
       },
       {
         "@type": "BreadcrumbList",
+        "@id": "https://nycpropertyintel.com/#breadcrumb",
         "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" }
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Try It", "item": "https://nycpropertyintel.com/chat" }
         ]
       }
     ]
@@ -183,10 +185,17 @@
   <link rel="canonical" href="https://nycpropertyintel.com/">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260425b">
+
+  <!-- Network hints — reduce TTFB on first chat query / first analytics ping -->
+  <link rel="preconnect" href="https://us.i.posthog.com" crossorigin>
+  <link rel="preconnect" href="https://us-assets.i.posthog.com" crossorigin>
+  <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
+  <link rel="dns-prefetch" href="https://app.loops.so">
+
+  <link rel="stylesheet" href="css/style.css?v=20260517">
 
   <!-- PostHog analytics -->
-  <script src="js/posthog-init.js?v=20260425b"></script>
+  <script src="js/posthog-init.js?v=20260517" defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -981,45 +990,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
     </div>
   </footer>
 
-  <script src="js/main.js?v=20260425b" defer></script>
+  <script src="js/main.js?v=20260517" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
-
-  <!-- Auto-expand <details> when navigated via anchor link (added 2026-05-16).
-       See docs/site-copy-update-spec-2026-05-16.md -->
-  <script>
-  (function () {
-    function openDetailsForHash() {
-      var hash = window.location.hash;
-      if (!hash || hash === '#') return;
-      var target;
-      try { target = document.querySelector(hash); } catch (e) { return; }
-      if (!target) return;
-      if (target.tagName === 'DETAILS' && !target.open) {
-        target.open = true;
-      } else {
-        var details = target.closest && target.closest('details');
-        if (details && !details.open) details.open = true;
-      }
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', openDetailsForHash);
-    } else {
-      openDetailsForHash();
-    }
-    window.addEventListener('hashchange', openDetailsForHash);
-    document.addEventListener('click', function (e) {
-      var link = e.target.closest && e.target.closest('a[href^="#"]');
-      if (!link) return;
-      var href = link.getAttribute('href');
-      if (!href || href === '#') return;
-      var target;
-      try { target = document.querySelector(href); } catch (err) { return; }
-      if (!target) return;
-      if (target.tagName === 'DETAILS' && !target.open) {
-        target.open = true;
-      }
-    });
-  })();
-  </script>
 </body>
 </html>

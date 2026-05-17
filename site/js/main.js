@@ -180,4 +180,39 @@
       }
     });
   });
+
+  // ── Auto-expand <details> when navigated via anchor link ──────
+  // Moved out of inline <script> in index.html so it isn't blocked
+  // by the CSP (script-src 'self' …; no 'unsafe-inline').
+  function openDetailsForHash() {
+    var hash = window.location.hash;
+    if (!hash || hash === "#") return;
+    var target;
+    try { target = document.querySelector(hash); } catch (e) { return; }
+    if (!target) return;
+    if (target.tagName === "DETAILS" && !target.open) {
+      target.open = true;
+    } else {
+      var details = target.closest && target.closest("details");
+      if (details && !details.open) details.open = true;
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", openDetailsForHash);
+  } else {
+    openDetailsForHash();
+  }
+  window.addEventListener("hashchange", openDetailsForHash);
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!link) return;
+    var href = link.getAttribute("href");
+    if (!href || href === "#") return;
+    var target;
+    try { target = document.querySelector(href); } catch (err) { return; }
+    if (!target) return;
+    if (target.tagName === "DETAILS" && !target.open) {
+      target.open = true;
+    }
+  });
 })();

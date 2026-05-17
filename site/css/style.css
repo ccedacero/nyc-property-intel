@@ -106,6 +106,10 @@ img {
   top: 0;
   z-index: 100;
   background: rgba(15, 23, 42, 0.95);
+  /* -webkit- prefix required for Safari (iOS Safari has no unprefixed support
+     even in 17.x). Without this the sticky nav falls back to a half-opaque
+     rgba band over the hero gradient — looks washed-out. */
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -397,8 +401,16 @@ img {
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* Was: repeat(2, 1fr) — 18 cards × 2-col = 9 rows of dense text on desktop.
+     auto-fill lets the grid breathe into 3 cols ≥1024px while staying 1-col
+     on narrow phones. */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+}
+
+/* Featured tool card spans the full row regardless of column count. */
+.tool-card-featured {
+  grid-column: 1 / -1;
 }
 
 .tool-card {
@@ -820,7 +832,9 @@ pre code {
 
 .final-cta {
   text-align: center;
-  background: var(--bg-alt);
+  /* Was --bg-alt which is not defined in :root — fell through to transparent.
+     --bg-secondary is the intended sibling-section background token. */
+  background: var(--bg-secondary);
 }
 
 .final-cta h2 {
