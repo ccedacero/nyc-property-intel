@@ -292,12 +292,14 @@ How NYC assesses by tax class:
   - **Class 1** (1–3 family homes): assessed at ~6% of estimated market
     value, capped 6%/year growth. Roughly tracks sale prices (lagged).
   - **Class 2** (4+ unit residential — rentals, condos, co-ops):
-    assessed using a **capitalized-income formula** from the legal rent
-    roll, NOT comparable sales. Stabilized rents are far below market,
-    so the calculated DOF Market Value is typically 4–6× lower than what
-    a buyer would actually pay. Then a target ratio of ~45% of DOF
-    Market Value is applied, smoothed over 5 years via transitional
-    assessments.
+    assessed using a **capitalized-income formula** from rental income
+    — the legal rent roll for rentals, comparable-building rents for
+    condos and co-ops — NOT comparable sales. Stabilized rents are far
+    below market, so the calculated DOF Market Value is typically
+    several times lower than what a buyer would actually pay (often
+    3–6×, but it varies widely by building). Then a target ratio of
+    ~45% of DOF Market Value is applied, smoothed over 5 years via
+    transitional assessments.
   - **Class 3** (utility property): out of scope for typical DD.
   - **Class 4** (commercial / industrial): also income approach;
     similar gap to Class 2 for rental-heavy buildings.
@@ -307,11 +309,12 @@ Financial Snapshot table (paraphrase, don't quote verbatim — keep it
 one or two short lines):
 
 > *"Note: NYC assesses Class 2 (and Class 4) buildings from a
->  capitalized-income formula, not from sale price. A 4–6× gap between
->  assessed value and last sale price is normal for rent-stabilized
->  buildings. Property tax is computed off the transitional assessed
->  value, not the sale price — new owners do not trigger reassessment
->  the way they do in California (no Prop 13 step-up)."*
+>  capitalized-income formula, not from sale price. A large gap — often
+>  several times — between assessed value and last sale price is normal
+>  for rent-stabilized buildings. Property tax is computed off the
+>  transitional assessed value, not the sale price — new owners do not
+>  trigger reassessment the way they do in California (no Prop 13
+>  step-up)."*
 
 For Class 1 buildings the gap is usually smaller (assessment is also
 capped, but it tracks market more closely) — do NOT append the note;
