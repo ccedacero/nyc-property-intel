@@ -31,7 +31,9 @@ ORDER BY caseopendate DESC NULLS LAST;"""
 _SQL_LITIGATION_SUMMARY = """\
 SELECT
     COUNT(*) AS total_cases,
-    COUNT(*) FILTER (WHERE casestatus = 'OPEN' OR casestatus = 'ACTIVE') AS open_cases,
+    -- HPD litigation data has no 'OPEN'/'ACTIVE' status; the active states
+    -- are 'PENDING' and 'APPLICATION PENDING'. ILIKE survives casing drift.
+    COUNT(*) FILTER (WHERE casestatus ILIKE '%PENDING%') AS open_cases,
     COUNT(*) FILTER (WHERE findingofharassment IS NOT NULL
         AND findingofharassment != '' AND findingofharassment != 'NO') AS harassment_findings,
     COUNT(*) FILTER (WHERE upper(openjudgement) = 'YES') AS open_judgements,
