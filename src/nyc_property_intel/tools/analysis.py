@@ -118,7 +118,9 @@ WHERE bbl = $1 AND problemduplicateflag IS NOT TRUE;"""
 _SQL_HPD_LITIGATIONS_SUMMARY = """\
 SELECT
     COUNT(*) AS total_cases,
-    COUNT(*) FILTER (WHERE casestatus IN ('OPEN', 'ACTIVE')) AS open_cases,
+    -- HPD litigation data has no 'OPEN'/'ACTIVE' status; the active states
+    -- are 'PENDING' and 'APPLICATION PENDING'. ILIKE survives casing drift.
+    COUNT(*) FILTER (WHERE casestatus ILIKE '%PENDING%') AS open_cases,
     COUNT(*) FILTER (
         WHERE findingofharassment IS NOT NULL
           AND findingofharassment NOT IN ('', 'NO')

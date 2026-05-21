@@ -7,7 +7,7 @@ Run with:
     uv run pytest tests/test_bug_regressions.py -m integration -v
 
 Tables required: hpd_violations, mv_violation_summary,
-                 marshal_evictions_all, nyc_311_complaints
+                 marshal_evictions_all, nyc_311_complaints, hpd_litigations
 """
 
 from __future__ import annotations
@@ -371,4 +371,105 @@ class TestQueensHyphenatedAddressPADFallback:
         # BBL should appear in display format (borough-block-lot) or raw.
         assert "1008350001" in msg or "1-00835-0001" in msg, (
             "Error must include the BBL so the user knows which property failed"
+        )
+
+
+# =============================================================================
+# Bug 6 — HPD litigations open_cases always reported 0
+# Root cause: open_cases counted `casestatus IN ('OPEN','ACTIVE')` — literals
+#             that never appear in hpd_litigations. The real active statuses
+#             are 'PENDING' and 'APPLICATION PENDING', so open_cases was 0 for
+#             every building (shipped broken from commits 169fdc1 / b75fc26).
+#             Likely a copy-paste from hpd_complaints, where `complaintstatus
+#             = 'OPEN'` is genuinely valid.
+# Fix: count `casestatus ILIKE '%PENDING%'` in both the get_hpd_litigations
+#      summary (_SQL_LITIGATION_SUMMARY) and the analyze_property summary
+#      (_SQL_HPD_LITIGATIONS_SUMMARY).
+# =============================================================================
+
+@pytest.mark.integration
+class TestBug6HpdLitigationsOpenCases:
+    """open_cases must count PENDING litigation, not the nonexistent 'OPEN'/'ACTIVE'."""
+
+    async def _bbl_with_pending_litigation(self) -> str | None:
+        """Pick a BBL that currently has PENDING litigation cases.
+
+        Discovery uses the exact literal 'PENDING' (independent of the fix's
+        `ILIKE '%PENDING%'` expression) so this test sets up its own known-good
+        data and never goes stale as individual cases close.
+        """
+        from nyc_property_intel.db import fetch_one
+        row = await fetch_one(
+            """
+            SELECT bbl
+            FROM hpd_litigations
+            WHERE casestatus = 'PENDING'
+            GROUP BY bbl
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+            """
+        )
+        return row["bbl"] if row else None
+
+    async def test_open_active_literal_absent_from_data(self):
+        """Root-cause guard: 'OPEN'/'ACTIVE' must not exist as a casestatus.
+
+        If HPD ever introduces those values the open_cases filter assumption
+        needs review — fail loudly rather than silently miscount.
+        """
+        from nyc_property_intel.db import fetch_one
+        row = await fetch_one(
+            "SELECT COUNT(*) AS n FROM hpd_litigations "
+            "WHERE upper(trim(casestatus)) IN ('OPEN', 'ACTIVE')"
+        )
+        assert row["n"] == 0, (
+            "hpd_litigations now has 'OPEN'/'ACTIVE' casestatus values — "
+            "the open_cases filter needs to be revisited"
+        )
+
+    async def test_get_hpd_litigations_open_cases_counts_pending(self):
+        """A building with PENDING litigation must report open_cases > 0."""
+        from nyc_property_intel.tools.hpd_litigations import get_hpd_litigations
+        bbl = await self._bbl_with_pending_litigation()
+        assert bbl, "No building with PENDING litigation in DB — cannot test Bug 6"
+
+        result = await get_hpd_litigations(bbl=bbl)
+        open_cases = result["summary"]["open_cases"]
+        assert open_cases > 0, (
+            f"BBL {bbl} has PENDING litigation rows but summary.open_cases="
+            f"{open_cases} — Bug 6 regression (filter not matching 'PENDING')"
+        )
+
+    async def test_open_cases_agrees_with_detail_rows(self):
+        """summary.open_cases must equal the count of PENDING-status detail rows.
+
+        Detail rows are unfiltered raw data, so they are the ground truth the
+        aggregate is checked against — catches the regression even if the
+        discovery query above were to drift.
+        """
+        from nyc_property_intel.tools.hpd_litigations import get_hpd_litigations
+        bbl = await self._bbl_with_pending_litigation()
+        assert bbl, "No building with PENDING litigation in DB — cannot test Bug 6"
+
+        result = await get_hpd_litigations(bbl=bbl)
+        detail_pending = sum(
+            1 for row in result["litigations"]
+            if "PENDING" in (row["casestatus"] or "").upper()
+        )
+        assert result["summary"]["open_cases"] == detail_pending, (
+            f"summary.open_cases={result['summary']['open_cases']} but "
+            f"{detail_pending} detail rows carry a PENDING status — Bug 6 regression"
+        )
+
+    async def test_analyze_property_litigation_summary_counts_pending(self):
+        """analyze_property's litigation summary SQL must also count PENDING."""
+        from nyc_property_intel.tools.analysis import _fetch_hpd_litigations_summary
+        bbl = await self._bbl_with_pending_litigation()
+        assert bbl, "No building with PENDING litigation in DB — cannot test Bug 6"
+
+        summary = await _fetch_hpd_litigations_summary(bbl)
+        assert summary is not None, "hpd_litigations table not loaded"
+        assert summary["open_cases"] > 0, (
+            f"BBL {bbl} has PENDING litigation but analyze_property reported "
+            f"open_cases={summary['open_cases']} — Bug 6 regression"
         )
