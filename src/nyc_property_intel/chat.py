@@ -65,7 +65,11 @@ _MAX_TOOL_CALLS = 16     # max individual tool calls per request
 # formats (esp. hyphenated Queens house numbers). Counting it would
 # starve the supplemental data tools.
 _BUDGET_EXEMPT_TOOLS = frozenset({"lookup_property"})
-_STREAM_TIMEOUT = 60.0   # seconds
+_STREAM_TIMEOUT = 180.0  # max seconds for one Anthropic streaming round.
+                         # A 200 only means headers arrived — without this a
+                         # stalled SSE stream hangs the request forever. Set
+                         # generously: a full ~6k-token report-compilation
+                         # round can legitimately stream for ~2 minutes.
 _MAX_MSG_LEN = 2000      # max user message length
 _MAX_HISTORY = 20        # max messages in conversation history
 
@@ -338,27 +342,41 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
         had_text = False
 
         try:
-            async with client.messages.stream(
-                model=_CHAT_MODEL,
-                max_tokens=_MAX_TOKENS,
-                system=[
-                    {
-                        "type": "text",
-                        "text": MCP_INSTRUCTIONS,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=messages,
-                tools=tools,
-            ) as stream:
-                async for event in stream:
-                    if event.type == "content_block_delta":
-                        if event.delta.type == "text_delta" and event.delta.text:
-                            had_text = True
-                            yield f"data: {json.dumps({'type': 'text_delta', 'text': event.delta.text})}\n\n"
+            # Bound the whole round on the Anthropic stream. A 200 only means
+            # headers arrived; if the SSE event stream then stalls, the awaits
+            # below would hang forever (the request never completes, the user
+            # stares at a spinner). Tool calls have their own 45s guard — this
+            # is the equivalent guard for the model call itself.
+            async with asyncio.timeout(_STREAM_TIMEOUT):
+                async with client.messages.stream(
+                    model=_CHAT_MODEL,
+                    max_tokens=_MAX_TOKENS,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": MCP_INSTRUCTIONS,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
+                    messages=messages,
+                    tools=tools,
+                ) as stream:
+                    async for event in stream:
+                        if event.type == "content_block_delta":
+                            if event.delta.type == "text_delta" and event.delta.text:
+                                had_text = True
+                                yield f"data: {json.dumps({'type': 'text_delta', 'text': event.delta.text})}\n\n"
 
-                final = await stream.get_final_message()
+                    final = await stream.get_final_message()
 
+        except TimeoutError:
+            logger.warning(
+                "Anthropic stream timed out after %.0fs (round %d)",
+                _STREAM_TIMEOUT, _round,
+            )
+            timeout_msg = "The model took too long to respond. Please retry."
+            yield f"data: {json.dumps({'type': 'error', 'message': timeout_msg})}\n\n"
+            return
         except anthropic.AuthenticationError:
             logger.error("Anthropic auth failed — check ANTHROPIC_API_KEY")
             yield f"data: {json.dumps({'type': 'error', 'message': 'Service configuration error'})}\n\n"
