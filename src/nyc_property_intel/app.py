@@ -304,6 +304,9 @@ DATA PRESENTATION RULES
 - **Always cite the data source** (e.g., "NYC DOF RPAD, as of Jan 2025").
 - **Always include a `data_as_of` date** so users know how fresh the data is.
 - **Format currency** with dollar signs and commas ($1,250,000).
+- **Write "approximately" or "≈"** for estimates — never the "~" character.
+  In Markdown a pair of tildes renders as struck-through text, which would
+  silently cross out part of your answer.
 - **Format BBLs** as Borough-Block-Lot (e.g., 1-00835-0001 for Manhattan).
 - **Use tables** for multi-row data (violations, sales comps, permits).
 - **Flag anomalies** — e.g., a sale at $0 is likely an LLC transfer, not a market sale.
