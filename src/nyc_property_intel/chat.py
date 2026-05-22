@@ -509,9 +509,14 @@ async def _record_anon_chat_query(
     pool,
     ip_hash: str,
     query_count: int,
+    ran_analyze: bool = False,
     anon_session_id: str | None = None,
 ) -> None:
     """Insert one row into anon_chat_queries.
+
+    `ran_analyze` records whether analyze_property (a full DD report) ran on
+    this request — it is the authoritative source for the anonymous
+    one-free-DD gate (see the anon_analyze_used check in chat_handler).
 
     Failures must NOT bubble out — anon-tracking is observability, not a
     user-visible feature. We log at warning level and swallow.
@@ -525,12 +530,13 @@ async def _record_anon_chat_query(
     try:
         await pool.execute(
             """
-            INSERT INTO anon_chat_queries (ip_hash, anon_session_id, query_count)
-            VALUES ($1, $2, $3)
+            INSERT INTO anon_chat_queries (ip_hash, anon_session_id, query_count, ran_analyze)
+            VALUES ($1, $2, $3, $4)
             """,
             ip_hash or None,
             anon_session_id,
             query_count,
+            ran_analyze,
         )
     except Exception as exc:
         # Includes UndefinedTableError if the migration hasn't been applied —
@@ -937,6 +943,14 @@ def make_chat_handlers(auth: TokenAuth):
             anon_ip_hash = ""
             logger.warning("Anon chat: no client IP available for hashing")
 
+        # Whether this anonymous visitor has already used their one free
+        # full-DD (analyze_property) report in the last 24h. This is the
+        # authoritative gate for the anon analyze allowance: the signed
+        # cookie cannot be trusted for it, because Set-Cookie is sent before
+        # the SSE body streams, so the handler never knows mid-stream whether
+        # analyze ran. Tracked server-side on anon_chat_queries.ran_analyze.
+        anon_analyze_used = False
+
         # Authoritative anon limit: COUNT(*) over last 24h by ip_hash.
         # Closes the cookie-clearing bypass. Skipped when:
         #   - request is authenticated (paid path, different limits apply)
@@ -947,7 +961,8 @@ def make_chat_handlers(auth: TokenAuth):
                 pool = await auth._get_pool()
                 row = await pool.fetchrow(
                     """
-                    SELECT COUNT(*) AS cnt
+                    SELECT COUNT(*) AS cnt,
+                           COUNT(*) FILTER (WHERE ran_analyze) AS analyze_cnt
                     FROM anon_chat_queries
                     WHERE ip_hash = $1
                       AND called_at > NOW() - INTERVAL '24 hours'
@@ -955,9 +970,10 @@ def make_chat_handlers(auth: TokenAuth):
                     anon_ip_hash,
                 )
                 ip_count = int(row["cnt"]) if row and row["cnt"] is not None else 0
+                anon_analyze_used = bool(row and row["analyze_cnt"])
             except Exception as exc:
-                # Table missing (migration not yet applied) or transient DB
-                # blip — fail open so a DB outage doesn't lock everyone out.
+                # Table/column missing (migration not yet applied) or transient
+                # DB blip — fail open so a DB outage doesn't lock everyone out.
                 logger.warning("Anon IP-hash limit check failed (fail-open): %s", exc)
                 ip_count = 0
 
@@ -974,9 +990,12 @@ def make_chat_handlers(auth: TokenAuth):
         # ── Build streaming response ──────────────────────────────────
         new_cookie_val: str | None = None
         if not is_authenticated:
-            # Pre-mark analyze as "used" (a=1) so next request will block it.
-            # anon_analyze_count still holds the value from THIS request (0 or 1).
-            new_cookie_val = make_session_cookie(query_count + 1, max(anon_analyze_count, 1))
+            # The cookie's analyze field mirrors server-side state as a cheap
+            # client hint only — it is NOT the gate. The analyze gate uses
+            # anon_analyze_used (authoritative 24h count keyed on ip_hash).
+            new_cookie_val = make_session_cookie(
+                query_count + 1, 1 if anon_analyze_used else 0
+            )
 
         # Build messages in Anthropic format. Strip any client-supplied assistant
         # turns — they could be fabricated to inject instructions into Claude's context.
@@ -1023,7 +1042,7 @@ def make_chat_handlers(auth: TokenAuth):
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': msg})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
-                        if not token_info and anon_analyze_count >= 1:
+                        if not token_info and anon_analyze_used:
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Full due-diligence reports require a free account.** Sign up below to get 10 queries/day including up to 5 full analysis reports — no credit card required.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
                             return
@@ -1063,6 +1082,7 @@ def make_chat_handlers(auth: TokenAuth):
                                 anon_pool,
                                 anon_ip_hash,
                                 query_count + 1,
+                                ran_analyze=analyze_calls_this_request > 0,
                             )
                         )
                 except Exception:
