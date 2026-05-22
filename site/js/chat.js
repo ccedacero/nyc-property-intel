@@ -61,6 +61,20 @@
       .replace(/"/g, "&quot;");
   }
 
+  /* Disable Markdown strikethrough. The model uses "~" as shorthand for
+     "approximately" (e.g. ~$1.9M); GFM parses a pair of tildes as a
+     strikethrough span and would silently cross out part of a report.
+     Render the tildes literally instead. */
+  if (typeof marked !== "undefined") {
+    marked.use({
+      renderer: {
+        del(text) {
+          return "~" + text + "~";
+        },
+      },
+    });
+  }
+
   /* ── Init ─────────────────────────────────────────────────────────── */
 
   function init() {
