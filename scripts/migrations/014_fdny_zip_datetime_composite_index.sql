@@ -1,0 +1,56 @@
+-- Migration 014: composite index on fdny_incidents(zipcode, incident_datetime DESC).
+--
+-- Context: the FDNY tool query in src/nyc_property_intel/tools/fdny.py filters
+-- WHERE zipcode = $1 ORDER BY incident_datetime DESC LIMIT $5. Production
+-- already carries a single-column index `fdny_zip_idx (zipcode)` and a
+-- `idx_fdny_datetime (incident_datetime DESC)`, but the planner currently
+-- picks the datetime index and scans backwards filtering by zipcode inline,
+-- removing ~540k rows per query to find 20 matches. Avg execution is ~9.8s
+-- (worst query in the system by 5×, per PgHero on 2026-05-23).
+--
+-- The single-column zip index isn't chosen because using it would require
+-- a separate sort step for the ORDER BY. A composite
+-- `(zipcode, incident_datetime DESC)` satisfies the equality filter AND the
+-- order-by in one bounded index walk — sub-100ms expected.
+--
+-- Verified on prod 2026-05-23 (zip 10118, Empire State Bldg, 1139 rows):
+--   Current plan  : 2,951 ms — Index Scan on idx_fdny_datetime, 542,245 rows
+--                              removed by Filter (zipcode = '10118').
+--   Composite (sim): 7.8 ms  — Bitmap scan on fdny_zip_idx + top-N heapsort.
+--                              True composite index will be faster than this.
+--
+-- Safety:
+--   - Additive change. No existing index is dropped. No code or query change.
+--     (Duplicate single-column indexes `fdny_zip_idx`, `idx_fdny_datetime`,
+--     `fdny_datetime_idx`, `idx_fdny_borough`, `fdny_borough_idx` are left in
+--     place — cleanup is out of scope for this PR.)
+--   - `CREATE INDEX CONCURRENTLY` does NOT block reads or writes during the
+--     build. Estimated 5-15 minutes on the 11.8M-row table.
+--   - Idempotent via IF NOT EXISTS.
+--   - Write amplification: one additional btree maintained on inserts/updates.
+--     sync_delta.py does per-row upserts (no bulk COPY), so impact is
+--     negligible.
+--
+-- How to apply (MANUAL — there is no auto-migration runner):
+--
+--   railway run --service Postgres -- bash -c \
+--     'psql "$DATABASE_PUBLIC_URL" -f scripts/migrations/014_fdny_zip_datetime_composite_index.sql'
+--
+-- IMPORTANT: this file MUST be executed as standalone statements, NOT wrapped
+-- in BEGIN/COMMIT — `CREATE INDEX CONCURRENTLY` cannot run inside a
+-- transaction block. If it ever fails partway, drop the resulting INVALID
+-- index (`DROP INDEX CONCURRENTLY IF EXISTS idx_fdny_zip_datetime;`) and
+-- retry. Check status with:
+--   SELECT indexrelid::regclass, indisvalid FROM pg_index
+--    WHERE indrelid = 'fdny_incidents'::regclass;
+--
+-- Post-apply verification:
+--   EXPLAIN (ANALYZE, BUFFERS)
+--   SELECT starfire_incident_id FROM fdny_incidents
+--    WHERE zipcode = '10118' ORDER BY incident_datetime DESC LIMIT 20;
+--   -- Expect: Index Scan using idx_fdny_zip_datetime, ~10 ms or less.
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_fdny_zip_datetime
+    ON fdny_incidents (zipcode, incident_datetime DESC);
+
+ANALYZE fdny_incidents;
