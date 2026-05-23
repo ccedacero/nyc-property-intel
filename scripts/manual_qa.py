@@ -9,8 +9,8 @@ Tests:
   - Edge cases: empty results, invalid inputs, both-input guard
   - Multi-borough coverage: all 5 boroughs exercised
 
-Run with:
-    cd /Users/devtzi/dev/nyc-property-intel && uv run python scripts/manual_qa.py
+Run from the repo root:
+    uv run python scripts/manual_qa.py
 """
 from __future__ import annotations
 

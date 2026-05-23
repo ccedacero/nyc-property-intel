@@ -16,6 +16,17 @@ ENV/
 
 # Environment variables
 .env
+.env.*
+!.env.example
+
+# Secrets / certs (defense-in-depth)
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+secrets/
+private/
 
 # Data files
 data/
@@ -51,3 +62,10 @@ htmlcov/
 # Local ops scripts — never commit (exclude safe ones below)
 scripts/*.sh
 !scripts/issue_token.sh
+
+# Private notes, launch copy, build-environment artifacts (never publish)
+docs/pending-todos-*.md
+docs/launch-copy/
+.claude/skills/
+.claude/worktrees/
+.claude/settings.local.json
