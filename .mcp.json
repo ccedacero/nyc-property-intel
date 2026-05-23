@@ -3,7 +3,7 @@
     "nyc-property-intel": {
       "command": "uv",
       "args": ["run", "nyc-property-intel"],
-      "cwd": "/Users/devtzi/dev/nyc-property-intel"
+      "cwd": "."
     }
   }
 }

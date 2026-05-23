@@ -199,11 +199,18 @@
         <h3>This Website</h3>
         <p>
           This website uses <a href="https://posthog.com" target="_blank" rel="noopener noreferrer">PostHog</a>
-          for product analytics (page views, CTA interactions, and signup events). PostHog
-          collects standard browser analytics data including anonymized IP addresses,
-          referring URLs, and interaction events. No personally identifiable information
-          is sent to PostHog unless you submit the signup form, at which point the
-          event is associated with your email address.
+          for privacy-conscious product analytics, limited to page views, clicks on
+          links and buttons, and signup events. PostHog collects anonymized IP addresses,
+          referring URLs, and the interaction events listed above. No personally
+          identifiable information is sent to PostHog unless you submit the signup form,
+          at which point the event is associated with your email address.
+        </p>
+        <p>
+          We <strong>do not</strong> record user sessions, keystrokes, mouse movements,
+          form-field contents (including the address bar in the chat interface), or any
+          input you type while using the Software. Session replay and heatmap features
+          are explicitly disabled at the client level (<code>disable_session_recording: true</code>)
+          and at the PostHog project level. Form-field capture is not enabled.
         </p>
         <p>
           Standard server logs (IP addresses, timestamps, user-agent strings) may be
