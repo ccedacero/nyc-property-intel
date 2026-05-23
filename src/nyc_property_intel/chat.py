@@ -443,7 +443,7 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                     logger.warning("Tool %s timed out", block.name)
                     result_str = "<tool_result>\n" + json.dumps({"error": "Tool timed out"}) + "\n</tool_result>"
                 except Exception as exc:
-                    logger.warning("Tool %s error: %s", block.name, exc)
+                    logger.warning("Tool %s error: %r", block.name, exc, exc_info=True)
                     result_str = "<tool_result>\n" + json.dumps({"error": "Tool execution failed"}) + "\n</tool_result>"
 
                 tool_results.append({
