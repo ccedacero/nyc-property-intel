@@ -97,18 +97,32 @@
       btn.disabled = true;
       btn.textContent = "Sending…";
 
+      // Cloudflare Turnstile token (optional client-side; backend only
+      // enforces when SIGNUP_REQUIRE_TURNSTILE=true). getResponse returns
+      // an empty string when the widget isn't loaded / hasn't rendered;
+      // backend treats that as an invalid token when enforcement is on.
+      var turnstileToken = "";
+      if (typeof window.turnstile !== "undefined" && typeof window.turnstile.getResponse === "function") {
+        try {
+          turnstileToken = window.turnstile.getResponse() || "";
+        } catch (e) {
+          turnstileToken = "";
+        }
+      }
+
       // POST as JSON — matches the backend handler's contract.
       // The handler accepts:
-      //   { email, hp_field?, started_at_ms? }
+      //   { email, hp_field?, started_at_ms?, turnstile_token? }
       // hp_field is the future honeypot (always absent from real users).
       // started_at_ms is the future time-on-form check (Phase D).
       fetch(SIGNUP_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ email: email, turnstile_token: turnstileToken }),
       })
         .then(function (res) {
           if (res.status === 429) throw new Error("rate_limited");
+          if (res.status === 403) throw new Error("verification_failed");
           if (!res.ok) throw new Error("server_error");
           return res.json();
         })
@@ -131,9 +145,18 @@
         .catch(function (err) {
           btn.disabled = false;
           btn.textContent = SIGNUP_BTN_DEFAULT_LABEL;
+          // Reset Turnstile so the user can retry — a used token can't be
+          // re-submitted, and an expired/failed challenge needs a fresh
+          // widget render. Safe to call even when the widget isn't present.
+          if (typeof window.turnstile !== "undefined" && typeof window.turnstile.reset === "function") {
+            try { window.turnstile.reset(); } catch (e) { /* no-op */ }
+          }
           if (err.message === "rate_limited") {
             signupError.textContent =
               "Too many signups from this address. Try again in an hour.";
+          } else if (err.message === "verification_failed") {
+            signupError.textContent =
+              "Bot check failed. Please complete the verification and try again.";
           } else if (err.message === "server_error") {
             signupError.textContent =
               "Something went wrong. Try again in a moment.";

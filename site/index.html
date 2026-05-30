@@ -196,6 +196,12 @@
 
   <!-- PostHog analytics -->
   <script src="js/posthog-init.js?v=20260522" defer></script>
+
+  <!-- Cloudflare Turnstile (bot protection for the signup form). The widget
+       div lives inside #hero-signup-form below. Enforcement is server-side:
+       even when SIGNUP_REQUIRE_TURNSTILE=false the widget still renders, but
+       the backend ignores the token. -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -276,6 +282,7 @@
                 >
                 <button type="submit" class="btn btn-primary signup-btn">Email me a token</button>
               </div>
+              <div class="cf-turnstile" data-sitekey="0x4AAAAAADY8QhEV-blZh8z1" style="margin-top:0.75rem;"></div>
               <p class="signup-error" id="hero-signup-error" role="alert" aria-live="polite"></p>
             </form>
             <div class="hero-signup-success" id="hero-signup-success" hidden>

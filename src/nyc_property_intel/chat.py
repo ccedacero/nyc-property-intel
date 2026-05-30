@@ -320,6 +320,67 @@ async def _send_activation_email(email: str, activation_url: str) -> None:
         logger.info("Activation email sent to %s", email)
 
 
+# ── Cloudflare Turnstile siteverify ───────────────────────────────────
+
+_TURNSTILE_SITEVERIFY_URL = (
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+)
+
+
+async def _verify_turnstile(token: str, client_ip: str = "") -> bool:
+    """Validate a Turnstile token against Cloudflare's siteverify API.
+
+    Returns True only when Cloudflare confirms the token is valid AND the
+    secret is configured. Returns False on every failure mode — missing
+    token, missing/empty secret, network error, non-2xx response, or
+    Cloudflare returning success=false.
+
+    Callers MUST gate on `settings.signup_require_turnstile` first; this
+    function does not check the feature flag itself.
+    """
+    if not token or not settings.signup_turnstile_secret:
+        return False
+
+    payload = {
+        "secret": settings.signup_turnstile_secret,
+        "response": token,
+    }
+    if client_ip and client_ip != "unknown":
+        payload["remoteip"] = client_ip
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(_TURNSTILE_SITEVERIFY_URL, data=payload)
+    except Exception as exc:
+        logger.warning("Turnstile siteverify network error: %s", exc)
+        return False
+
+    if not resp.is_success:
+        logger.warning(
+            "Turnstile siteverify non-2xx: %s %s",
+            resp.status_code, resp.text[:200],
+        )
+        return False
+
+    try:
+        data = resp.json()
+    except Exception:
+        logger.warning(
+            "Turnstile siteverify returned non-JSON: %s", resp.text[:200]
+        )
+        return False
+
+    if not data.get("success"):
+        # error-codes is Cloudflare's diagnostic list — log for forensics.
+        logger.warning(
+            "Turnstile siteverify rejected: error-codes=%s",
+            data.get("error-codes"),
+        )
+        return False
+
+    return True
+
+
 # ── Agentic loop ──────────────────────────────────────────────────────
 
 def _block_to_dict(block) -> dict:
@@ -1256,6 +1317,36 @@ def make_signup_endpoint_handler(auth: TokenAuth):
         if not _check_signup_ip_rate_limit(client_ip):
             logger.warning("/api/signup rate limit hit for IP %s", client_ip)
             return JSONResponse({"error": "Too many requests"}, status_code=429)
+
+        # ── Cloudflare Turnstile (bot protection) ────────────────────
+        # Frontend always sends `turnstile_token`. We validate only when
+        # SIGNUP_REQUIRE_TURNSTILE=true AND a secret is configured; that
+        # way the widget can be rolled out client-side and verified before
+        # enforcement is flipped on server-side. Failures count as
+        # rejections, NOT submissions, so they're filtered out of the
+        # signup_form_submitted funnel below.
+        if settings.signup_require_turnstile:
+            turnstile_token = str(body.get("turnstile_token", "")).strip()
+            verified = await _verify_turnstile(turnstile_token, client_ip)
+            if not verified:
+                logger.warning(
+                    "/api/signup turnstile failed: email=%s ip=%s token_present=%s",
+                    email,
+                    client_ip,
+                    bool(turnstile_token),
+                )
+                ph_capture(
+                    email,
+                    "signup_rejected_turnstile",
+                    {
+                        "source": "api_signup",
+                        "token_present": bool(turnstile_token),
+                    },
+                )
+                return JSONResponse(
+                    {"error": "Verification failed. Please refresh and try again."},
+                    status_code=403,
+                )
 
         # Funnel-top event — fires for every well-formed POST that passes
         # rate-limit + email-shape, regardless of whether the email gets
