@@ -99,6 +99,14 @@ class Settings(BaseSettings):
     # across deploys (so the same visitor produces the same ip_hash).
     anon_ip_hash_secret: str = ""
 
+    # Global hard ceiling on anonymous /api/chat queries per rolling hour,
+    # server-wide and IP-independent. Backstops the per-IP limit against
+    # IP-spoofing / NAT-rotation attacks that grant a fresh allowance per
+    # forged IP. When tripped, anon requests return 429 with
+    # `free_global_limit_reached`. Authenticated requests are unaffected.
+    # Tune up before launch spikes; this is a cost cap, not a quality signal.
+    chat_anon_global_hourly_cap: int = 200
+
     # ── /api/signup Cloudflare Turnstile (deferred — accepted but NOT enforced) ──
     # When True, the new POST /api/signup handler will validate the
     # `turnstile_token` field server-side via Cloudflare's siteverify API

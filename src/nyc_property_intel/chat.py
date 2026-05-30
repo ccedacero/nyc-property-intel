@@ -951,6 +951,54 @@ def make_chat_handlers(auth: TokenAuth):
                     status_code=402,
                 )
 
+            # Global hard ceiling on anon queries per rolling hour. IP-
+            # independent — backstops the per-IP check below against IP
+            # spoofing / NAT rotation that grants a fresh allowance per
+            # forged IP. Fail-open on DB blip so a transient outage doesn't
+            # take the chat down.
+            try:
+                pool = await auth._get_pool()
+                global_row = await pool.fetchrow(
+                    "SELECT COUNT(*) AS cnt FROM anon_chat_queries "
+                    "WHERE called_at > NOW() - INTERVAL '1 hour'"
+                )
+                global_cnt = (
+                    int(global_row["cnt"])
+                    if global_row and global_row["cnt"] is not None
+                    else 0
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Anon global hourly cap check failed (fail-open): %s", exc
+                )
+                global_cnt = 0
+
+            if global_cnt >= settings.chat_anon_global_hourly_cap:
+                logger.warning(
+                    "Anon global hourly cap reached: %d/%d in the last hour",
+                    global_cnt,
+                    settings.chat_anon_global_hourly_cap,
+                )
+                ph_capture(
+                    "anonymous",
+                    "anon_global_cap_reached",
+                    {
+                        "global_count_last_hour": global_cnt,
+                        "cap": settings.chat_anon_global_hourly_cap,
+                    },
+                )
+                return JSONResponse(
+                    {
+                        "error": "free_global_limit_reached",
+                        "message": (
+                            "Free tier is temporarily over capacity. "
+                            "Sign up for a free account to continue, or "
+                            "try again in an hour."
+                        ),
+                    },
+                    status_code=429,
+                )
+
         # Pre-compute IP hash for anonymous tracking. We never store the raw IP.
         # `client_ip` was already extracted above for IP rate limiting (handles
         # Fastly / CF / x-forwarded-for chain). If extraction failed entirely
