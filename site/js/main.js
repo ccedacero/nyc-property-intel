@@ -81,11 +81,65 @@
   var signupError = document.getElementById("hero-signup-error");
 
   if (signupForm) {
+    var signupBtn = signupForm.querySelector(".signup-btn");
+
+    // ── Turnstile gating ────────────────────────────────────────────
+    // The submit button is `disabled` in HTML by default; we enable it
+    // only when Turnstile has issued a token. This closes the race the
+    // first-test session hit: button clickable, Turnstile widget visually
+    // "Success!", but `getResponse()` returns "" (token consumed by an
+    // earlier in-flight attempt OR widget reset still pending). Submitting
+    // an empty token gets 403 from the backend, which UX-rendered as the
+    // misleading "Something went wrong" fallback.
+    //
+    // Polling instead of relying on the `data-callback` attribute because
+    // Turnstile's script tag uses `async`, so it may run BEFORE main.js
+    // installs callbacks on `window` — auto-render would silently no-op.
+    // Polling getResponse() works regardless of script load order.
+    var turnstilePollId = null;
+    var turnstileTimeoutId = null;
+    var TURNSTILE_POLL_MS = 500;
+    var TURNSTILE_FALLBACK_MS = 15000;
+
+    function turnstileGateButton() {
+      if (turnstilePollId) clearInterval(turnstilePollId);
+      if (turnstileTimeoutId) clearTimeout(turnstileTimeoutId);
+      signupBtn.disabled = true;
+
+      turnstilePollId = setInterval(function () {
+        if (typeof window.turnstile === "undefined") return;
+        if (typeof window.turnstile.getResponse !== "function") return;
+        var t = "";
+        try { t = window.turnstile.getResponse() || ""; } catch (e) { /* ignore */ }
+        if (t) {
+          clearInterval(turnstilePollId);
+          clearTimeout(turnstileTimeoutId);
+          turnstilePollId = null;
+          turnstileTimeoutId = null;
+          signupBtn.disabled = false;
+        }
+      }, TURNSTILE_POLL_MS);
+
+      // Fallback: if Turnstile never issues a token (ad blocker, network
+      // failure, script blocked by CSP, etc.), un-gate the button after
+      // 15s so the user gets a clear "Bot check failed" response from the
+      // backend instead of a permanently dead form.
+      turnstileTimeoutId = setTimeout(function () {
+        if (turnstilePollId) clearInterval(turnstilePollId);
+        turnstilePollId = null;
+        turnstileTimeoutId = null;
+        signupBtn.disabled = false;
+      }, TURNSTILE_FALLBACK_MS);
+    }
+
+    // Start the initial gate as soon as main.js runs.
+    turnstileGateButton();
+
     signupForm.addEventListener("submit", function (e) {
       e.preventDefault();
 
       var email = signupForm.querySelector('input[name="email"]').value.trim();
-      var btn = signupForm.querySelector(".signup-btn");
+      var btn = signupBtn;
 
       signupError.textContent = "";
 
@@ -94,21 +148,22 @@
         return;
       }
 
-      btn.disabled = true;
-      btn.textContent = "Sending…";
-
-      // Cloudflare Turnstile token (optional client-side; backend only
-      // enforces when SIGNUP_REQUIRE_TURNSTILE=true). getResponse returns
-      // an empty string when the widget isn't loaded / hasn't rendered;
-      // backend treats that as an invalid token when enforcement is on.
+      // Defense in depth: even if the button gate failed (e.g., fallback
+      // timeout fired), don't ship an empty token to the backend — that's
+      // a guaranteed 403 with the misleading "Something went wrong".
       var turnstileToken = "";
       if (typeof window.turnstile !== "undefined" && typeof window.turnstile.getResponse === "function") {
-        try {
-          turnstileToken = window.turnstile.getResponse() || "";
-        } catch (e) {
-          turnstileToken = "";
-        }
+        try { turnstileToken = window.turnstile.getResponse() || ""; } catch (err) { turnstileToken = ""; }
       }
+      if (!turnstileToken) {
+        signupError.textContent =
+          "Please wait a moment for verification to complete, then try again.";
+        turnstileGateButton();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Sending…";
 
       // POST as JSON — matches the backend handler's contract.
       // The handler accepts:
@@ -143,14 +198,18 @@
           }
         })
         .catch(function (err) {
-          btn.disabled = false;
           btn.textContent = SIGNUP_BTN_DEFAULT_LABEL;
-          // Reset Turnstile so the user can retry — a used token can't be
-          // re-submitted, and an expired/failed challenge needs a fresh
-          // widget render. Safe to call even when the widget isn't present.
+          // Reset Turnstile — used tokens can't be re-submitted, and a
+          // failed challenge needs a fresh widget render. Safe to call
+          // even when the widget isn't present.
           if (typeof window.turnstile !== "undefined" && typeof window.turnstile.reset === "function") {
             try { window.turnstile.reset(); } catch (e) { /* no-op */ }
           }
+          // Re-gate the button: poll until a fresh token is available.
+          // This is the critical fix — the previous version re-enabled
+          // the button immediately on error, allowing a second click
+          // before Turnstile's reset() had issued a new token.
+          turnstileGateButton();
           if (err.message === "rate_limited") {
             signupError.textContent =
               "Too many signups from this address. Try again in an hour.";
