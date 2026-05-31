@@ -48,7 +48,13 @@
         "@type": "Organization",
         "@id": "https://nycpropertyintel.com/#organization",
         "name": "NYC Property Intel",
-        "url": "https://nycpropertyintel.com/"
+        "url": "https://nycpropertyintel.com/",
+        "logo": "https://nycpropertyintel.com/assets/logo-400.png",
+        "description": "NYC real estate due diligence tool — surfaces public record data from 20+ official city datasets via Claude AI.",
+        "sameAs": [
+          "https://github.com/ccedacero/nyc-property-intel",
+          "https://twitter.com/nycpropertyintel"
+        ]
       },
       {
         "@type": "SoftwareApplication",
@@ -56,7 +62,7 @@
         "name": "NYC Property Intel",
         "description": "MCP server for NYC property due diligence — surfaces public record data from 20+ city datasets via Claude AI",
         "applicationCategory": "BusinessApplication",
-        "operatingSystem": "macOS, Linux, Windows",
+        "operatingSystem": ["macOS", "Linux", "Windows"],
         "softwareVersion": "0.1.1",
         "url": "https://nycpropertyintel.com/",
         "downloadUrl": "https://github.com/ccedacero/nyc-property-intel",
@@ -122,7 +128,7 @@
           },
           {
             "@type": "Question",
-            "name": "How do I check building violations in NYC?",
+            "name": "How do I check NYC building violations?",
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "You can check NYC building violations using NYC Property Intel by providing an address or BBL. The get_property_issues tool returns both HPD housing violations and DOB building code violations with severity, status, and dates. Alternatively, you can search individual agency websites: HPD Online for housing violations, DOB BIS or DOB NOW for building violations."
@@ -928,6 +934,20 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
             <summary class="faq-q">Does NYC Property Intel comply with fair housing law?</summary>
             <div class="faq-a">
               <p>Yes. NYC Property Intel provides building and property data from public city records only. It does not provide demographic data, tenant screening, or any analysis based on protected characteristics. It operates in compliance with the Fair Housing Act, the New York State Human Rights Law, and the NYC Human Rights Law. See the <a href="#fair-housing">Fair Housing section</a> for full details.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">How do I look up building permits in NYC?</summary>
+            <div class="faq-a">
+              <p>NYC building permits are filed with the Department of Buildings (DOB) and recorded in the BIS (Building Information System). Using NYC Property Intel&rsquo;s <code>get_building_permits</code> tool, you can retrieve all DOB job filings for a property &mdash; new buildings, alterations, demolitions, and sign permits &mdash; including scope of work, estimated cost, job status, and applicant name. Ask Claude: &ldquo;What permits have been filed at [address]?&rdquo;</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">Can AI access NYC public property records?</summary>
+            <div class="faq-a">
+              <p>Yes. NYC Property Intel is an <abbr title="Model Context Protocol">MCP</abbr> server that gives Claude AI direct access to 20+ NYC public record datasets. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due-diligence reports &mdash; all from public city records. Available as a hosted service or self-hosted via the open-source repo.</p>
             </div>
           </details>
 
