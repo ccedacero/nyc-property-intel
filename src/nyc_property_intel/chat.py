@@ -1168,18 +1168,30 @@ def make_chat_handlers(auth: TokenAuth):
                             )
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': msg})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
-                            return
+                            # Stop streaming, but break (not return) so we fall
+                            # through to the recording block below — a served
+                            # request must count even when the analyze cap blocks
+                            # it, or the authoritative DB count drifts below the
+                            # cookie counter (the gate then silently leaks budget).
+                            break
                         if not token_info and anon_analyze_used:
                             yield f"data: {json.dumps({'type': 'text_delta', 'text': '\n\n**Full due-diligence reports require a free account.** Sign up below to get 10 queries/day including up to 5 full analysis reports — no credit card required.'})}\n\n"
                             yield f"data: {json.dumps({'type': 'done'})}\n\n"
-                            return
+                            # Break (not return) so the blocked 2nd full-DD still
+                            # records an anon_chat_queries row below — otherwise it
+                            # advances the cookie counter but not the DB count,
+                            # letting a cookie-clearing visitor evade the gate.
+                            break
                         analyze_calls_this_request += 1
                 except Exception:
                     pass
                 yield chunk
 
-            # Record exactly one call per request. Use "analyze_property" when
-            # analyze ran so _count_analyze_today stays accurate for the daily cap.
+            # Record exactly one call per request — reached on normal completion
+            # AND after a cap/block break above, so every served request counts.
+            # Use "analyze_property" when analyze actually ran so
+            # _count_analyze_today stays accurate for the daily cap (a blocked
+            # attempt records ran_analyze=False, since analyze never executed).
             if token_info:
                 try:
                     tool_name = "analyze_property" if analyze_calls_this_request else "web_chat"
