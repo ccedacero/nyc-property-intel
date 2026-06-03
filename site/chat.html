@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Try It — NYC Property Intel</title>
-  <meta name="description" content="Ask about any NYC property. Free AI-powered due diligence from 20+ public record databases — violations, sales history, liens, permits, and more.">
+  <title>NYC Property Lookup — Free Building Search | NYC Property Intel</title>
+  <meta name="description" content="Free NYC property lookup. Search any building or address for violations, liens, sales history, permits, ownership, and rent-stabilization status across 20+ official NYC datasets. First queries free, no signup.">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0f172a">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="NYC Property Intel — Try It Free">
-  <meta property="og:description" content="Ask about any NYC property. AI-powered due diligence from 20+ public record databases.">
+  <meta property="og:title" content="NYC Property Lookup — Free Building Search">
+  <meta property="og:description" content="Search any NYC building for violations, liens, sales, permits, ownership, and rent-stabilization status across 20+ official city datasets. First queries free.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="NYC Property Intel">
   <meta property="og:url" content="https://nycpropertyintel.com/chat">
@@ -22,8 +22,8 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NYC Property Intel — Try It Free">
-  <meta name="twitter:description" content="Ask about any NYC property. AI-powered due diligence from 20+ public record databases.">
+  <meta name="twitter:title" content="NYC Property Lookup — Free Building Search">
+  <meta name="twitter:description" content="Search any NYC building for violations, liens, sales, permits, ownership, and rent-stabilization status across 20+ official city datasets. First queries free.">
   <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png">
   <meta name="twitter:creator" content="@nycpropertyintel">
   <meta name="twitter:site" content="@nycpropertyintel">
@@ -31,6 +31,55 @@
   <link rel="canonical" href="https://nycpropertyintel.com/chat">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <!-- Structured data: the lookup tool page (WebPage + WebApplication + breadcrumb).
+       References the #website / #software entities defined on the homepage. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://nycpropertyintel.com/chat#webpage",
+        "url": "https://nycpropertyintel.com/chat",
+        "name": "NYC Property Lookup — Free Building Search",
+        "description": "Free AI-powered NYC property lookup. Search any building or address for violations, liens, sales history, permits, ownership, and rent-stabilization status across 20+ official NYC datasets.",
+        "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+        "about": { "@id": "https://nycpropertyintel.com/#software" },
+        "inLanguage": "en-US",
+        "breadcrumb": { "@id": "https://nycpropertyintel.com/chat#breadcrumb" }
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://nycpropertyintel.com/chat#webapp",
+        "name": "NYC Property Intel — Property Lookup",
+        "url": "https://nycpropertyintel.com/chat",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+        "featureList": [
+          "NYC building violations (HPD, DOB, ECB)",
+          "Property sales history (ACRIS / DOF)",
+          "Tax liens and encumbrances",
+          "Building permits",
+          "Ownership lookup",
+          "Rent-stabilization status",
+          "Full due-diligence report"
+        ],
+        "isPartOf": { "@id": "https://nycpropertyintel.com/#website" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://nycpropertyintel.com/chat#breadcrumb",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Property Lookup", "item": "https://nycpropertyintel.com/chat" }
+        ]
+      }
+    ]
+  }
+  </script>
 
   <!-- Network hints — first chat query reaches Railway; pre-warm the connection -->
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
@@ -127,7 +176,7 @@
         <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Conversation">
           <!-- Welcome state — hidden once first message is sent -->
           <div class="chat-welcome" id="chat-welcome">
-            <h1 class="chat-welcome-title">NYC Property Intel</h1>
+            <h1 class="chat-welcome-title">Look Up Any NYC Building</h1>
             <p class="chat-welcome-sub">
               Type an address or BBL to get started. I'll return violations,
               sales, liens, permits, and ownership from 20+ official NYC datasets.
@@ -207,8 +256,8 @@
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <!-- SCRIPTS                                                        -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
-  <script src="js/vendor/marked.min.js?v=20260425b"></script>
-  <script src="js/vendor/purify.min.js?v=20260425b"></script>
+  <script src="js/vendor/marked.min.js?v=20260425b" defer></script>
+  <script src="js/vendor/purify.min.js?v=20260425b" defer></script>
   <script src="js/main.js?v=20260517" defer></script>
   <script src="js/chat.js?v=20260517" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>

@@ -28,7 +28,7 @@ All data surfaced by the Software is sourced from **public records** published b
 
 **Records change frequently.** A violation may be cured, a lien may be satisfied, an owner of record may change, a complaint may be re-classified, or an underlying dataset may be revised by the publishing agency — between the time data was loaded into the Software and the time you query it. The Software displays as-of dates where possible; **always verify directly with the source agency before acting on any data point.**
 
-The author makes no representation that the Software's data is complete, current, or free from error. Some datasets are loaded on a refresh cadence (typically monthly); others are fetched live via the Socrata API and reflect the underlying agency's then-current state. See [nycpropertyintel.com/legal#data-attribution](https://nycpropertyintel.com/legal.html#data-attribution) for the per-dataset refresh schedule.
+The author makes no representation that the Software's data is complete, current, or free from error. Some datasets are loaded on a refresh cadence (typically monthly); others are fetched live via the Socrata API and reflect the underlying agency's then-current state. Refresh cadence varies by dataset and may change over time; see [nycpropertyintel.com/legal#data-attribution](https://nycpropertyintel.com/legal.html#data-attribution) for data attribution and sourcing, and always verify currency directly with the source agency.
 
 ## 3. Information about specific properties, owners, and individuals
 
