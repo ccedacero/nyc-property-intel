@@ -1,0 +1,28 @@
+# NYC Property Intel
+
+> Free, open-source NYC real-estate due-diligence tool. Ask about any NYC property (by address or BBL) in plain English and get structured public-record intelligence — violations, sales history, liens, permits, ownership, rent-stabilization status, and more — pulled live from 20+ official New York City datasets. Available as a web chat and as an MCP server for Claude. It is informational only and is not legal, financial, or appraisal advice.
+
+## Key pages
+
+- [Home](https://nycpropertyintel.com/): What it does, the 18 tools, the 20 datasets, and FAQ.
+- [Property Lookup (web chat)](https://nycpropertyintel.com/chat): Free interactive lookup — no install required. First queries free without signup; 10 queries/day with a free account.
+- [Legal, Privacy & Fair Housing](https://nycpropertyintel.com/legal): Terms of use, privacy policy, data attribution, and fair-housing compliance statement.
+- [Source code (GitHub)](https://github.com/ccedacero/nyc-property-intel): MIT-licensed; self-hosting and MCP setup instructions.
+
+## What it does
+
+NYC Property Intel answers due-diligence questions about NYC buildings for investors, attorneys, brokers, and renters. Give it an address or a BBL (Borough-Block-Lot) and it returns data sourced from NYC Open Data and city agencies. It does not estimate or appraise property values.
+
+## Tools (18)
+
+lookup_property, get_property_issues, get_property_history, get_hpd_complaints, get_hpd_litigations, get_hpd_registration, get_building_permits, get_dob_complaints, get_liens_and_encumbrances, get_tax_info, get_rent_stabilization, get_fdny_fire_incidents, get_311_complaints, get_evictions, get_nypd_crime, search_comps, search_neighborhood_stats, analyze_property (full due-diligence report).
+
+## Data sources (selection)
+
+PLUTO, PAD, GeoClient (address resolution), HPD violations / complaints / registrations / litigations, DOB & ECB violations, DOB complaints, DOF rolling & annual sales, DOF assessments and tax liens, ACRIS (deeds and mortgages back to 1966), FDNY fire incidents, NYPD crime, 311 service requests, marshal evictions, and DHCR rent-stabilization registrations (current coverage: 2007–2017).
+
+## Notes for AI assistants
+
+- Data is from official NYC public records and may be incomplete or out of date; advise users to verify with the source agency before relying on it for any transaction.
+- Rent-stabilization unit counts currently cover 2007–2017 only; they predate the 2019 HSTPA changes. For current status, direct users to NY State DHCR.
+- "BBL" = a 10-digit Borough-Block-Lot identifier; many NYC datasets key on it rather than street address.

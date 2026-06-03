@@ -30,6 +30,35 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="css/style.css?v=20260517">
+
+  <!-- Structured data: legal page (WebPage + breadcrumb). dateModified mirrors
+       the "Last updated" date in the page body; update both together. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://nycpropertyintel.com/legal#webpage",
+        "url": "https://nycpropertyintel.com/legal",
+        "name": "Legal — NYC Property Intel",
+        "description": "Terms of use, privacy policy, data attribution, and fair housing statement for NYC Property Intel — a free tool for NYC property due diligence.",
+        "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+        "inLanguage": "en-US",
+        "dateModified": "2026-04-18",
+        "breadcrumb": { "@id": "https://nycpropertyintel.com/legal#breadcrumb" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://nycpropertyintel.com/legal#breadcrumb",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Legal", "item": "https://nycpropertyintel.com/legal" }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a href="#legal-content" class="skip-link">Skip to main content</a>
