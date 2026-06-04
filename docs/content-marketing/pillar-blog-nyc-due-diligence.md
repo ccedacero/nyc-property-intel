@@ -38,7 +38,7 @@ Before you make an offer on any NYC building, you should already know its open v
 
 **NYC property due diligence is the pre-offer investigation of a building's public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 20+ official city data sources (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF) to find deal-killing liabilities *before* you make an offer.** It is due diligence, not a title search, an appraisal, or legal advice.
 
-Here is the pain it solves. Because that data is so fragmented, material problems usually surface late — at attorney review or closing, after you've sunk money and emotion into a deal. An attorney can surface undisclosed FDNY standpipe violations on a $1.4M co-op at the eleventh hour; a buyer can turn up a dozen-plus open DOB/HPD violations days before closing — enough to force a multi-week delay, collapse the deal, and burn five figures in sunk legal and inspection fees. NYC Property Intel's `analyze_property` runs one address against all 20+ data sources at once, moving that discovery from *contract or closing* to *before the offer*.
+Here is the pain it solves. Because that data is so fragmented, material problems usually surface late — at attorney review or closing, after you've sunk money and emotion into a deal. An attorney can surface undisclosed FDNY standpipe violations on a $1.4M co-op at the eleventh hour; a buyer can turn up a dozen-plus open DOB/HPD violations days before closing — enough to force a multi-week delay, collapse the deal, and burn five figures in sunk legal and inspection fees. NYC Property Intel's full due-diligence scan runs one address against all 20+ data sources at once, moving that discovery from *contract or closing* to *before the offer*.
 
 ### What due diligence covers (and what it does not)
 
@@ -75,7 +75,7 @@ This is the part out-of-state buyers learn the hard way: open violations, OATH/E
 
 ### What a repriced deal looks like when you find it early
 
-Run **`analyze_property`** plus **`get_liens_and_encumbrances`** on the address *before* you write the offer. In one query, NYC Property Intel surfaces DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgments — the same encumbrances your title company would otherwise flag at closing. An $87,000 exposure stops being a deal-killer and becomes an **$87,000 price reduction or a seller-cured condition.**
+Run NYC Property Intel's **full due-diligence scan** on the address *before* you write the offer. In one query it surfaces DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgments — the same encumbrances your title company would otherwise flag at closing. An $87,000 exposure stops being a deal-killer and becomes an **$87,000 price reduction or a seller-cured condition.**
 
 One honest caveat, because it protects you: this surfaces and flags public-record liens — it is **not** a title search or a title certification. Use it to walk into the offer informed, then let your title company do the formal continuation search.
 
@@ -105,7 +105,7 @@ This is the gap most buyers miss. The Department of Buildings runs **two** separ
 
 ### Run all 20+ sources in one step
 
-Give NYC Property Intel an address; `lookup_property` resolves the canonical BBL, then every downstream tool — `get_property_issues`, `get_liens_and_encumbrances`, `get_hpd_registration`, `get_rent_stabilization`, and more — runs against it. Ask a plain-English question; get one normalized risk profile *before* you bid. Our edge isn't breadth alone (the new aggregators claim that too) — it's **natural-language AI querying plus MCP/agent access, and radical data-vintage honesty.**
+Give NYC Property Intel an address; the property lookup resolves the canonical BBL, then every downstream tool — the violation check, the lien & encumbrance check, the ownership lookup, the rent-stabilization check, and more — runs against it. Ask a plain-English question; get one normalized risk profile *before* you bid. Our edge isn't breadth alone (the new aggregators claim that too) — it's **natural-language AI querying plus MCP/agent access, and radical data-vintage honesty.**
 
 ### Data vintage and known limits (indexing lag, ~33% dobjobs drift)
 
@@ -123,7 +123,7 @@ The single most expensive mistake a NYC buyer makes is checking *one* violation 
 
 ### How to check DOB violations and complaints
 
-DOB data is split across two systems: legacy **BIS** (pre-2020 records) and **DOB NOW** (current filings). Checking only one misses an entire class of violations. *Or skip the two logins — `get_property_issues` and `get_dob_complaints` scan both BIS and DOB NOW by BBL in [one query](#scan).*
+DOB data is split across two systems: legacy **BIS** (pre-2020 records) and **DOB NOW** (current filings). Checking only one misses an entire class of violations. *Or skip the two logins — the violation check and the DOB complaint check scan both BIS and DOB NOW by BBL in [one query](#scan).*
 
 ### How to check ECB violations (and why a "resolved" DOB violation can still owe an ECB fine)
 
@@ -131,7 +131,7 @@ Search OATH's Hearings Division separately for open summonses and docketed judgm
 
 ### How to check HPD violations on an occupied building
 
-For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair charges matter most — Class C hazards can trigger HPD repairs billed back as liens. *Or skip HPD Online — `get_hpd_complaints` pulls violations by class behind the LLC, in [one scan](#scan).*
+For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair charges matter most — Class C hazards can trigger HPD repairs billed back as liens. *Or skip HPD Online — the HPD complaint check pulls violations by class behind the LLC, in [one scan](#scan).*
 
 **Honest limit:** this surfaces and flags every machine-readable public violation *before you offer* — it does not clear a lien, issue title insurance, or replace your title company's certification. It moves discovery earlier; your attorney still closes it out.
 
@@ -141,7 +141,7 @@ For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair
 
 The pain: in NYC, a single property's debts are not stored in one place. To find every encumbrance you have to query **ACRIS** (deeds, mortgages, lis pendens), **DOF** (tax liens, water/sewer arrears via DEP), **OATH/ECB** (judgment liens), *and* NY State **eCourts/iCourts** (docketed money judgments and mechanic's liens that never touch ACRIS) — none of which cross-reference each other. As one guide puts it, "Liens are scattered across disconnected government portals... Missing even one lien can delay a closing by weeks". Miss one and you inherit it: a single overlooked ECB judgment can carry **$15,000–$87,000** in liability the buyer cannot see until closing — one Flushing two-family carried $87,000 in outstanding ECB default judgments and the deal died because the seller couldn't pay and the title company wouldn't insure.
 
-**NYC Property Intel runs all four lookups in one call.** `get_liens_and_encumbrances` pulls DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgment liens against the canonical BBL at once — surfacing your dollar exposure *before* you make an offer, not at attorney review.
+**NYC Property Intel runs all four lookups in one call.** the lien & encumbrance check pulls DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgment liens against the canonical BBL at once — surfacing your dollar exposure *before* you make an offer, not at attorney review.
 
 ### How to find mortgages and lis pendens in ACRIS
 
@@ -163,7 +163,7 @@ You underwrote the building on its rent roll. The broker called four of the eigh
 
 ### Signals a building is likely rent stabilized
 
-NYC Property Intel's `get_rent_stabilization` tool surfaces the public signals that point to regulation, cross-referenced against `lookup_property` (BBL, year built, unit count, tax class) and abatement records:
+NYC Property Intel's rent-stabilization check surfaces the public signals that point to regulation, cross-referenced against the property lookup (BBL, year built, unit count, tax class) and abatement records:
 
 - **DHCR registration counts** — units actively registered as stabilized, year over year.
 - **Pre-1974 construction + 6 or more units** — the classic stabilization fingerprint.
@@ -189,15 +189,15 @@ This is where the rent roll is probably fiction. Here's how to catch it before y
 
 ### How to read a Certificate of Occupancy vs. the actual use
 
-Run **`lookup_property`** to pull the property's canonical BBL, zoning, and DOB records, including the legal C of O and permitted unit count. Then compare three numbers: (1) legal units on the C of O, (2) units the seller is marketing/collecting rent on, and (3) units on the DOF tax roll. When the marketed count exceeds the legal count, you've found a C-of-O mismatch — the cleanest public-data red flag there is. Note: pre-1938 buildings may have no C of O at all (they rely on an I-Card), which is its own financing and legalization hurdle.
+Run **the property lookup** to pull the property's canonical BBL, zoning, and DOB records, including the legal C of O and permitted unit count. Then compare three numbers: (1) legal units on the C of O, (2) units the seller is marketing/collecting rent on, and (3) units on the DOF tax roll. When the marketed count exceeds the legal count, you've found a C-of-O mismatch — the cleanest public-data red flag there is. Note: pre-1938 buildings may have no C of O at all (they rely on an I-Card), which is its own financing and legalization hurdle.
 
 ### Spotting an illegal apartment before you underwrite its rent
 
-A C-of-O mismatch can trigger a DOB vacate order that zeroes out a unit's income overnight — so never capitalize a unit the C of O doesn't recognize. Cross-check with `get_311_complaints` and `get_dob_complaints` for "illegal conversion" or "illegal apartment" complaints, and re-price any unpermitted unit as a *liability*, not upside.
+A C-of-O mismatch can trigger a DOB vacate order that zeroes out a unit's income overnight — so never capitalize a unit the C of O doesn't recognize. Cross-check with `get_311_complaints` and the DOB complaint check for "illegal conversion" or "illegal apartment" complaints, and re-price any unpermitted unit as a *liability*, not upside.
 
 ### Checking permit history for unpermitted work
 
-Run **`get_building_permits`** to see DOB BIS/NOW permit history. A finished basement or extra kitchen with no matching permit is a tell: the work was likely done off the books, meaning unresolved violations, possible ECB/OATH penalties, and a legalization timeline of months to years.
+Run **the permit-history check** to see DOB BIS/NOW permit history. A finished basement or extra kitchen with no matching permit is a tell: the work was likely done off the books, meaning unresolved violations, possible ECB/OATH penalties, and a legalization timeline of months to years.
 
 *Honest limit:* these tools flag the paper mismatch — they cannot see the hidden unit. Confirm legal use with a physical inspection and your architect before closing.
 
@@ -211,11 +211,11 @@ You can pass a mortgage stress test and still get ambushed 60 days after closing
 
 ### Local Law 11 (FISP): facade inspection cost exposure
 
-Every building 6+ stories must file a Facade Inspection & Safety Program (FISP) report every five years. An "Unsafe" rating forces a sidewalk shed (billed by the linear foot at roughly $40–$180/ft/month) plus repairs — and a single FISP compliance cycle can run $250,000 to over $1,000,000 on a larger building, typically billed as a lump-sum special assessment. `lookup_property` confirms the building qualifies (6+ stories via BBL/PLUTO), and `get_building_permits` plus `get_property_issues` surface active shed permits and open facade DOB/ECB violations that signal a cycle in progress.
+Every building 6+ stories must file a Facade Inspection & Safety Program (FISP) report every five years. An "Unsafe" rating forces a sidewalk shed (billed by the linear foot at roughly $40–$180/ft/month) plus repairs — and a single FISP compliance cycle can run $250,000 to over $1,000,000 on a larger building, typically billed as a lump-sum special assessment. The property lookup confirms the building qualifies (6+ stories via BBL/PLUTO), and the permit-history check plus the violation check surface active shed permits and open facade DOB/ECB violations that signal a cycle in progress.
 
 ### Local Law 97: which buildings carry emissions-fine exposure
 
-LL97 applies to buildings over 25,000 sq ft, which face annual carbon caps and a $268/ton penalty on overages that tightens sharply in 2030. We use `lookup_property` (square footage, tax class) to flag whether a target falls inside LL97's coverage threshold at all — the single fact most pre-offer buyers skip.
+LL97 applies to buildings over 25,000 sq ft, which face annual carbon caps and a $268/ton penalty on overages that tightens sharply in 2030. We use the property lookup (square footage, tax class) to flag whether a target falls inside LL97's coverage threshold at all — the single fact most pre-offer buyers skip.
 
 ### What we flag vs. what an engineer must calculate
 
@@ -234,15 +234,15 @@ You underwrite the seller's rent roll, not the war you inherit with it. In NYC h
 
 ### How to check eviction filing history by address
 
-`get_evictions` pulls the eviction-filing record for a BBL so you can spot recurring landlord-tenant disputes *before* you offer — e.g., "unit 2R has three prior filings in four years, ask why." Honest boundary: this surfaces *filing* history. It cannot reveal a specific tenant's current payment status, ERAP/hardship-stay posture, or shorten a court timeline — those stay with your attorney and the live OCA docket.
+The eviction-history check pulls the eviction-filing record for a BBL so you can spot recurring landlord-tenant disputes *before* you offer — e.g., "unit 2R has three prior filings in four years, ask why." Honest boundary: this surfaces *filing* history. It cannot reveal a specific tenant's current payment status, ERAP/hardship-stay posture, or shorten a court timeline — those stay with your attorney and the live OCA docket.
 
 ### Housing-court litigation history (the litigious-building signal)
 
-`get_hpd_litigations` flags HPD housing-court actions against the ownership — the litigious-building signal that exposes entrenched, hard-to-clear tenancies. Appraiser Josane Cumandala puts the stakes plainly: rent-controlled tenants are "nearly impossible to evict... you basically have to wait for the tenant to die". Cross-referenced with `get_rent_stabilization` status and ownership behind the LLC (`get_hpd_registration`), prior litigation either corroborates or contradicts the seller's narrative.
+The housing-court litigation check flags HPD housing-court actions against the ownership — the litigious-building signal that exposes entrenched, hard-to-clear tenancies. Appraiser Josane Cumandala puts the stakes plainly: rent-controlled tenants are "nearly impossible to evict... you basically have to wait for the tenant to die". Cross-referenced with the rent-stabilization check status and ownership behind the LLC (the ownership lookup), prior litigation either corroborates or contradicts the seller's narrative.
 
 ### Reading 311 and HPD complaint patterns as distress signals
 
-Complaints precede violations: roughly **68% of violations are cited as preventable**, and 311 complaints "precede escalated HPD inspections and Class B or Class C violations". `get_311_complaints` plus `get_hpd_complaints` turn a chronic-complaint pattern — heat/hot-water, no-access, illegal-occupancy — into a buy/no-buy distress signal, flagging likely AEP enrollment and future city-billed emergency repairs.
+Complaints precede violations: roughly **68% of violations are cited as preventable**, and 311 complaints "precede escalated HPD inspections and Class B or Class C violations". `get_311_complaints` plus the HPD complaint check turn a chronic-complaint pattern — heat/hot-water, no-access, illegal-occupancy — into a buy/no-buy distress signal, flagging likely AEP enrollment and future city-billed emergency repairs.
 
 NYC Property Intel moves all three from "your attorney finds it at contract" to "you see it before you make an offer."
 
@@ -256,7 +256,7 @@ These three buyer segments share one brutal feature: the cost of an undiscovered
 
 The 45-day identification window and the 180-day closing window run **concurrently**, and they are not extended for weekends, holidays, financing delays, or medical emergencies. As 1031 Specialists put it, *"The IRS's 45-day identification deadline often makes investors rush and skip due diligence, closing acquisitions as quickly as possible, which creates unnecessary risks."* Skip the wrong check on an NYC property and the bill is generational: a busted exchange triggers federal + NY State (up to 10.9%) + NYC (up to 3.876%) tax — roughly **38.7% of the gain**, or $100,000 to $160,000 on a $400K gain.
 
-This is the tool's single most defensible use case. `analyze_property` returns the slowest part of NYC due diligence — DOB/HPD/ECB violations, ACRIS liens, HPD litigation, eviction history, rent-stabilization signals — from one address query, so you can pre-screen ten candidates on Day 2 instead of discovering a dealbreaker on Day 44. It does not replace a title search, a DHCR rent-history request, or a physical inspection; it tells you which candidates are worth spending those remaining days on.
+This is the tool's single most defensible use case. The full due-diligence scan returns the slowest part of NYC due diligence — DOB/HPD/ECB violations, ACRIS liens, HPD litigation, eviction history, rent-stabilization signals — from one address query, so you can pre-screen ten candidates on Day 2 instead of discovering a dealbreaker on Day 44. It does not replace a title search, a DHCR rent-history request, or a physical inspection; it tells you which candidates are worth spending those remaining days on.
 
 ### Remote due diligence for out-of-state and foreign buyers
 
@@ -264,8 +264,8 @@ Roughly **[37% of Manhattan properties are held by secretive LLCs](https://reinv
 
 NYC Property Intel lets you verify what the agent tells you against the city's own records:
 
-- **`get_hpd_registration`** often surfaces the real principal or managing agent behind a building's LLC — the single most useful counterparty check a remote buyer has.
-- **`analyze_property`** independently confirms violations, 311 complaints, litigation, evictions, and FDNY incidents for the exact BBL.
+- **the ownership lookup** often surfaces the real principal or managing agent behind a building's LLC — the single most useful counterparty check a remote buyer has.
+- **the full due-diligence scan** independently confirms violations, 311 complaints, litigation, evictions, and FDNY incidents for the exact BBL.
 
 It cannot verify a seller's foreign-person status (FIRPTA), inspect finishes, or pull a confidential DHCR rent history — flag-and-refer, honestly stated.
 
@@ -273,7 +273,7 @@ It cannot verify a seller's foreign-person status (FIRPTA), inspect finishes, or
 
 At foreclosure auction there is no escrow officer and no inspection. Buyers take title **subject to surviving senior liens** — *"senior mortgages, property tax liens, and certain judgment liens survive the sale"* — any one of which can erase the spread. And as serial co-op auction buyer Adam Plotch warns, *"rent-stabilized tenants never die... it gives you eternal life."*
 
-Before you bid, run **`get_liens_and_encumbrances`** to aggregate and date-order ACRIS mortgages, assignments, satisfactions, and lis pendens alongside DOF tax/water liens and ECB/HPD liens — approximating priority and flagging a surviving senior mortgage. Pair it with rent-stabilization and HPD-registration checks to spot a regulated, occupied unit before it becomes a multi-year trap. Final lien priority still needs an abstractor or attorney; this gets you to "do not bid" before the gavel.
+Before you bid, run **the lien & encumbrance check** to aggregate and date-order ACRIS mortgages, assignments, satisfactions, and lis pendens alongside DOF tax/water liens and ECB/HPD liens — approximating priority and flagging a surviving senior mortgage. Pair it with rent-stabilization and HPD-registration checks to spot a regulated, occupied unit before it becomes a multi-year trap. Final lien priority still needs an abstractor or attorney; this gets you to "do not bid" before the gavel.
 
 > ### 📋 Free: The 45-Day 1031 NYC Screening Sheet
 > A deadline-counting worksheet plus the exact checks to run by **Day 2** of your identification window — tied to the highest-cost mistake in NYC due diligence.
@@ -292,21 +292,21 @@ NYC Property Intel collapses 20+ sources into one query. Below is the master che
 
 | # | Check | What it catches | Tool |
 |---|---|---|---|
-| 1 | Identity & zoning | Wrong BBL, mis-zoned use | `lookup_property` |
-| 2 | DOB violations & complaints | Open BIS/NOW violations | `get_property_issues` / `get_dob_complaints` |
-| 3 | HPD violations & litigation | Class B/C, housing-court history, LLC principal | `get_hpd_complaints` / `get_hpd_litigations` / `get_hpd_registration` |
+| 1 | Identity & zoning | Wrong BBL, mis-zoned use | the property lookup |
+| 2 | DOB violations & complaints | Open BIS/NOW violations | the violation check / the DOB complaint check |
+| 3 | HPD violations & litigation | Class B/C, housing-court history, LLC principal | the HPD complaint check / the housing-court litigation check / the ownership lookup |
 | 4 | 311 history | Chronic-violator pattern, illegal-conversion tips | `get_311_complaints` |
-| 5 | Liens & encumbrances | DOF tax liens, ACRIS mortgages, lis pendens, ECB judgment liens | `get_liens_and_encumbrances` |
-| 6 | Rent-stabilization signals | Likely-stabilized units, overcharge exposure | `get_rent_stabilization` |
-| 7 | Permits & FISP/LL11 | Open facade work, expired boiler permits | `get_building_permits` |
-| 8 | Sales & deed history | Fraud red flags, flip chains | `get_property_history` |
-| 9 | Evictions | Recurring non-payment filings per unit | `get_evictions` |
-| 10 | FDNY incidents | Standpipe/fire-safety history | `get_fdny_fire_incidents` |
-| 11 | Block-level crime | Corner-level NYPD trend | `get_nypd_crime` |
-| 12 | Tax & assessment | 421-a/J-51 cliff, RPIE reassessment | `get_tax_info` |
-| 13 | Comps | Overpaying vs. arms-length sales | `search_comps` |
-| 14 | Neighborhood stats | Trajectory context | `search_neighborhood_stats` |
-| 15 | Full risk roll-up | Everything above, scored | `analyze_property` |
+| 5 | Liens & encumbrances | DOF tax liens, ACRIS mortgages, lis pendens, ECB judgment liens | the lien & encumbrance check |
+| 6 | Rent-stabilization signals | Likely-stabilized units, overcharge exposure | the rent-stabilization check |
+| 7 | Permits & FISP/LL11 | Open facade work, expired boiler permits | the permit-history check |
+| 8 | Sales & deed history | Fraud red flags, flip chains | the sales-history lookup |
+| 9 | Evictions | Recurring non-payment filings per unit | the eviction-history check |
+| 10 | FDNY incidents | Standpipe/fire-safety history | the fire-incident check |
+| 11 | Block-level crime | Corner-level NYPD trend | the block-level crime check |
+| 12 | Tax & assessment | 421-a/J-51 cliff, RPIE reassessment | the tax-assessment check |
+| 13 | Comps | Overpaying vs. arms-length sales | the comps search |
+| 14 | Neighborhood stats | Trajectory context | the neighborhood-stats search |
+| 15 | Full risk roll-up | Everything above, scored | the full due-diligence scan |
 
 **What it does NOT do:** it surfaces and flags the public record. It does **not** replace a title search (mechanics liens and most docketed judgments aren't in ACRIS), a formal **DHCR** rent-history request (per-unit legal rents are confidential), or a physical inspection. That honesty is the point — you see the risk *before* you make an offer instead of at closing.
 
@@ -349,7 +349,7 @@ We earn trust by being explicit about our limits:
 > **[→ View the sample report](#sample-report)**
 
 > ### 🏙️ Evaluating multiple properties? Screen them all.
-> At roughly the cost of a single screen against a six-figure busted-exchange tax hit, the math is not close. Buy a credit pack and run a full `analyze_property` on every candidate inside your window.
+> At roughly the cost of a single screen against a six-figure busted-exchange tax hit, the math is not close. Buy a credit pack and run a full the full due-diligence scan on every candidate inside your window.
 >
 > **[→ Get a credit pack](#pricing)**
 
@@ -359,7 +359,7 @@ We earn trust by being explicit about our limits:
 
 ### Do building violations transfer to the new owner in NYC?
 
-Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller — so the buyer "steps into the shoes" of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. A two-family carrying **$87,000 in outstanding ECB default judgments**, for example, can be impossible to close: the title company will not insure over them and the seller cannot pay them off. NYC Property Intel's `get_property_issues`, `get_dob_complaints`, `get_hpd_complaints`, and `get_liens_and_encumbrances` surface every open violation, summons balance, and docketed judgment before you bid — but we flag exposure, we don't clear liens or issue title insurance.
+Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller — so the buyer "steps into the shoes" of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. A two-family carrying **$87,000 in outstanding ECB default judgments**, for example, can be impossible to close: the title company will not insure over them and the seller cannot pay them off. NYC Property Intel surfaces every open violation, summons balance, and docketed judgment before you bid — but we flag exposure, we don't clear liens or issue title insurance.
 
 ### Is NYC Property Intel the same as a title search?
 
@@ -367,11 +367,11 @@ No. A title search is a legal certification of clean ownership, performed by a t
 
 ### How do I know if a building is rent stabilized?
 
-There is no authoritative, current, per-unit public source — DHCR registration is owner-self-reported and unaudited, and "the only way to know if your apartment is rent stabilized is to contact NYS HCR" ([NYC Rent Guidelines Board](https://rentguidelinesboard.cityofnewyork.us/resources/rent-stabilized-building-lists/)). NYC Property Intel's `get_rent_stabilization` combines DHCR registration counts, building age and unit count (PLUTO/DOF), and active 421-a/J-51 status to flag "this building almost certainly contains stabilized units" — a strong red flag that should trigger a formal DHCR rent-history request. It's a screen, not a legal ruling, and it does not replace the official per-unit DHCR history (which matters because new owners inherit overcharge liability with treble damages and a 6-year lookback).
+There is no authoritative, current, per-unit public source — DHCR registration is owner-self-reported and unaudited, and "the only way to know if your apartment is rent stabilized is to contact NYS HCR" ([NYC Rent Guidelines Board](https://rentguidelinesboard.cityofnewyork.us/resources/rent-stabilized-building-lists/)). NYC Property Intel's rent-stabilization check combines DHCR registration counts, building age and unit count (PLUTO/DOF), and active 421-a/J-51 status to flag "this building almost certainly contains stabilized units" — a strong red flag that should trigger a formal DHCR rent-history request. It's a screen, not a legal ruling, and it does not replace the official per-unit DHCR history (which matters because new owners inherit overcharge liability with treble damages and a 6-year lookback).
 
 ### Can you check liens before I make an offer?
 
-Yes — that's the core move: shifting lien discovery from "your attorney finds it at contract" to "you see it before you offer." `get_liens_and_encumbrances` unifies DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgment liens into one BBL query. We also flag the common false-positive — an old mortgage with no recorded Satisfaction — which we label "unresolved on record, verify with lender," never as outstanding debt. Two honest limits: we only read machine-readable public data, and new liens can attach in the contract-to-close gap, so a title continuation search is still required.
+Yes — that's the core move: shifting lien discovery from "your attorney finds it at contract" to "you see it before you offer." The lien & encumbrance check unifies DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgment liens into one BBL query. We also flag the common false-positive — an old mortgage with no recorded Satisfaction — which we label "unresolved on record, verify with lender," never as outstanding debt. Two honest limits: we only read machine-readable public data, and new liens can attach in the contract-to-close gap, so a title continuation search is still required.
 
 ### Do open DOB or ECB violations stop me from closing in NYC?
 
