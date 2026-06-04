@@ -1472,3 +1472,119 @@ abbr[title] {
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Article / Blog page (pillar guides) — added 2026-06-03
+   Builds on .legal-page prose base; .article-page adds callouts,
+   tables, code, byline, and CTA styling.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.article-page article { max-width: 760px; margin: 0 auto; }
+
+.article-page article > h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
+
+.article-meta {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 2rem;
+}
+
+.article-page h2 {
+  font-size: 1.5rem;
+  margin: 2.5rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  scroll-margin-top: 84px;
+}
+
+.article-page h3 {
+  font-size: 1.15rem;
+  margin: 1.75rem 0 0.5rem;
+  scroll-margin-top: 84px;
+}
+
+.article-page a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-page a:hover { color: var(--accent-hover); }
+
+/* Blockquote callouts — TL;DR, inline CTAs, tips */
+.article-page blockquote {
+  margin: 1.75rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--accent-subtle);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+}
+.article-page blockquote > :first-child { margin-top: 0; }
+.article-page blockquote > :last-child { margin-bottom: 0; }
+.article-page blockquote h3 { margin-top: 0; color: var(--text-primary); }
+
+/* Inline code + fenced blocks */
+.article-page code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-secondary);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+.article-page pre {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+.article-page pre code { background: none; padding: 0; }
+
+/* Data tables (the checklist + keyword/comp tables) */
+.article-page .table-wrap { overflow-x: auto; margin: 1.5rem 0; }
+.article-page table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.article-page th, .article-page td {
+  border: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+.article-page th {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Buttonized in-callout CTA link */
+.article-cta-btn { text-decoration: none !important; color: #fff !important; }
+
+/* Bottom CTA box */
+.article-cta-box {
+  margin: 3rem 0 1rem;
+  padding: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.article-cta-box h2 {
+  border: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  text-align: center;
+}
+.article-cta-box .btn { text-decoration: none; color: #fff; margin-top: 0.5rem; }
+.article-cta-fine { font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+
+.article-page hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
