@@ -221,7 +221,7 @@ doc = f"""<!DOCTYPE html>
 {html_body}
       <aside class="article-cta-box" id="scan">
         <h2>Run a free Risk Scan on any NYC address</h2>
-        <p>Skip the 22+ city logins. Enter one address and NYC Property Intel returns a normalized risk profile &mdash; violations, liens, rent-stabilization signals, and compliance exposure &mdash; in one query, with honest data-vintage stamps. First queries are free, no signup required.</p>
+        <p>Stop cross-checking 20+ city data sources by hand. Enter one address and NYC Property Intel returns a normalized risk profile &mdash; violations, liens, rent-stabilization signals, and compliance exposure &mdash; in one query, with honest data-vintage stamps. First queries are free, no signup required.</p>
         <p><a href="/chat" class="btn btn-primary">Scan an address free &rarr;</a></p>
         <p class="article-cta-fine">Due diligence, not a title search, appraisal, or legal advice. Always verify with the source agency and your professionals before you transact.</p>
       </aside>

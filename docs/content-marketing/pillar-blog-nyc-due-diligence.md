@@ -1,7 +1,7 @@
 ---
-title: "NYC Property Due Diligence Checklist (22+ City Sources)"
+title: "NYC Property Due Diligence Checklist (20+ City Data Sources)"
 slug: /nyc-property-due-diligence
-meta_description: "The complete NYC pre-offer due-diligence checklist: violations, liens, rent-stabilization & local-law costs across 22+ city systems — in one query."
+meta_description: "The complete NYC pre-offer due-diligence checklist: violations, liens, rent-stabilization & local-law costs across 20+ city data sources — in one query."
 primary_keyword: nyc property due diligence checklist
 secondary_keywords:
   - nyc property violations check
@@ -18,17 +18,17 @@ author: NYC Property Intel
 date: 2026-06-03
 ---
 
-# NYC Property Due Diligence: The Complete Pre-Offer Checklist (22+ City Data Sources)
+# NYC Property Due Diligence: The Complete Pre-Offer Checklist (20+ City Data Sources)
 
-Before you make an offer on any NYC building, you should already know its open violations, tax liens, ECB judgments, rent-stabilization exposure, and looming local-law compliance bills. The problem: that data is scattered across 22+ separate city systems, so most buyers don't find the deal-killer until attorney review or the closing table — after the money and leverage are gone. NYC Property Intel runs all 22+ sources in one query, so you find it *before* you bid.
+Before you make an offer on any NYC building, you should already know its open violations, tax liens, ECB judgments, rent-stabilization exposure, and looming local-law compliance bills. The problem: that data is scattered across 20+ official city data sources, so most buyers don't find the deal-killer until attorney review or the closing table — after the money and leverage are gone. NYC Property Intel runs all 20+ sources in one query, so you find it *before* you bid.
 
 > ### TL;DR / Key Takeaways
-> - **NYC property due diligence is a pre-offer investigation** of a building's public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 22+ city systems (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF).
+> - **NYC property due diligence is a pre-offer investigation** of a building's public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 20+ city data sources (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF).
 > - **Violations and liens follow the property, not the seller.** Open DOB/HPD violations and ECB/OATH judgments attach to the BBL — the buyer inherits them. A two-family carrying, say, **$87,000 in unpaid ECB judgments** can die at title — the buyer inherits every dollar.
 > - **Timing is leverage.** Find a $50K facade liability at the offer stage and you reprice or walk for free; find it at closing and you've already paid for legal, inspection, and an accepted bid.
 > - **The data is fragmented by design.** DOB alone runs *two* systems (legacy BIS + DOB NOW); checking only one misses entire classes of records.
 > - **This is due diligence, not a title search.** It surfaces and flags public records. It does **not** replace a title search, an official DHCR rent-history request, or a physical inspection — and we say so on every check.
-> - **Run it as one AI query.** Give NYC Property Intel an address; get one normalized risk profile across all 22+ sources, in plain English, with honest data-vintage stamps.
+> - **Run it as one AI query.** Give NYC Property Intel an address; get one normalized risk profile across all 20+ sources, in plain English, with honest data-vintage stamps.
 
 *Data sources & last updated: Reflects NYC Open Data and city systems (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF) through June 2026.*
 
@@ -36,9 +36,9 @@ Before you make an offer on any NYC building, you should already know its open v
 
 ## Quick Answer: What NYC Property Due Diligence Actually Means
 
-**NYC property due diligence is the pre-offer investigation of a building's public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 22+ separate city systems (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF) to find deal-killing liabilities *before* you make an offer.** It is due diligence, not a title search, an appraisal, or legal advice.
+**NYC property due diligence is the pre-offer investigation of a building's public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 20+ official city data sources (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF) to find deal-killing liabilities *before* you make an offer.** It is due diligence, not a title search, an appraisal, or legal advice.
 
-Here is the pain it solves. Because that data is so fragmented, material problems usually surface late — at attorney review or closing, after you've sunk money and emotion into a deal. An attorney can surface undisclosed FDNY standpipe violations on a $1.4M co-op at the eleventh hour; a buyer can turn up a dozen-plus open DOB/HPD violations days before closing — enough to force a multi-week delay, collapse the deal, and burn five figures in sunk legal and inspection fees. NYC Property Intel's `analyze_property` runs one address against all 22+ systems at once, moving that discovery from *contract or closing* to *before the offer*.
+Here is the pain it solves. Because that data is so fragmented, material problems usually surface late — at attorney review or closing, after you've sunk money and emotion into a deal. An attorney can surface undisclosed FDNY standpipe violations on a $1.4M co-op at the eleventh hour; a buyer can turn up a dozen-plus open DOB/HPD violations days before closing — enough to force a multi-week delay, collapse the deal, and burn five figures in sunk legal and inspection fees. NYC Property Intel's `analyze_property` runs one address against all 20+ data sources at once, moving that discovery from *contract or closing* to *before the offer*.
 
 ### What due diligence covers (and what it does not)
 
@@ -80,7 +80,7 @@ Run **`analyze_property`** plus **`get_liens_and_encumbrances`** on the address 
 One honest caveat, because it protects you: this surfaces and flags public-record liens — it is **not** a title search or a title certification. Use it to walk into the offer informed, then let your title company do the formal continuation search.
 
 > ### 🔎 Run a free Risk Scan on any NYC address
-> See the open violations, liens, and judgments **before you sign — not at the closing table.** Enter one address and get a personalized flag summary across all 22+ city sources.
+> See the open violations, liens, and judgments **before you sign — not at the closing table.** Enter one address and get a personalized flag summary across all 20+ city data sources.
 >
 > **[→ Scan an address free](#scan)**
 
@@ -103,7 +103,7 @@ This is the gap most buyers miss. The Department of Buildings runs **two** separ
 - **DHCR** — rent-stabilization registration signals (confidential per-unit rent history requires a formal request).
 - **ZoLa/DCP** — zoning, land use, and lot data.
 
-### Run all 22+ sources in one step
+### Run all 20+ sources in one step
 
 Give NYC Property Intel an address; `lookup_property` resolves the canonical BBL, then every downstream tool — `get_property_issues`, `get_liens_and_encumbrances`, `get_hpd_registration`, `get_rent_stabilization`, and more — runs against it. Ask a plain-English question; get one normalized risk profile *before* you bid. Our edge isn't breadth alone (the new aggregators claim that too) — it's **natural-language AI querying plus MCP/agent access, and radical data-vintage honesty.**
 
@@ -286,7 +286,7 @@ Before you bid, run **`get_liens_and_encumbrances`** to aggregate and date-order
 
 Here's the math that should scare every NYC investor: you screen **5–10 candidate properties for every deal you actually win**. If due diligence means logging into DOB BIS *and* DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR for each one, you either spend a week per address or you cut corners — and the corner you cut is the $87,000 ECB judgment that kills the deal at title. Records are "spread across more than a dozen city agencies, each with its own database," and "relying on only one of these systems could cause you to miss critical information" ([NYC Dept. of Buildings](https://www.nyc.gov/site/buildings/dob/find-building-data.page)). Due diligence has to be **fast and repeatable** or it doesn't get done.
 
-NYC Property Intel collapses 22+ sources into one query. Below is the master checklist — every line is a check the tool automates.
+NYC Property Intel collapses 20+ sources into one query. Below is the master checklist — every line is a check the tool automates.
 
 ### The 20+ Checks Mapped to What Each Catches
 
@@ -339,7 +339,7 @@ We earn trust by being explicit about our limits:
 ## Download & Next Steps
 
 > ### 📄 Free: NYC Pre-Offer Due-Diligence Checklist (PDF)
-> The printable 20-point checklist — every one of the 22+ city systems mapped to exactly what it catches. Run it as one query, or work it line by line.
+> The printable 20-point checklist — every one of the 20+ city data sources mapped to exactly what it catches. Run it as one query, or work it line by line.
 >
 > **[→ Download the checklist (PDF)](#checklist-pdf)**
 
@@ -363,7 +363,7 @@ Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges
 
 ### Is NYC Property Intel the same as a title search?
 
-No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen: it aggregates 22+ public city data sources into one query so you see risk signals (ACRIS mortgages, lis pendens, ECB liens, DOF tax liens) before you make an offer. Critically, some encumbrances — mechanics liens, most docketed money judgments, and building loan contracts — are filed at the County Clerk and **never appear in ACRIS at all**. A "clean" ACRIS read is not a clean title. Always order a full title search before closing.
+No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen: it aggregates 20+ public city data sources into one query so you see risk signals (ACRIS mortgages, lis pendens, ECB liens, DOF tax liens) before you make an offer. Critically, some encumbrances — mechanics liens, most docketed money judgments, and building loan contracts — are filed at the County Clerk and **never appear in ACRIS at all**. A "clean" ACRIS read is not a clean title. Always order a full title search before closing.
 
 ### How do I know if a building is rent stabilized?
 
@@ -379,7 +379,7 @@ Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgme
 
 ### How long does NYC property due diligence take if I do it manually?
 
-Done properly by hand, a single NYC building can take hours — you log into DOB BIS *and* DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Multiply that by the 5–10 properties most investors screen per closed deal and manual due diligence becomes the bottleneck that forces corner-cutting. Running all 22+ sources as one query is what makes thorough pre-offer screening actually repeatable.
+Done properly by hand, a single NYC building can take hours — you log into DOB BIS *and* DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Multiply that by the 5–10 properties most investors screen per closed deal and manual due diligence becomes the bottleneck that forces corner-cutting. Running all 20+ sources as one query is what makes thorough pre-offer screening actually repeatable.
 
 ### What does NYC Property Intel NOT replace?
 
@@ -395,8 +395,8 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
   "@graph": [
     {
       "@type": "Article",
-      "headline": "NYC Property Due Diligence: The Complete Pre-Offer Checklist (22+ City Data Sources)",
-      "description": "The complete NYC pre-offer due diligence checklist: violations, liens, rent-stabilization and more across 22+ city systems. Due diligence, not a title search. Run it as one AI query.",
+      "headline": "NYC Property Due Diligence: The Complete Pre-Offer Checklist (20+ City Data Sources)",
+      "description": "The complete NYC pre-offer due diligence checklist: violations, liens, rent-stabilization and more across 20+ city data sources. Due diligence, not a title search. Run it as one AI query.",
       "author": { "@type": "Organization", "name": "NYC Property Intel" },
       "publisher": { "@type": "Organization", "name": "NYC Property Intel" },
       "datePublished": "2026-06-03",
@@ -420,7 +420,7 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
           "name": "Is NYC Property Intel the same as a title search?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen that aggregates 22+ public city data sources into one query so you see risk signals (ACRIS mortgages, lis pendens, ECB liens, DOF tax liens) before you make an offer. Some encumbrances such as mechanics liens, most docketed money judgments, and building loan contracts are filed at the County Clerk and never appear in ACRIS, so a clean ACRIS read is not a clean title. Always order a full title search before closing."
+            "text": "No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen that aggregates 20+ public city data sources into one query so you see risk signals (ACRIS mortgages, lis pendens, ECB liens, DOF tax liens) before you make an offer. Some encumbrances such as mechanics liens, most docketed money judgments, and building loan contracts are filed at the County Clerk and never appear in ACRIS, so a clean ACRIS read is not a clean title. Always order a full title search before closing."
           }
         },
         {
@@ -452,7 +452,7 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
           "name": "How long does NYC property due diligence take if I do it manually?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Done properly by hand, a single NYC building can take hours because you must log into DOB BIS and DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Most investors screen 5 to 10 properties per closed deal, which makes manual due diligence the bottleneck that forces corner-cutting. Running all 22+ sources as one query is what makes thorough pre-offer screening repeatable."
+            "text": "Done properly by hand, a single NYC building can take hours because you must log into DOB BIS and DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Most investors screen 5 to 10 properties per closed deal, which makes manual due diligence the bottleneck that forces corner-cutting. Running all 20+ sources as one query is what makes thorough pre-offer screening repeatable."
           }
         },
         {
