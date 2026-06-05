@@ -343,3 +343,71 @@ class TestChatHandlerAnonPath:
             "tracking row is written — otherwise the email-gate page would "
             "register fake traffic on every retry."
         )
+
+    async def test_blocked_second_dd_still_records_row(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A 2nd full-DD is refused mid-stream (the visitor already used their
+        one free analyze), but the served request must STILL record exactly one
+        anon_chat_queries row, with ran_analyze=False.
+
+        Regression: the gate used to `return` straight out of the stream
+        generator after emitting the sign-up message, skipping the recording
+        block. That advanced the client's cookie counter but wrote no DB row,
+        so the authoritative IP-hash count drifted below the cookie counter and
+        a cookie-clearing visitor could keep slipping past the gate. The fix
+        `break`s instead, so recording always runs.
+        """
+
+        class _AnalyzeUsedPool(_RecordingPool):
+            async def fetchrow(self, *_a: Any, **_kw: Any) -> Any:
+                # Both the global-hourly-cap COUNT and the per-IP COUNT read
+                # this. cnt is below the free limit (so neither count gate
+                # trips); analyze_cnt>0 means the one free DD was already used,
+                # so anon_analyze_used is True and the 2nd DD is blocked.
+                return {"cnt": 1, "analyze_cnt": 1}
+
+        pool = _AnalyzeUsedPool()
+        auth = _FakeAuth(pool)
+        _, _, chat_handler = make_chat_handlers(auth)
+
+        monkeypatch.setattr(settings, "anon_ip_hash_secret", "test-secret")
+        monkeypatch.setattr(chat_module, "_ANON_IP_HASH_FALLBACK", None)
+
+        async def _fake_analyze_stream(_messages: list[dict]):
+            # The model tries to run a full DD — the handler intercepts this
+            # tool_start and blocks it because the free DD is spent.
+            yield f"data: {json.dumps({'type': 'tool_start', 'name': 'analyze_property'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        monkeypatch.setattr(chat_module, "_agentic_stream", _fake_analyze_stream)
+
+        body = json.dumps(
+            {"messages": [{"role": "user", "content": "full due diligence report on 350 5th Ave Manhattan"}]}
+        ).encode()
+        request = _make_request(body)
+        response = await chat_handler(request)
+        text = await _drain_streaming_response(response)
+
+        # Allow asyncio.create_task() background work to complete.
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+        # The gate fired (visitor was told to sign up) ...
+        assert "require a free account" in text
+        # ... yet the served request was still recorded exactly once.
+        anon_inserts = [
+            (sql, args) for sql, args in pool.executes
+            if "anon_chat_queries" in sql
+        ]
+        assert len(anon_inserts) == 1, (
+            f"A blocked 2nd full-DD must still record one row, got "
+            f"{len(anon_inserts)}: {pool.executes}"
+        )
+        _, args = anon_inserts[0]
+        # _record_anon_chat_query(pool, ip_hash, query_count, ran_analyze)
+        # → execute args = (ip_hash, anon_session_id, query_count, ran_analyze)
+        assert args[3] is False, (
+            "analyze never actually executed (it was blocked), so the row "
+            "must record ran_analyze=False"
+        )
