@@ -1,4 +1,52 @@
+# robots.txt — nycpropertyintel.com
+#
+# Policy: allow classic search engines AND AI-search / retrieval crawlers, so
+# NYC Property Intel can be cited in AI answers (ChatGPT, Claude, Perplexity,
+# Google AI Overviews). The Content-Signal below still reserves rights against
+# AI *training* use, while permitting real-time retrieval/grounding (ai-input).
+#
+# IMPORTANT: if Cloudflare's "Block AI Scrapers and Crawlers" managed rule is
+# enabled, Cloudflare REWRITES this file at the edge and the directives below
+# are IGNORED. This file only takes effect with that toggle OFF
+# (Cloudflare dashboard > Security > Bots).
+
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+
+# ── Pure training-only crawlers (no search/citation benefit): disallow ──
+User-agent: CCBot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+# ── AI search / retrieval / citation crawlers: allow ────────────────────
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: meta-externalagent
 Allow: /
 
 Sitemap: https://nycpropertyintel.com/sitemap.xml
