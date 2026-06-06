@@ -69,3 +69,5 @@ docs/launch-copy/
 .claude/skills/
 .claude/worktrees/
 .claude/settings.local.json
+.vercel
+.env*.local

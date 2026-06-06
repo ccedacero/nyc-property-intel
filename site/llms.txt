@@ -6,6 +6,7 @@
 
 - [Home](https://nycpropertyintel.com/): What it does, the 18 tools, the 20 datasets, and FAQ.
 - [Property Lookup (web chat)](https://nycpropertyintel.com/chat): Free interactive lookup — no install required. First queries free without signup; 10 queries/day with a free account.
+- [NYC Property Due Diligence Guide](https://nycpropertyintel.com/nyc-property-due-diligence): The complete pre-offer due-diligence checklist across 20+ city systems — building violations (DOB/ECB/HPD), liens and encumbrances (ACRIS/DOF/ECB), rent-stabilization and overcharge risk, Certificate of Occupancy and illegal units, Local Law 11/FISP and Local Law 97 compliance costs, tenant/eviction/litigation history, and special situations (1031 exchanges, out-of-state buyers, foreclosure auctions). Explains what the tool does and does not replace (title search, DHCR rent history, physical inspection).
 - [Legal, Privacy & Fair Housing](https://nycpropertyintel.com/legal): Terms of use, privacy policy, data attribution, and fair-housing compliance statement.
 - [Source code (GitHub)](https://github.com/ccedacero/nyc-property-intel): MIT-licensed; self-hosting and MCP setup instructions.
 
