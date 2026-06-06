@@ -15,9 +15,12 @@ from pathlib import Path
 import markdown
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "docs/content-marketing/pillar-blog-nyc-due-diligence.md"
-OUT = ROOT / "site/nyc-property-due-diligence.html"
-CANONICAL = "https://nycpropertyintel.com/nyc-property-due-diligence"
+# Usage: build_blog_page.py [SOURCE.md] [OUTPUT.html]
+# Defaults to the pillar for backward compatibility. CANONICAL is derived
+# from the markdown front-matter `slug:` after it is parsed below.
+SRC = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "docs/content-marketing/pillar-blog-nyc-due-diligence.md"
+OUT = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else ROOT / "site/nyc-property-due-diligence.html"
+PILLAR_SLUG = "/nyc-property-due-diligence"
 
 raw = SRC.read_text()
 
@@ -54,6 +57,14 @@ if isinstance(secondary, str):
     secondary = [secondary]
 keywords = ", ".join([primary_kw] + secondary).strip(", ")
 pub_date = strip_quotes(str(fm.get("date", "2026-06-03")))
+
+# Derive canonical URL + page role from front-matter slug
+slug = strip_quotes(str(fm.get("slug", "/"))).strip()
+if not slug.startswith("/"):
+    slug = "/" + slug
+CANONICAL = "https://nycpropertyintel.com" + slug
+is_pillar = slug == PILLAR_SLUG
+breadcrumb_name = strip_quotes(fm.get("breadcrumb", "")) or title
 
 # ── 2. Extract JSON-LD fenced block → head; remove from body ─────────────────
 jsonld = ""
@@ -129,6 +140,31 @@ html_body = html_body.replace(
 def esc(s):
     return s.replace("&", "&amp;").replace('"', "&quot;")
 
+# Nav + breadcrumb differ for the pillar (in-page Checklist/FAQ jumps) vs a
+# spoke (links UP to the pillar, with the pillar as the breadcrumb parent).
+if is_pillar:
+    nav_links_html = (
+        '        <li><a href="/">Home</a></li>\n'
+        '        <li><a href="#the-complete-nyc-pre-offer-due-diligence-checklist-run-it-as-one-query">Checklist</a></li>\n'
+        '        <li><a href="#faq-nyc-property-due-diligence">FAQ</a></li>\n'
+        '        <li><a href="/chat" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>'
+    )
+    breadcrumb_items = (
+        '          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },\n'
+        f'          {{ "@type": "ListItem", "position": 2, "name": "NYC Property Due Diligence", "item": "{CANONICAL}" }}'
+    )
+else:
+    nav_links_html = (
+        '        <li><a href="/">Home</a></li>\n'
+        '        <li><a href="/nyc-property-due-diligence">Due-Diligence Guide</a></li>\n'
+        '        <li><a href="/chat" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>'
+    )
+    breadcrumb_items = (
+        '          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },\n'
+        '          { "@type": "ListItem", "position": 2, "name": "NYC Property Due Diligence", "item": "https://nycpropertyintel.com/nyc-property-due-diligence" },\n'
+        f'          {{ "@type": "ListItem", "position": 3, "name": {json.dumps(breadcrumb_name)}, "item": "{CANONICAL}" }}'
+    )
+
 doc = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -193,8 +229,7 @@ doc = f"""<!DOCTYPE html>
         "@type": "BreadcrumbList",
         "@id": "{CANONICAL}#breadcrumb",
         "itemListElement": [
-          {{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" }},
-          {{ "@type": "ListItem", "position": 2, "name": "NYC Property Due Diligence", "item": "{CANONICAL}" }}
+{breadcrumb_items}
         ]
       }}
     ]
@@ -211,10 +246,7 @@ doc = f"""<!DOCTYPE html>
         <span></span><span></span><span></span>
       </button>
       <ul class="nav-links">
-        <li><a href="/">Home</a></li>
-        <li><a href="#the-complete-nyc-pre-offer-due-diligence-checklist-run-it-as-one-query">Checklist</a></li>
-        <li><a href="#faq-nyc-property-due-diligence">FAQ</a></li>
-        <li><a href="/chat" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>
+{nav_links_html}
       </ul>
     </nav>
   </header>
