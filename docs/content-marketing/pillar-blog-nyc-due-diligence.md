@@ -232,9 +232,9 @@ We point you to the exposure so you can price it in or order the engineering bef
 
 You underwrite the seller's rent roll, not the war you inherit with it. In NYC housing court, a single non-paying tenant can run **~15 months to disposition plus ~6 more for the marshal's warrant** — and procedural traps make it worse: one Brooklyn dispute ran **five years with $109,000+ in damages and fees** ([CBS News](https://www.cbsnews.com/newyork/news/brooklyn-landlord-cant-evict-tenant-who-hasnt-paid-rent-in-almost-3-years-emergency-rental-assistance-program/)). A "discounted" occupied building stops being a discount the moment you net out the clearing cost. The problem: the data that would warn you is scattered across OCA, HPD, and 311.
 
-### How to check eviction filing history by address
+### How to check eviction history by address
 
-The eviction-history check pulls the eviction-filing record for a BBL so you can spot recurring landlord-tenant disputes *before* you offer — e.g., "unit 2R has three prior filings in four years, ask why." Honest boundary: this surfaces *filing* history. It cannot reveal a specific tenant's current payment status, ERAP/hardship-stay posture, or shorten a court timeline — those stay with your attorney and the live OCA docket.
+The eviction-history check pulls the executed-eviction record (City Marshal evictions, 2017–present) for a BBL so you can spot recurring turnover *before* you offer — e.g., "unit 2R has multiple executed evictions, ask why." Honest boundary: this surfaces *executed* evictions, not the full case history — filings, settlements, and dismissals live in the housing-court (OCA) docket. It cannot reveal a specific tenant's current payment status, ERAP/hardship-stay posture, or shorten a court timeline — those stay with your attorney and the live OCA docket. For the full walkthrough, see [NYC eviction history search by address](/nyc-eviction-history-search).
 
 ### Housing-court litigation history (the litigious-building signal)
 
@@ -300,7 +300,7 @@ NYC Property Intel collapses 20+ sources into one query. Below is the master che
 | 6 | Rent-stabilization signals | Likely-stabilized units, overcharge exposure | the rent-stabilization check |
 | 7 | Permits & FISP/LL11 | Open facade work, expired boiler permits | the permit-history check |
 | 8 | Sales & deed history | Fraud red flags, flip chains | the sales-history lookup |
-| 9 | Evictions | Recurring non-payment filings per unit | the eviction-history check |
+| 9 | Evictions | Recurring executed evictions per unit | the eviction-history check |
 | 10 | FDNY incidents | Standpipe/fire-safety history | the fire-incident check |
 | 11 | Block-level crime | Corner-level NYPD trend | the block-level crime check |
 | 12 | Tax & assessment | 421-a/J-51 cliff, RPIE reassessment | the tax-assessment check |
