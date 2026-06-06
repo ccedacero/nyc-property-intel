@@ -1,0 +1,21 @@
+# Vercel deploys the static site/ directory (see vercel.json outputDirectory).
+# Everything below is backend/data/tooling and must not be uploaded to Vercel.
+# Without this, `vercel --prod` tries to upload the full repo (53GB+ data dir)
+# and fails with "File size is greater than 2 GiB".
+
+data/
+dumps/
+.venv/
+.git/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.csv
+
+# Python backend / tooling (not part of the static site output)
+src/
+tests/
+scripts/
+docs/
+*.py
+uv.lock
