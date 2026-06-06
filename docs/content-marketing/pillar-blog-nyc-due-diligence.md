@@ -71,7 +71,7 @@ Picture a two-family carrying **$87,000 in outstanding ECB default judgments**. 
 
 ### Violations and liens follow the property, not the seller
 
-This is the part out-of-state buyers learn the hard way: open violations, OATH/ECB judgments, and liens attach to the BBL, not to the person who created them. You "step into the seller's shoes." ECB judgments remain enforceable for **eight years** and must be satisfied at or before closing. Worse, an unpaid ECB violation can silently "ripen" into a permanent DOF tax lien that survives even foreclosure.
+This is the part out-of-state buyers learn the hard way: open violations, OATH/ECB judgments, and liens attach to the BBL, not to the person who created them. You "step into the seller's shoes." ECB judgments remain enforceable for **eight years** and must be satisfied at or before closing. Worse, under Local Law 153 of 2017 an unpaid ECB judgment can be entered as a permanent DOF tax lien against the property — and for a small home (a private dwelling, or any building with **three or fewer dwelling units**) that conversion is **automatic, with no dollar minimum**. Larger buildings convert only above set thresholds (6–19 units at $30,000+, 20+ units at $60,000+). Either way the judgment attaches to the BBL and must be cleared before you can close.
 
 ### What a repriced deal looks like when you find it early
 
@@ -119,7 +119,7 @@ Public data has real limits, and we disclose them rather than paper over them. D
 
 The single most expensive mistake a NYC buyer makes is checking *one* violation system and assuming it's the whole picture. It isn't. DOB violations, ECB/OATH judgments, and HPD violations live in separate databases that don't talk to each other — and a violation that reads "resolved" in one can still owe a five-figure fine in another. A buyer can easily turn up **a dozen-plus open DOB/HPD violations days before closing — enough to trigger a multi-week delay, a deal collapse, and five figures in sunk fees**. Violations follow the property, not the seller — so whatever you miss, you inherit.
 
-**What is an ECB violation?** An ECB (Environmental Control Board) violation is a penalty issued by the NYC Department of Buildings and adjudicated by the Office of Administrative Trials and Hearings (OATH). Unlike a standard DOB violation, an ECB violation carries a monetary fine — and under **Local Law 153 of 2017, an unpaid ECB violation can ripen into a DOF tax lien** that survives sale and even foreclosure. This is why "the DOB site says resolved" is dangerously incomplete.
+**What is an ECB violation?** An ECB (Environmental Control Board) violation is a penalty issued by the NYC Department of Buildings and adjudicated by the Office of Administrative Trials and Hearings (OATH). Unlike a standard DOB violation, an ECB violation carries a monetary fine — and under **Local Law 153 of 2017 the City can enter an unpaid ECB judgment as a tax lien** against the property: automatically for a private dwelling or any building with three or fewer dwelling units (no dollar minimum), or above set thresholds for larger buildings (6–19 units at $30,000+, 20+ units at $60,000+). Either way the unpaid fine attaches to the BBL, which is why "the DOB site says resolved" is dangerously incomplete.
 
 ### How to check DOB violations and complaints
 
@@ -139,7 +139,7 @@ For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair
 
 ## Check 2: Liens & Encumbrances — ACRIS, DOF Tax Liens & ECB Judgment Liens {#check-2-liens}
 
-The pain: in NYC, a single property's debts are not stored in one place. To find every encumbrance you have to query **ACRIS** (deeds, mortgages, lis pendens), **DOF** (tax liens, water/sewer arrears via DEP), **OATH/ECB** (judgment liens), *and* NY State **eCourts/iCourts** (docketed money judgments and mechanic's liens that never touch ACRIS) — none of which cross-reference each other. As one guide puts it, "Liens are scattered across disconnected government portals... Missing even one lien can delay a closing by weeks". Miss one and you inherit it: a single overlooked ECB judgment can carry **$15,000–$87,000** in liability the buyer cannot see until closing — one Flushing two-family carried $87,000 in outstanding ECB default judgments and the deal died because the seller couldn't pay and the title company wouldn't insure.
+The pain: in NYC, a single property's debts are not stored in one place. To find every encumbrance you have to query **ACRIS** (deeds, mortgages, lis pendens), **DOF** (tax liens, water/sewer arrears via DEP), **OATH/ECB** (judgment liens), *and* NY State **eCourts/iCourts** (docketed money judgments and mechanic's liens that never touch ACRIS) — none of which cross-reference each other. As one guide puts it, "Liens are scattered across disconnected government portals... Missing even one lien can delay a closing by weeks". Miss one and you inherit it: a single overlooked ECB judgment can carry five figures of liability the buyer cannot see until closing. Picture a two-family with $87,000 in outstanding ECB default judgments — the seller can't pay it off and the title company won't insure over it, so the deal dies at title.
 
 **NYC Property Intel runs all four lookups in one call.** the lien & encumbrance check pulls DOF tax liens, ACRIS mortgages and lis pendens, and ECB/OATH judgment liens against the canonical BBL at once — surfacing your dollar exposure *before* you make an offer, not at attorney review.
 
@@ -159,13 +159,13 @@ Be clear: this is **due diligence, not a title search, and not title insurance**
 
 ## Check 3: Rent Stabilization & Overcharge Risk (the Pro Forma Killer)
 
-You underwrote the building on its rent roll. The broker called four of the eight units "free market." You modeled a 6% cap and a value-add bump. Then your attorney pulls the DHCR history at contract, and three of those "market" units turn out to be legally rent-stabilized — with rents 40% above the legal regulated rent. You haven't just lost the upside. You've inherited the prior owner's overcharge liability, and **"reliance on the amount of rent charged by the prior landlord does not shield the new owner from damages... including treble damages"**. HSTPA pushed the lookback to six years. This is the single line item that can flip a deal from "value-add" to "inherited lawsuit." Stabilization status alone repriced the market: median stabilized prices in Manhattan fell from **$290K to $122K per unit** after HSTPA.
+You underwrote the building on its rent roll. The broker called four of the eight units "free market." You modeled a 6% cap and a value-add bump. Then your attorney pulls the DHCR history at contract, and three of those "market" units turn out to be legally rent-stabilized — with rents 40% above the legal regulated rent. You haven't just lost the upside. You've inherited the prior owner's overcharge liability, and **"reliance on the amount of rent charged by the prior landlord does not shield the new owner from damages... including treble damages"**. HSTPA pushed the lookback to six years. This is the single line item that can flip a deal from "value-add" to "inherited lawsuit." Stabilization status alone can reprice a building: after the 2019 HSTPA reforms, per-unit values for heavily rent-stabilized Manhattan buildings fell sharply as the value-add playbook lost its upside.
 
 ### Signals a building is likely rent stabilized
 
 NYC Property Intel's rent-stabilization check surfaces the public signals that point to regulation, cross-referenced against the property lookup (BBL, year built, unit count, tax class) and abatement records:
 
-- **DHCR registration counts** — units actively registered as stabilized, year over year.
+- **DHCR registration counts** — a strong signal of stabilization (our DHCR dataset covers 2007–2017 registrations, which predate the 2019 HSTPA reforms, so treat it as a flag, not a current roster).
 - **Pre-1974 construction + 6 or more units** — the classic stabilization fingerprint.
 - **Active or expired 421-a / J-51 abatements** — these silently mandate stabilization for the entire benefit period. Under 421-a, units only deregulate at expiry if the proper rider notice was given in the initial lease *and every renewal* — miss it once and the unit stays stabilized for the whole tenancy.
 
@@ -193,7 +193,7 @@ Run **the property lookup** to pull the property's canonical BBL, zoning, and DO
 
 ### Spotting an illegal apartment before you underwrite its rent
 
-A C-of-O mismatch can trigger a DOB vacate order that zeroes out a unit's income overnight — so never capitalize a unit the C of O doesn't recognize. Cross-check with `get_311_complaints` and the DOB complaint check for "illegal conversion" or "illegal apartment" complaints, and re-price any unpermitted unit as a *liability*, not upside.
+A C-of-O mismatch can trigger a DOB vacate order that zeroes out a unit's income overnight — so never capitalize a unit the C of O doesn't recognize. Cross-check the 311-complaint history and the DOB complaint check for "illegal conversion" or "illegal apartment" complaints. An unpermitted unit is a liability, not guaranteed income — confirm its legal status with your attorney and architect before you count its rent.
 
 ### Checking permit history for unpermitted work
 
@@ -242,7 +242,7 @@ The housing-court litigation check flags HPD housing-court actions against the o
 
 ### Reading 311 and HPD complaint patterns as distress signals
 
-Complaints precede violations: roughly **68% of violations are cited as preventable**, and 311 complaints "precede escalated HPD inspections and Class B or Class C violations". `get_311_complaints` plus the HPD complaint check turn a chronic-complaint pattern — heat/hot-water, no-access, illegal-occupancy — into a buy/no-buy distress signal, flagging likely AEP enrollment and future city-billed emergency repairs.
+Complaints tend to precede violations: a sustained 311-complaint pattern often precedes escalated HPD inspections and Class B or Class C violations. The 311-complaint check plus the HPD complaint check turn a chronic-complaint pattern — heat/hot-water, no-access, illegal-occupancy — into a buy/no-buy distress signal, flagging likely AEP enrollment and future city-billed emergency repairs.
 
 NYC Property Intel moves all three from "your attorney finds it at contract" to "you see it before you make an offer."
 
@@ -254,7 +254,7 @@ These three buyer segments share one brutal feature: the cost of an undiscovered
 
 ### Running due diligence inside the 1031 45-day clock
 
-The 45-day identification window and the 180-day closing window run **concurrently**, and they are not extended for weekends, holidays, financing delays, or medical emergencies. As 1031 Specialists put it, *"The IRS's 45-day identification deadline often makes investors rush and skip due diligence, closing acquisitions as quickly as possible, which creates unnecessary risks."* Skip the wrong check on an NYC property and the bill is generational: a busted exchange triggers federal + NY State (up to 10.9%) + NYC (up to 3.876%) tax — roughly **38.7% of the gain**, or $100,000 to $160,000 on a $400K gain.
+The 45-day identification window and the 180-day closing window run **concurrently**, and they are not extended for weekends, holidays, financing delays, or medical emergencies. As 1031 Specialists put it, *"The IRS's 45-day identification deadline often makes investors rush and skip due diligence, closing acquisitions as quickly as possible, which creates unnecessary risks."* Skip the wrong check on an NYC property and the bill is generational: a busted exchange triggers federal + NY State + NYC tax that, at top brackets, can reach the high-30s percent of the gain — easily six figures on a large gain. (Your CPA computes the actual rate; it varies with your income and the property. This is not tax advice.)
 
 This is the tool's single most defensible use case. The full due-diligence scan returns the slowest part of NYC due diligence — DOB/HPD/ECB violations, ACRIS liens, HPD litigation, eviction history, rent-stabilization signals — from one address query, so you can pre-screen ten candidates on Day 2 instead of discovering a dealbreaker on Day 44. It does not replace a title search, a DHCR rent-history request, or a physical inspection; it tells you which candidates are worth spending those remaining days on.
 
@@ -265,7 +265,7 @@ Roughly **[37% of Manhattan properties are held by secretive LLCs](https://reinv
 NYC Property Intel lets you verify what the agent tells you against the city's own records:
 
 - **the ownership lookup** often surfaces the real principal or managing agent behind a building's LLC — the single most useful counterparty check a remote buyer has.
-- **the full due-diligence scan** independently confirms violations, 311 complaints, litigation, evictions, and FDNY incidents for the exact BBL.
+- **the full due-diligence scan** independently confirms violations, 311 complaints, litigation, and evictions for the exact BBL, plus FDNY incident history at the zip-code level (FDNY data isn't reported per building).
 
 It cannot verify a seller's foreign-person status (FIRPTA), inspect finishes, or pull a confidential DHCR rent history — flag-and-refer, honestly stated.
 
@@ -273,12 +273,12 @@ It cannot verify a seller's foreign-person status (FIRPTA), inspect finishes, or
 
 At foreclosure auction there is no escrow officer and no inspection. Buyers take title **subject to surviving senior liens** — *"senior mortgages, property tax liens, and certain judgment liens survive the sale"* — any one of which can erase the spread. And as serial co-op auction buyer Adam Plotch warns, *"rent-stabilized tenants never die... it gives you eternal life."*
 
-Before you bid, run **the lien & encumbrance check** to aggregate and date-order ACRIS mortgages, assignments, satisfactions, and lis pendens alongside DOF tax/water liens and ECB/HPD liens — approximating priority and flagging a surviving senior mortgage. Pair it with rent-stabilization and HPD-registration checks to spot a regulated, occupied unit before it becomes a multi-year trap. Final lien priority still needs an abstractor or attorney; this gets you to "do not bid" before the gavel.
+Before you bid, run **the lien & encumbrance check** to aggregate and date-order ACRIS mortgages, assignments, satisfactions, and lis pendens alongside DOF tax/water liens and ECB/HPD liens — approximating priority and flagging a surviving senior mortgage. Pair it with rent-stabilization and HPD-registration checks to spot a regulated, occupied unit before it becomes a multi-year trap. Final lien priority still needs an abstractor or attorney; this surfaces the senior-lien and regulated-tenant risks before the gavel, so you and your attorney can price them in or pass.
 
-> ### 📋 Free: The 45-Day 1031 NYC Screening Sheet
-> A deadline-counting worksheet plus the exact checks to run by **Day 2** of your identification window — tied to the highest-cost mistake in NYC due diligence.
+> ### 📋 On the 1031 clock? Screen candidates by Day 2.
+> Run the full due-diligence scan on every property you're identifying — the slowest NYC checks (violations, liens, litigation, rent-stabilization signals) come back in one query, so you spend your remaining days only on candidates worth closing.
 >
-> **[→ Get the 1031 screening sheet (PDF)](#1031-sheet)**
+> **[→ Scan a candidate free](#scan)**
 
 ---
 
@@ -295,7 +295,7 @@ NYC Property Intel collapses 20+ sources into one query. Below is the master che
 | 1 | Identity & zoning | Wrong BBL, mis-zoned use | the property lookup |
 | 2 | DOB violations & complaints | Open BIS/NOW violations | the violation check / the DOB complaint check |
 | 3 | HPD violations & litigation | Class B/C, housing-court history, LLC principal | the HPD complaint check / the housing-court litigation check / the ownership lookup |
-| 4 | 311 history | Chronic-violator pattern, illegal-conversion tips | `get_311_complaints` |
+| 4 | 311 history | Chronic-violator pattern, illegal-conversion tips | the 311-complaint check |
 | 5 | Liens & encumbrances | DOF tax liens, ACRIS mortgages, lis pendens, ECB judgment liens | the lien & encumbrance check |
 | 6 | Rent-stabilization signals | Likely-stabilized units, overcharge exposure | the rent-stabilization check |
 | 7 | Permits & FISP/LL11 | Open facade work, expired boiler permits | the permit-history check |
@@ -314,11 +314,13 @@ NYC Property Intel collapses 20+ sources into one query. Below is the master che
 
 | | NYC Property Intel | PropertyShark | Marketproof |
 |---|---|---|---|
-| **Price** | Pay-per-query / low monthly | $59.95–$169.95/mo | $100+/mo |
+| **Price** | Free — 3 queries/day no signup, 10/day with a free account; self-host unlimited (MIT) | ~$59.95–$169.95/mo* | ~$100+/mo* |
 | **Model** | AI natural-language query + MCP/agent access | Static report pulls | Report + list-building |
 | **Output** | Risk flags + plain-English answer | Raw report | Data dashboard |
 | **Data-vintage honesty** | Discloses indexing lag, ~33% dobjobs drift, confidential DHCR — flags-and-refers | Not surfaced | Not surfaced |
 | **Best for** | The occasional investor screening 5–10 deals | List-builders | Brokerages |
+
+*Competitor pricing shown as of June 2026; check their sites for current rates.*
 
 The new aggregators (violationwatch.nyc, regwatch.nyc, dobguard.com) all claim "many sources in one place" — that's table stakes now. NYC Property Intel differentiates on two things they don't: **natural-language AI query plus MCP/agent access**, and **radical data-vintage honesty** (we tell you how stale each signal is and what to verify before you wire money).
 
@@ -336,22 +338,15 @@ We earn trust by being explicit about our limits:
 
 ---
 
-## Download & Next Steps
+## Next Steps
 
-> ### 📄 Free: NYC Pre-Offer Due-Diligence Checklist (PDF)
-> The printable 20-point checklist — every one of the 20+ city data sources mapped to exactly what it catches. Run it as one query, or work it line by line.
->
-> **[→ Download the checklist (PDF)](#checklist-pdf)**
+> ### 📄 The NYC Pre-Offer Due-Diligence Checklist
+> The full 20-point checklist above maps every one of the 20+ city data sources to exactly what it catches. Work it line by line, or run it as a single query.
 
-> ### 🧾 See a real sample report (redacted address)
-> Plain-English interpretation, dollar balances, data-vintage stamps, and the "verify before you wire money" disclaimers — the interpretation layer free city sites can't give you.
+> ### 🏙️ Screen your candidates — free
+> Enter one address and NYC Property Intel returns a normalized risk profile across all 20+ city data sources, in plain English, with honest data-vintage stamps. Three queries a day with no signup; sign up free for ten a day; self-host unlimited under the MIT license.
 >
-> **[→ View the sample report](#sample-report)**
-
-> ### 🏙️ Evaluating multiple properties? Screen them all.
-> At roughly the cost of a single screen against a six-figure busted-exchange tax hit, the math is not close. Buy a credit pack and run a full the full due-diligence scan on every candidate inside your window.
->
-> **[→ Get a credit pack](#pricing)**
+> **[→ Scan an address free](#scan)**
 
 ---
 
@@ -367,7 +362,7 @@ No. A title search is a legal certification of clean ownership, performed by a t
 
 ### How do I know if a building is rent stabilized?
 
-There is no authoritative, current, per-unit public source — DHCR registration is owner-self-reported and unaudited, and "the only way to know if your apartment is rent stabilized is to contact NYS HCR" ([NYC Rent Guidelines Board](https://rentguidelinesboard.cityofnewyork.us/resources/rent-stabilized-building-lists/)). NYC Property Intel's rent-stabilization check combines DHCR registration counts, building age and unit count (PLUTO/DOF), and active 421-a/J-51 status to flag "this building almost certainly contains stabilized units" — a strong red flag that should trigger a formal DHCR rent-history request. It's a screen, not a legal ruling, and it does not replace the official per-unit DHCR history (which matters because new owners inherit overcharge liability with treble damages and a 6-year lookback).
+There is no authoritative, current, per-unit public source — DHCR registration is owner-self-reported and unaudited, and "the only way to know if your apartment is rent stabilized is to contact NYS HCR" ([NYC Rent Guidelines Board](https://rentguidelinesboard.cityofnewyork.us/resources/rent-stabilized-building-lists/)). NYC Property Intel's rent-stabilization check combines DHCR registration counts (2007–2017 data, which predate the 2019 HSTPA reforms), building age and unit count (PLUTO/DOF), and active 421-a/J-51 status to flag "this building almost certainly contains stabilized units" — a strong red flag that should trigger a formal DHCR rent-history request. It's a screen, not a legal ruling, and it does not replace the official per-unit DHCR history (which matters because new owners inherit overcharge liability with treble damages and a 6-year lookback).
 
 ### Can you check liens before I make an offer?
 
@@ -375,7 +370,7 @@ Yes — that's the core move: shifting lien discovery from "your attorney finds 
 
 ### Do open DOB or ECB violations stop me from closing in NYC?
 
-Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments, and many lenders won't fund until they're cleared — so unresolved violations can stall or kill a closing even when both parties want to proceed. Because ECB judgments stay enforceable for eight years and can ripen into a DOF tax lien under Local Law 153 of 2017, they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice; finding them at closing usually means delay or collapse.
+Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments, and many lenders won't fund until they're cleared — so unresolved violations can stall or kill a closing even when both parties want to proceed. Because ECB judgments stay enforceable for eight years — and under Local Law 153 of 2017 can be entered as a tax lien (automatically for a home of three or fewer units, or above $30,000–$60,000 thresholds for larger buildings) — they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice; finding them at closing usually means delay or collapse.
 
 ### How long does NYC property due diligence take if I do it manually?
 
@@ -412,7 +407,7 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
           "name": "Do building violations transfer to the new owner in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller, so the buyer steps into the shoes of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. For example, a two-family carrying $87,000 in outstanding ECB default judgments can be impossible to close, because the title company will not insure over them and the seller cannot pay them off."
+            "text": "Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller, so the buyer steps into the shoes of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. For example, a building carrying tens of thousands of dollars in outstanding ECB default judgments can be impossible to close, because the title company will not insure over them and the seller cannot pay them off."
           }
         },
         {
@@ -428,7 +423,7 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
           "name": "How do I know if a building is rent stabilized in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "There is no authoritative, current, per-unit public source. DHCR registration is owner-self-reported and unaudited, and the only way to confirm is to contact NYS HCR. NYC Property Intel combines DHCR registration counts, building age and unit count, and active 421-a/J-51 status to flag that a building almost certainly contains stabilized units, which should trigger a formal DHCR rent-history request. It is a screen, not a legal ruling, and does not replace the official per-unit DHCR history."
+            "text": "There is no authoritative, current, per-unit public source. DHCR registration is owner-self-reported and unaudited, and the only way to confirm is to contact NYS HCR. NYC Property Intel combines DHCR registration counts (2007–2017 data, predating the 2019 HSTPA reforms), building age and unit count, and active 421-a/J-51 status to flag that a building almost certainly contains stabilized units, which should trigger a formal DHCR rent-history request. It is a screen, not a legal ruling, and does not replace the official per-unit DHCR history."
           }
         },
         {
@@ -444,7 +439,7 @@ Three things: (1) a **title search and title insurance** — we surface ACRIS/DO
           "name": "Do open DOB or ECB violations stop me from closing in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments and many lenders won't fund until they're cleared, so unresolved violations can stall or kill a closing. ECB judgments stay enforceable for eight years and can ripen into a DOF tax lien under Local Law 153 of 2017, so they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice the deal."
+            "text": "Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments and many lenders won't fund until they're cleared, so unresolved violations can stall or kill a closing. ECB judgments stay enforceable for eight years, and under Local Law 153 of 2017 can be entered as a tax lien (automatically for buildings of three or fewer dwelling units, or above set dollar thresholds for larger buildings), so they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice the deal."
           }
         },
         {

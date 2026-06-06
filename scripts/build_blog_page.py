@@ -104,7 +104,10 @@ def ext_links(m):
         return m.group(0)
     if "target=" in attrs:
         return m.group(0)
-    return f'<a {attrs}href="{href}" target="_blank" rel="nofollow noopener noreferrer">'
+    # NOTE: the regex matches up to the href's closing quote but NOT the tag's
+    # closing '>'. Do not append '>' here or it doubles with the original,
+    # producing '">>anchor'. Let the original '>' close the tag.
+    return f'<a {attrs}href="{href}" target="_blank" rel="nofollow noopener noreferrer"'
 
 html_body = re.sub(r'<a ([^>]*?)href="(https?://[^"]+)"', ext_links, html_body)
 
