@@ -67,16 +67,18 @@ _MV_REFRESH_TARGETS = (
 async def _refresh_materialized_views() -> None:
     """REFRESH each MV in _MV_REFRESH_TARGETS, logging each result.
 
-    Failures on individual MVs are caught and logged but never re-raised:
-    a stale MV is a known-good fallback (the tools already handle
-    UndefinedTableError gracefully), so an MV refresh hiccup must NEVER
-    change the sync's exit code.
+    Failures on individual MVs are caught and never re-raised (a stale MV is a
+    known-good fallback; the tools handle UndefinedTableError gracefully), so an
+    MV refresh hiccup must NEVER change the sync's exit code. BUT a silent stale
+    MV serves WRONG counts (see 2026-06-07: mv_violation_summary drifted on 7,374
+    buildings undetected), so failures are now ALERTED instead of only logged.
     """
     import asyncpg
     dsn = os.environ.get("DATABASE_URL")
     if not dsn:
         logger.warning("DATABASE_URL not set, skipping MV refresh")
         return
+    failures: list[str] = []
     conn = await asyncpg.connect(dsn)
     try:
         for mv in _MV_REFRESH_TARGETS:
@@ -89,8 +91,16 @@ async def _refresh_materialized_views() -> None:
                     "failed to refresh %s after %.1fs: %s",
                     mv, time.monotonic() - t0, exc,
                 )
+                failures.append(f"{mv}: {exc}")
     finally:
         await conn.close()
+    if failures:
+        # Surface silently-failing refreshes — a stale MV serves wrong counts.
+        send_alert(
+            "NYCPI: materialized view refresh FAILED",
+            "One or more materialized views failed to refresh; served data may be "
+            "stale until the next successful sync:\n\n" + "\n".join(failures),
+        )
 
 
 def run_one(dataset_key: str) -> RunResult:
