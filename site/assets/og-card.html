@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+  Source for og-card.png (1200x630 social share / thumbnail).
+  Edit copy HERE, never the PNG directly, then re-render with headless Chrome
+  (run from repo root):
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+      --window-size=1200,630 --screenshot=site/assets/og-card.png \
+      "file://$PWD/site/assets/og-card.html"
+
+  (A convenience wrapper exists at scripts/build_og_card.sh, gitignored per repo convention.)
+  Canonical coverage numbers: 20+ datasets / 9 city agencies / 18 AI tools.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1200px; height: 630px;
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .card {
+    position: relative;
+    width: 1200px; height: 630px;
+    background: linear-gradient(135deg, #1d2d49 0%, #16223a 55%, #121b2d 100%);
+    color: #f4f7fc;
+  }
+  /* ---- left column ---- */
+  .content { position: absolute; left: 60px; top: 58px; width: 700px; }
+  .badge {
+    display: inline-block;
+    font-size: 22px; font-weight: 600; letter-spacing: 2px;
+    color: #5b9bf0;
+    border: 1px solid rgba(91,155,240,0.45);
+    background: rgba(91,155,240,0.08);
+    border-radius: 8px;
+    padding: 9px 16px;
+  }
+  h1 {
+    margin-top: 26px;
+    font-size: 84px; line-height: 1.04; font-weight: 600;
+    letter-spacing: -1px; color: #f5f8fd;
+  }
+  .accent { margin-top: 18px; font-size: 38px; font-weight: 500; color: #5b9bf0; }
+  .stats {
+    margin-top: 30px; font-size: 29px; font-weight: 400; color: #93a0b6;
+    white-space: nowrap;
+  }
+  .stats .dot { color: #56657e; padding: 0 14px; }
+  .chips { margin-top: 34px; display: flex; gap: 14px; }
+  .chip {
+    font-size: 25px; color: #c5d0e3;
+    border: 1px solid #3a4b66;
+    background: rgba(255,255,255,0.025);
+    border-radius: 11px;
+    padding: 11px 19px; white-space: nowrap;
+  }
+  .footer {
+    position: absolute; left: 60px; top: 548px;
+    font-size: 23px; color: #5d6d85;
+  }
+  /* ---- right graphic panel ---- */
+  .panel {
+    position: absolute; left: 820px; top: 78px;
+    width: 320px; height: 480px;
+    border: 1px solid rgba(120,150,200,0.18);
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px;
+  }
+  .skyline {
+    position: absolute; left: 30px; bottom: 28px;
+    display: flex; align-items: flex-end; gap: 12px;
+  }
+  .bldg {
+    border: 3px solid #2f6fe6; border-bottom: none;
+    width: 50px; padding: 9px 0;
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 7px 8px; justify-items: center; align-content: start;
+  }
+  .bldg span { width: 12px; height: 12px; background: #2f6fe6; display: block; }
+  .magnifier {
+    position: absolute; left: 118px; top: 58px;
+    width: 96px; height: 96px; border: 5px solid #4a82e8; border-radius: 50%;
+  }
+  .magnifier::after {
+    content: ""; position: absolute; right: -34px; bottom: -22px;
+    width: 44px; height: 5px; background: #4a82e8;
+    transform: rotate(45deg); transform-origin: left center; border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="content">
+      <span class="badge">NYC PROPERTY INTEL</span>
+      <h1>NYC Property<br>Due Diligence</h1>
+      <div class="accent">from Public Records</div>
+      <div class="stats">20+ datasets<span class="dot">&middot;</span>9 city agencies<span class="dot">&middot;</span>18 AI tools</div>
+      <div class="chips">
+        <span class="chip">HPD Violations</span>
+        <span class="chip">ACRIS Deeds</span>
+        <span class="chip">DOF Sales</span>
+        <span class="chip">PLUTO Zoning</span>
+        <span class="chip">MCP Server</span>
+      </div>
+    </div>
+    <div class="footer">Free &middot; MIT License &middot; Claude AI Integration &middot; Runs Locally</div>
+
+    <div class="panel">
+      <div class="magnifier"></div>
+      <div class="skyline">
+        <!-- 5 buildings, varying heights; window counts set the height -->
+        <div class="bldg" style="height:150px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="bldg" style="height:200px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="bldg" style="height:268px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="bldg" style="height:320px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="bldg" style="height:248px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

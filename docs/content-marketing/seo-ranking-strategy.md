@@ -4,11 +4,11 @@
 
 ## Flagship Pillar Page
 
-- **Title tag:** NYC Property Due Diligence Checklist (22+ Sources)
-- **H1:** NYC Property Due Diligence: The Complete Pre-Offer Checklist (22+ City Data Sources)
+- **Title tag:** NYC Property Due Diligence Checklist (20+ Data Sources)
+- **H1:** NYC Property Due Diligence: The Complete Pre-Offer Checklist (20+ City Data Sources)
 - **Slug:** `/nyc-property-due-diligence`
 - **Primary keyword:** nyc property due diligence checklist
-- **Meta description:** The complete NYC pre-offer due diligence checklist: violations, liens, rent-stabilization & more across 22+ city systems. Due diligence, not a title search. Run it as one AI query.
+- **Meta description:** The complete NYC pre-offer due diligence checklist: violations, liens, rent-stabilization & more across 20+ city datasets. Due diligence, not a title search. Run it as one AI query.
 
 ## Target Keywords (mapped to pain points)
 
@@ -65,8 +65,8 @@
 ### 1. Quick Answer: What NYC Property Due Diligence Actually Means
 - **Target keyword:** nyc property due diligence
 - **Subsections:** What due diligence covers (and what it does not); Pre-offer vs. pre-closing: why timing changes everything; The honest limits: title search, DHCR rent history, physical inspection
-- **Citable stat:** NYC property risk data is fragmented across 22+ separate city systems (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF)
-- **Covers:** Open with a 40-60 word liftable direct-answer passage defining pre-offer due diligence in NYC and naming the 22+ city systems at a glance. Frame the core thesis: move risk discovery from contract/closing to BEFORE the offer. State up front this is due diligence, NOT a title search, appraisal, or legal advice. Maps to the whole-product value prop (analyze_property). GEO citability is the goal for this block.
+- **Citable stat:** NYC property risk data is fragmented across 10+ separate city systems (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF) holding 20+ distinct datasets
+- **Covers:** Open with a 40-60 word liftable direct-answer passage defining pre-offer due diligence in NYC and naming the 10+ city systems at a glance. Frame the core thesis: move risk discovery from contract/closing to BEFORE the offer. State up front this is due diligence, NOT a title search, appraisal, or legal advice. Maps to the whole-product value prop (analyze_property). GEO citability is the goal for this block.
 
 ### 2. Why DD Has to Happen Before You Make an Offer (Not at Closing)
 - **Target keyword:** nyc property due diligence before offer
@@ -78,7 +78,7 @@
 - **Target keyword:** nyc property records search systems
 - **Subsections:** DOB BIS vs. DOB NOW: the two systems people forget to check both; ACRIS, DOF, ECB/OATH, HPD Online, DHCR, ZoLa - what each holds; Data vintage and known limits (indexing lag, ~33% dobjobs drift)
 - **Citable stat:** DOB job-filing (dobjobs) data shows ~33% drift from Socrata and a 30-70 day violation-closure lag - a known, disclosed limitation
-- **Covers:** Educate on the named city systems and WHY checking manually is hours of work across many logins - the moat-building section. Cover the DOB BIS vs DOB NOW split explicitly (the second-DOB-system gap most people miss). Pain: fragmentation. Capability: 22+ sources -> one AI query (lookup_property -> all downstream tools). This is the section that justifies the product; place the mid-post contextual CTA here (~50% scroll): 'We query all 22 sources in one step.' Note the moat is NOT breadth (competitors claim that) but AI natural-language query + honest data-vintage disclosure.
+- **Covers:** Educate on the named city systems and WHY checking manually is hours of work across many logins - the moat-building section. Cover the DOB BIS vs DOB NOW split explicitly (the second-DOB-system gap most people miss). Pain: fragmentation. Capability: 20+ datasets across 10+ city systems -> one AI query (lookup_property -> all downstream tools). This is the section that justifies the product; place the mid-post contextual CTA here (~50% scroll): 'We query 20+ datasets in one step.' Note the moat is NOT breadth (competitors claim that) but AI natural-language query + honest data-vintage disclosure.
 
 ### 4. Check 1: Building Violations - DOB, ECB & HPD
 - **Target keyword:** how to check nyc building violations before buying
@@ -155,21 +155,21 @@
   - Rent-stabilization verification (T4) - treble damages on 6-year lookback; highest stakes per deal; honesty framing ('we flag, you confirm with DHCR') is the trust close
   - Auction / foreclosure pre-bid (T12) - sight-unseen + hard deadline + surviving senior liens; smaller volume but highest intent-to-pay per visitor
 - **Lead magnets:**
-  - Free single-address Risk Scan (primary, interactive, in-post) - personalized flag summary across all 22 sources; detail unlocked behind email
+  - Free single-address Risk Scan (primary, interactive, in-post) - personalized flag summary across 20+ datasets; detail unlocked behind email
   - 'NYC Pre-Offer Due-Diligence Checklist' PDF - the 20+ city systems mapped to what each catches; email gate; every line item is a check the tool automates
   - '45-Day 1031 NYC Screening Sheet' - deadline-counting worksheet + the checks to run by Day 2; tied to the highest-WTP pain point
   - Sample report (redacted real address) - shows the plain-English interpretation, dollar balances, data-vintage stamps and 'verify before you wire money' disclaimers; sells the interpretation layer free city sites can't provide
 - **Pricing hooks:**
   - ROI anchor not a price tag: 'A single missed ECB judgment runs $15K-$87K; a full screen is the price of a working lunch' - let the asymmetry sell
   - Credits framed as screening capacity: 'Most investors screen 5-10 candidates per deal won - that's why people buy credit packs, not single reports'
-  - Free scan as a standing offer in every post: 'Run any NYC address free - see the flag count across all 22 sources before you unlock the detail'
+  - Free scan as a standing offer in every post: 'Run any NYC address free - see the flag count across 20+ datasets before you unlock the detail'
   - Monitoring framed as closing-window protection: 'New liens can attach in the 30-120 days between contract and closing. Monitoring re-checks your address until you close'
   - Honesty-as-value line: 'We charge for the aggregation and the plain-English read - not for telling you the data is perfect. It isn't, and we show you exactly where the limits are' - differentiates from PropertyShark/Marketproof's $60-$170/mo report-dump model on price AND trust
   - Guardrails (never violate): never imply the report replaces a title search, DHCR rent-history request, appraisal or inspection; never present a flag count as a clean bill of health; never quote insurance premiums or render a lien-priority/legal opinion; every money page ends with 'due diligence, not certification - verify before you wire money.'
 
 ## On-Page Must-Haves
 
-- **Title pattern:** [Pain-point question/keyword] in NYC | [Benefit] | NYC Property Intel (<=60 chars). Pillar: 'NYC Property Due Diligence Checklist (22+ Data Sources)'. S2: 'ECB Violations When Buying NYC Property: Who Pays?'. S3: 'Is a NYC Building Rent Stabilized? How to Check'. Meta pattern (<=155): answer + honesty + CTA - 'Check [X] across NYC's [named systems] before you make an offer. Due diligence, not a title search. Run it as one AI query.'
+- **Title pattern:** [Pain-point question/keyword] in NYC | [Benefit] | NYC Property Intel (<=60 chars). Pillar: 'NYC Property Due Diligence Checklist (20+ Data Sources)'. S2: 'ECB Violations When Buying NYC Property: Who Pays?'. S3: 'Is a NYC Building Rent Stabilized? How to Check'. Meta pattern (<=155): answer + honesty + CTA - 'Check [X] across NYC's [named systems] before you make an offer. Due diligence, not a title search. Run it as one AI query.'
 - **Internal linking:** Hub-and-spoke. (1) Every spoke links UP to the pillar with descriptive anchor ('complete NYC due diligence checklist') within the first 150 words + breadcrumb. (2) Pillar links DOWN to all spokes via the master checklist section - each checklist item is an anchor to its spoke AND a deep-link into the relevant MCP capability. (3) Sibling cross-links follow the pain-point chains: S1<->S2 (violations->ECB liens), S2<->S5 (liens), S3<->S4<->S12 (stabilization<->overcharge<->abatement), S6 pulls in S1+S3+S5, S9 pulls in S1+S5+S10, S11 pulls in S5+S3 - 2-3 contextual sibling links per spoke. (4) Every product CTA deep-links to the relevant tool (get_property_issues / get_liens_and_encumbrances on this address). (5) No orphans; max 3 clicks from home to any spoke.
 - **Schema:**
   - Article + BreadcrumbList on every page
