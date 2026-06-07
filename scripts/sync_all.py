@@ -182,8 +182,8 @@ def main() -> None:
     )
     p.add_argument(
         "--skip-mv-refresh", action="store_true",
-        help="skip post-sync materialized-view refresh on tier-2 runs "
-             "(default: MVs refresh on tier 2 only)",
+        help="skip the post-sync materialized-view refresh "
+             "(default: MVs refresh after every full sync)",
     )
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args()
@@ -238,15 +238,16 @@ def main() -> None:
     elif skip_cleanup:
         logger.info("skipping post-sync cleanup (--skip-cleanup or SYNC_SKIP_CLEANUP=1)")
 
-    # Post-sync materialized-view refresh — tier-2-only so the heavy MVs
-    # (mv_violation_summary is ~5 min) don't run on every daily sync. Without
-    # this, `lookup_property`/`get_property_issues` summaries drift relative
-    # to the underlying `hpd_violations`/`dob_violations` tables that sync
-    # nightly. CONCURRENTLY avoids blocking reads during refresh.
-    # Like cleanup, wrapped defensively — refresh failure must not change
-    # the sync's exit code.
-    if not args.only and args.tier == 2 and not args.skip_mv_refresh:
-        logger.info("refreshing materialized views (post-sync, tier=2)")
+    # Post-sync materialized-view refresh — runs after EVERY full sync (all
+    # tiers). The MVs' source tables (hpd_violations/dob_violations) load on the
+    # DAILY tier-1 sync, so the previous tier-2-only refresh left
+    # lookup_property/get_property_issues summaries stale up to a week (measured
+    # 2026-06-07: mv_violation_summary drifted on 7,374 buildings). The old
+    # "~5 min, too heavy for daily" assumption was wrong — REFRESH ...
+    # CONCURRENTLY measured ~10s and never blocks reads.
+    # Like cleanup, wrapped defensively — refresh failure must not change exit code.
+    if not args.only and not args.skip_mv_refresh:
+        logger.info("refreshing materialized views (post-sync, tier=%s)", args.tier)
         try:
             asyncio.run(_refresh_materialized_views())
         except Exception:
