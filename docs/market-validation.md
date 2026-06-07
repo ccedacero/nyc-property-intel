@@ -13,7 +13,7 @@ The pain point of fragmented NYC property due diligence data is real, well-docum
 
 ## 1. The Problem (Quantified)
 
-- **22+ separate websites** needed for full NYC property due diligence (NestApple, UNHP, ProPublica independently confirm)
+- **15+ separate city systems** must be checked for full NYC property due diligence (enumerated in the table below); a typical pre-offer check spans **8+ websites** across **~11 city agencies** (NestApple's DIY guide, RegWatch, and DOBGuard corroborate the 8+/11-agency framing). *(Corrected 2026-06-07 from an earlier unsupported "22+ separate websites — NestApple, UNHP, ProPublica independently confirm": UNHP aggregates 120+ data points but does not count websites, ProPublica was unverifiable, and the 22 figure exceeds the 15 systems the table below actually lists.)*
 - **4-6 hours per property** for manual research across all databases (RegWatch quantifies at $250-500 labor cost)
 - **70% of NYC buildings** have open violations (ViolationWatch)
 - **~1,200 multifamily transactions/year** in NYC, $8.9B in 2024 dollar volume (Ariel Property Advisors)
