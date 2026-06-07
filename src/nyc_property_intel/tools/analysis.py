@@ -122,8 +122,8 @@ SELECT
     -- are 'PENDING' and 'APPLICATION PENDING'. ILIKE survives casing drift.
     COUNT(*) FILTER (WHERE casestatus ILIKE '%PENDING%') AS open_cases,
     COUNT(*) FILTER (
-        WHERE findingofharassment IS NOT NULL
-          AND findingofharassment NOT IN ('', 'NO')
+        -- Only 'After Inquest'/'After Trial' = harassment found; 'No Harassment'/NULL do not.
+        WHERE findingofharassment IN ('After Inquest', 'After Trial')
     ) AS harassment_findings,
     MAX(caseopendate) AS most_recent_case
 FROM hpd_litigations WHERE bbl = $1;"""
@@ -144,8 +144,9 @@ LIMIT 1;"""
 _SQL_EVICTIONS_SUMMARY = """\
 SELECT
     COUNT(*) AS total_evictions,
-    COUNT(*) FILTER (WHERE upper(residentialcommercialind) = 'RESIDENTIAL') AS residential_evictions,
-    COUNT(*) FILTER (WHERE upper(residentialcommercialind) = 'COMMERCIAL') AS commercial_evictions,
+    -- residentialcommercialind is mixed-encoded on prod ('R'/'Residential'/'RESIDENTIAL'); match first letter.
+    COUNT(*) FILTER (WHERE upper(left(residentialcommercialind,1)) = 'R') AS residential_evictions,
+    COUNT(*) FILTER (WHERE upper(left(residentialcommercialind,1)) = 'C') AS commercial_evictions,
     MAX(executeddate::text) AS most_recent
 FROM marshal_evictions_all WHERE bbl = $1;"""
 
@@ -161,7 +162,9 @@ FROM dobjobs WHERE bbl = $1;"""
 _SQL_311_SUMMARY = """\
 SELECT
     COUNT(*) AS total_complaints,
-    COUNT(*) FILTER (WHERE upper(status) = 'OPEN') AS open_complaints,
+    -- 311 active states are Open/In Progress/Pending/Assigned/Started, not just 'Open';
+    -- count everything not Closed (prior 'OPEN'-only filter under-reported active complaints).
+    COUNT(*) FILTER (WHERE upper(status) != 'CLOSED') AS open_complaints,
     MAX(created_date) AS most_recent
 FROM nyc_311_complaints WHERE bbl = $1;"""
 

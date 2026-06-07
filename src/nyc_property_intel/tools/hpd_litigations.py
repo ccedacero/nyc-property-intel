@@ -34,8 +34,10 @@ SELECT
     -- HPD litigation data has no 'OPEN'/'ACTIVE' status; the active states
     -- are 'PENDING' and 'APPLICATION PENDING'. ILIKE survives casing drift.
     COUNT(*) FILTER (WHERE casestatus ILIKE '%PENDING%') AS open_cases,
-    COUNT(*) FILTER (WHERE findingofharassment IS NOT NULL
-        AND findingofharassment != '' AND findingofharassment != 'NO') AS harassment_findings,
+    -- Affirmative HPD harassment findings only. findingofharassment domain is
+    -- {'After Inquest','After Trial','No Harassment', NULL}; only the first two mean
+    -- harassment was FOUND. (Prior filter used != 'NO' and wrongly counted 'No Harassment'.)
+    COUNT(*) FILTER (WHERE findingofharassment IN ('After Inquest', 'After Trial')) AS harassment_findings,
     COUNT(*) FILTER (WHERE upper(openjudgement) = 'YES') AS open_judgements,
     MAX(caseopendate) AS most_recent_case,
     -- Case type distribution
