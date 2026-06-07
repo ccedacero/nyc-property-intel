@@ -4,7 +4,15 @@ MCP server that gives Claude AI access to 20+ NYC public record datasets for rea
 
 **This is a due diligence tool, not an appraisal tool.** It surfaces public record data only; it does not estimate property values.
 
-## Quickstart — Hosted (no local setup)
+## Quickstart — Web Chat (no setup)
+
+The fastest way to try it: open **[nycpropertyintel.com/chat](https://nycpropertyintel.com/chat)** and ask about any NYC property in plain English. **3 free queries, no signup** (resets daily) — no install, no token, and no Claude client needed.
+
+```
+"What violations does 123 Atlantic Ave, Brooklyn have?"
+```
+
+## Quickstart — Claude Code / Desktop (hosted MCP)
 
 Sign up at [nycpropertyintel.com](https://nycpropertyintel.com) to get a free trial token (10 queries/day for 30 days, including up to 5 full due-diligence reports). Then:
 
@@ -177,7 +185,7 @@ Core data (~19 million rows) is loaded from [nycdb](https://github.com/nycdb/nyc
 | DOF Assessments | DOF | Tax valuations and assessment rolls |
 | DOF Exemptions | DOF | Tax exemption records (421a, J-51, STAR) |
 | DOF Tax Liens | DOF | Annual lien sale list |
-| Rent Stabilization | HCR/RGB | Stabilized unit counts by building |
+| Rent Stabilization | DOF | Stabilized unit counts by building, 2007–2017 (derived from DOF tax bills via taxbills.nyc / JustFix) |
 | ACRIS | DOF | Deeds, mortgages, liens, satisfactions, UCC filings |
 | FDNY Fire Incidents | FDNY | 2013–present |
 | 311 Service Requests | 311/DOITT | 2010–present |
