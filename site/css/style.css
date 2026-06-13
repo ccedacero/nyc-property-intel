@@ -1629,3 +1629,28 @@ abbr[title] {
 .lookup-sample th { color: var(--text-muted); font-weight: 600; font-size: 0.8125rem; }
 .lookup-sample-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0; }
 .lookup-flag { color: var(--danger); font-weight: 600; }
+
+/* ── Shared report page (/r/<id>, feature 1.8) ─────────────────────── */
+.article-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.report-status {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, rgba(255, 255, 255, 0.02));
+}
+.report-status .btn { margin-top: 0.75rem; }
+/* Rendered markdown prose inherits .article-page / .legal-page typography
+   (h1–h3, p, ul/ol, table all styled above); report-body only needs spacing. */
+.report-body { margin-top: 1rem; }
+.report-body > :first-child { margin-top: 0; }
+.report-body table { width: 100%; }
