@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/r/:id",
-      "destination": "/report.html"
+      "destination": "/report"
     }
   ],
   "redirects": [
