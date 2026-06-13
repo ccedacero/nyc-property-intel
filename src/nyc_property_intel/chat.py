@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import logging
+import secrets
 import time
 import re
 import uuid
@@ -30,6 +31,7 @@ from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp, MCP_INSTRUCTIONS
 from nyc_property_intel.auth import PLAN_LIMITS, TRIAL_DAYS, TokenAuth, generate_token, hash_token, normalize_email
 from nyc_property_intel.config import settings
+from nyc_property_intel.db import get_pool
 from nyc_property_intel.loops_webhook import (
     _split_email,
     domain_has_mx,
@@ -392,11 +394,109 @@ def _block_to_dict(block) -> dict:
     return {"type": block.type}
 
 
+# ── Shareable report permalinks (feature 1.8, /r/<id>) ────────────────
+
+# A completed full analysis is persisted only when these are satisfied: the
+# turn ran analyze_property, a BBL resolved, and the answer is substantial.
+_REPORT_MIN_CHARS = 400          # skip trivial / error answers
+_REPORT_MAX_CHARS = 60_000       # cap the stored row
+_BBL_RE = re.compile(r'"bbl"\s*:\s*"?(\d{10})"?')
+_ADDR_RE = re.compile(r'"(?:address|formatted_address|full_address)"\s*:\s*"([^"]{3,160})"')
+
+
+def _last_user_text(messages: list[dict]) -> str:
+    """Best-effort extraction of the most recent user-turn text."""
+    for m in reversed(messages):
+        if m.get("role") != "user":
+            continue
+        content = m.get("content")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    return block.get("text", "")
+        return ""
+    return ""
+
+
+_reports_table_ready = False
+
+
+async def _ensure_reports_table(pool) -> None:
+    """Idempotently provision shared_reports once per process.
+
+    db_lifespan also creates this table, but the web app mounts the MCP app and
+    Starlette does not auto-run a mounted sub-app's lifespan (see server.py),
+    so we can't assume that startup DDL ran in the chat path. CREATE TABLE IF
+    NOT EXISTS is a cheap no-op after the first call; the module flag skips even
+    that on subsequent writes.
+    """
+    global _reports_table_ready
+    if _reports_table_ready:
+        return
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS shared_reports (
+            id          TEXT PRIMARY KEY,
+            bbl         TEXT,
+            address     TEXT,
+            query       TEXT,
+            report_md   TEXT NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    await pool.execute(
+        "CREATE INDEX IF NOT EXISTS idx_shared_reports_created_at "
+        "ON shared_reports (created_at DESC)"
+    )
+    _reports_table_ready = True
+
+
+async def _persist_shared_report(
+    bbl: str | None, address: str | None, query: str, report_md: str
+) -> str | None:
+    """Store a completed analysis and return its short permalink id.
+
+    Best-effort: any failure returns None and is swallowed by the caller so a
+    DB hiccup can never break the chat stream.
+    """
+    report_md = (report_md or "").strip()
+    if len(report_md) < _REPORT_MIN_CHARS:
+        return None
+    rid = secrets.token_urlsafe(8)
+    pool = await get_pool()
+    await _ensure_reports_table(pool)
+    await pool.execute(
+        """
+        INSERT INTO shared_reports (id, bbl, address, query, report_md)
+        VALUES ($1, $2, $3, $4, $5)
+        """,
+        rid,
+        bbl,
+        (address or None) and address[:160],
+        (query or "")[:1000],
+        report_md[:_REPORT_MAX_CHARS],
+    )
+    return rid
+
+
 async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
     """Run the Claude + tool_use agentic loop and yield SSE lines."""
     client = _get_client()
     tools = _get_anthropic_tools()
     tool_calls_made = 0
+
+    # Capture state for the shareable permalink (feature 1.8). We accumulate the
+    # full answer text the user saw, the resolved BBL/address (parsed from tool
+    # results), and whether analyze_property ran — then persist a /r/<id> record
+    # once, after the turn completes.
+    report_text_parts: list[str] = []
+    resolved_bbl: str | None = None
+    resolved_address: str | None = None
+    ran_analyze = False
+    user_query = _last_user_text(messages)
 
     for _round in range(_MAX_ROUNDS):
         tool_use_blocks: list = []
@@ -426,6 +526,7 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                         if event.type == "content_block_delta":
                             if event.delta.type == "text_delta" and event.delta.text:
                                 had_text = True
+                                report_text_parts.append(event.delta.text)
                                 yield f"data: {json.dumps({'type': 'text_delta', 'text': event.delta.text})}\n\n"
 
                     final = await stream.get_final_message()
@@ -492,6 +593,8 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
 
                 if block.name not in _BUDGET_EXEMPT_TOOLS:
                     tool_calls_made += 1
+                if block.name == "analyze_property":
+                    ran_analyze = True
                 yield f"data: {json.dumps({'type': 'tool_start', 'name': block.name})}\n\n"
 
                 try:
@@ -507,6 +610,17 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
                     logger.warning("Tool %s error: %r", block.name, exc, exc_info=True)
                     result_str = "<tool_result>\n" + json.dumps({"error": "Tool execution failed"}) + "\n</tool_result>"
 
+                # Pull the resolved BBL/address out of the first tool result that
+                # carries them (lookup_property/analyze_property) for the permalink.
+                if resolved_bbl is None:
+                    m = _BBL_RE.search(result_str)
+                    if m:
+                        resolved_bbl = m.group(1)
+                if resolved_address is None:
+                    am = _ADDR_RE.search(result_str)
+                    if am:
+                        resolved_address = am.group(1)
+
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -517,6 +631,20 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
             messages.append({"role": "user", "content": tool_results})
         else:
             break
+
+    # Persist a shareable permalink for a completed full analysis (feature 1.8).
+    # Best-effort and last: a DB failure must never break the answer the user
+    # already received. Only full analyze_property runs that resolved a BBL are
+    # worth a permanent URL.
+    if ran_analyze and resolved_bbl:
+        try:
+            rid = await _persist_shared_report(
+                resolved_bbl, resolved_address, user_query, "".join(report_text_parts)
+            )
+            if rid:
+                yield f"data: {json.dumps({'type': 'report_saved', 'id': rid, 'url': f'/r/{rid}'})}\n\n"
+        except Exception:
+            logger.warning("shared-report persist failed", exc_info=True)
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
 

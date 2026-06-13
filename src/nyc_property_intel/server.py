@@ -485,6 +485,56 @@ def main() -> None:
                 )
             return Response(json.dumps(checks), media_type="application/json")
 
+        async def report_handler(request: Request) -> Response:
+            """Serve a persisted shareable report as JSON (feature 1.8, /r/<id>).
+
+            Public and auth-free by design: the permalink is the referral loop.
+            The static /report.html page fetches this and renders the markdown.
+            """
+            rid = request.path_params.get("id", "")
+            # Slug is secrets.token_urlsafe(8) → URL-safe base64 (alnum, - and _).
+            if not (6 <= len(rid) <= 32) or not all(
+                c.isalnum() or c in "-_" for c in rid
+            ):
+                return Response(
+                    '{"error":"not_found"}',
+                    status_code=404,
+                    media_type="application/json",
+                )
+            try:
+                pool = await auth._get_pool()
+                row = await pool.fetchrow(
+                    "SELECT id, bbl, address, query, report_md, created_at "
+                    "FROM shared_reports WHERE id = $1",
+                    rid,
+                )
+            except Exception as exc:
+                logger.warning("report_handler DB error: %s", exc)
+                return Response(
+                    '{"error":"unavailable"}',
+                    status_code=503,
+                    media_type="application/json",
+                )
+            if row is None:
+                return Response(
+                    '{"error":"not_found"}',
+                    status_code=404,
+                    media_type="application/json",
+                )
+            payload = {
+                "id": row["id"],
+                "bbl": row["bbl"],
+                "address": row["address"],
+                "query": row["query"],
+                "report_md": row["report_md"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            }
+            return Response(
+                json.dumps(payload),
+                media_type="application/json",
+                headers={"Cache-Control": "public, max-age=600"},
+            )
+
         if use_streamable:
             @asynccontextmanager
             async def _combined_lifespan(app):
@@ -499,6 +549,7 @@ def main() -> None:
                     Route("/api/chat/signup", signup_handler, methods=["POST"]),
                     Route("/api/activate", activate_handler, methods=["POST"]),
                     Route("/api/chat", chat_handler, methods=["POST"]),
+                    Route("/api/report/{id}", report_handler, methods=["GET"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
@@ -512,6 +563,7 @@ def main() -> None:
                 Route("/api/chat/signup", signup_handler, methods=["POST"]),
                 Route("/api/activate", activate_handler, methods=["POST"]),
                 Route("/api/chat", chat_handler, methods=["POST"]),
+                Route("/api/report/{id}", report_handler, methods=["GET"]),
                 Mount("/", mcp_app),
             ])
 
