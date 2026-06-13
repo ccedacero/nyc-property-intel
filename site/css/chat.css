@@ -717,3 +717,50 @@
   .chat-followup-chips::before { display: none; }
   .chat-followup-chip { font-size: 0.8rem; padding: 0.4rem 0.75rem; }
 }
+
+/* Shareable report permalink box (feature 1.8) */
+.chat-report-permalink {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent-subtle, rgba(59, 130, 246, 0.08));
+}
+.chat-report-permalink-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.chat-report-permalink-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.chat-report-permalink-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg, #0f172a);
+  color: inherit;
+}
+.chat-report-permalink-copy {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.chat-report-permalink-copy:hover { filter: brightness(1.08); }
+
+@media (max-width: 640px) {
+  .chat-report-permalink-row { flex-direction: column; }
+}

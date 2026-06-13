@@ -2,6 +2,12 @@
   "outputDirectory": "site",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/r/:id",
+      "destination": "/report.html"
+    }
+  ],
   "redirects": [
     {
       "source": "/www/:path*",

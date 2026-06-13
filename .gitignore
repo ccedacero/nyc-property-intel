@@ -66,6 +66,8 @@ scripts/*.sh
 # Private notes, launch copy, build-environment artifacts (never publish)
 docs/pending-todos-*.md
 docs/launch-copy/
+# Outreach drafts + real-user contact lists (PII) — never publish
+docs/outreach/
 # Internal Claude planning/research artifacts — keep local only
 docs/next-phase-plan-*.md
 docs/seo-audit-*.md

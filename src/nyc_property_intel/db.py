@@ -228,6 +228,23 @@ async def db_lifespan(server: Any):
     await pool.execute(
         "ALTER TABLE web_magic_links ADD COLUMN IF NOT EXISTS created_by_ip TEXT"
     )
+    # Migration 015 — shareable report permalinks (feature 1.8, /r/<id>).
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS shared_reports (
+            id          TEXT PRIMARY KEY,
+            bbl         TEXT,
+            address     TEXT,
+            query       TEXT,
+            report_md   TEXT NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    await pool.execute(
+        "CREATE INDEX IF NOT EXISTS idx_shared_reports_created_at "
+        "ON shared_reports (created_at DESC)"
+    )
     try:
         yield
     finally:

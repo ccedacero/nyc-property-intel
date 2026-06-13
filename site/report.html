@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NYC Property Due-Diligence Report | NYC Property Intel</title>
+  <meta name="description" content="A shared NYC property due-diligence report — violations, liens, ownership, and risk signals pulled from 20+ official city datasets by NYC Property Intel.">
+  <!-- Shared reports are user-generated and ephemeral; keep them out of the index. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f172a">
+
+  <meta property="og:title" content="NYC Property Due-Diligence Report">
+  <meta property="og:description" content="A due-diligence pull across 20+ official NYC datasets — violations, liens, ownership, and risk signals. Shared via NYC Property Intel.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="NYC Property Intel">
+  <meta property="og:image" content="https://nycpropertyintel.com/assets/og-card.png?v=2">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png?v=2">
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
+
+  <link rel="stylesheet" href="css/style.css?v=20260614">
+  <link rel="stylesheet" href="css/chat.css?v=20260614">
+
+  <script src="js/posthog-init.js?v=20260522" defer></script>
+  <script src="js/vendor/marked.min.js?v=20260425b" defer></script>
+  <script src="js/vendor/purify.min.js?v=20260425b" defer></script>
+  <script src="js/report.js?v=20260614" defer></script>
+</head>
+<body>
+  <a href="#report-content" class="skip-link">Skip to report</a>
+
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a href="/" class="nav-logo">NYC Property Intel</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/nyc-property-due-diligence">Due-Diligence Guide</a></li>
+        <li><a href="/chat" class="btn btn-sm btn-accent">Run your own &rarr;</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="legal-page article-page" id="report-content">
+    <article class="container">
+
+      <p class="article-eyebrow">NYC Property Intel · Due-Diligence Report</p>
+      <h1 id="report-title">Loading report…</h1>
+      <p class="article-meta" id="report-meta"></p>
+
+      <div id="report-status" class="report-status">
+        <p>Loading this property report…</p>
+      </div>
+
+      <div id="report-body" class="report-body"></div>
+
+      <!-- Run-your-own CTA -->
+      <aside class="article-cta-box" id="report-cta" hidden>
+        <h2>Run a free report on any NYC address</h2>
+        <p>This report was generated from 20+ official NYC datasets in one query. Check any building yourself — first queries are free, no signup required.</p>
+        <p><a href="/chat" class="btn btn-primary">Scan an address free &rarr;</a></p>
+        <p class="article-cta-fine">Informational only — not legal, financial, or appraisal advice. Data is sourced from NYC public records and may be incomplete or out of date; verify with the source agency before relying on it for any transaction.</p>
+      </aside>
+
+    </article>
+  </main>
+</body>
+</html>

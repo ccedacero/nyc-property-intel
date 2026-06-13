@@ -317,6 +317,10 @@
           } else if (evt.type === "tool_done") {
             // Keep indicator visible until first text_delta to avoid blank gap
 
+          } else if (evt.type === "report_saved") {
+            // A full analysis was persisted as a shareable permalink (/r/<id>).
+            if (evt.url) appendReportPermalink(assistantEl, evt.url);
+
           } else if (evt.type === "error") {
             if (toolIndicatorEl) { toolIndicatorEl.remove(); toolIndicatorEl = null; }
             appendErrorMessage(evt.message || "Something went wrong pulling that data. Try rephrasing your query or try again in a moment.");
@@ -471,6 +475,40 @@
     messagesEl.appendChild(el);
     scrollToBottom();
     return el;
+  }
+
+  // Render a shareable permalink box after a full analysis is persisted.
+  // The link (/r/<id>) renders cold for anyone — no account — which is the
+  // free referral loop: forward the report to a partner, lender, or attorney.
+  function appendReportPermalink(afterEl, relUrl) {
+    const fullUrl = window.location.origin + relUrl;
+    const box = document.createElement("div");
+    box.className = "chat-report-permalink";
+    box.innerHTML = `
+      <span class="chat-report-permalink-label">🔗 Shareable report link</span>
+      <div class="chat-report-permalink-row">
+        <input type="text" class="chat-report-permalink-input" readonly value="${escapeHtml(fullUrl)}" aria-label="Shareable report link">
+        <button type="button" class="chat-report-permalink-copy">Copy</button>
+      </div>
+    `;
+    if (afterEl && afterEl.parentNode) {
+      afterEl.parentNode.insertBefore(box, afterEl.nextSibling);
+    } else {
+      messagesEl.appendChild(box);
+    }
+    const input = box.querySelector(".chat-report-permalink-input");
+    const btn = box.querySelector(".chat-report-permalink-copy");
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+      } catch {
+        input.select();
+        document.execCommand("copy");
+      }
+      btn.textContent = "Copied ✓";
+      setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      if (typeof posthog !== "undefined") posthog.capture("report_permalink_copied");
+    });
   }
 
   // Render 3 follow-up suggestion chips after each assistant response.
