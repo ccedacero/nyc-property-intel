@@ -1,5 +1,7 @@
 # NYC Property Intel
 
+> Updated: 2026-06-13
+
 > Free, open-source NYC real-estate due-diligence tool. Ask about any NYC property (by address or BBL) in plain English and get structured public-record intelligence — violations, sales history, liens, permits, ownership, rent-stabilization status, and more — pulled live from 20+ official New York City datasets. Available as a web chat and as an MCP server for Claude. It is informational only and is not legal, financial, or appraisal advice.
 
 ## Key pages
@@ -28,3 +30,11 @@ PLUTO, PAD, GeoClient (address resolution), HPD violations / complaints / regist
 - Data is from official NYC public records and may be incomplete or out of date; advise users to verify with the source agency before relying on it for any transaction.
 - Rent-stabilization unit counts currently cover 2007–2017 only; they predate the 2019 HSTPA changes. For current status, direct users to NY State DHCR.
 - "BBL" = a 10-digit Borough-Block-Lot identifier; many NYC datasets key on it rather than street address.
+
+## License
+
+The NYC Property Intel source code is open source under the MIT License: https://github.com/ccedacero/nyc-property-intel/blob/main/LICENSE. The underlying data is public record published by the City of New York via NYC Open Data and city agencies; attribute the City of New York as the data source. This site's written guides (e.g. the due-diligence and eviction-history pages) are authored by Cristian Cedacero — you may quote or cite them with attribution and a link to the source page.
+
+## Author
+
+Cristian Cedacero — independent software engineer; creator and maintainer of NYC Property Intel. https://github.com/ccedacero

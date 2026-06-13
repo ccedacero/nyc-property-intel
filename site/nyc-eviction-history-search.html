@@ -47,10 +47,10 @@
       "@type": "Article",
       "headline": "NYC Building Eviction History Search by Address (the Investor Distress Signal)",
       "description": "How to search a NYC building's executed-eviction history by address before you buy: what the marshal-eviction record shows, how to read it, and the housing-court filings it does not include.",
-      "author": { "@type": "Organization", "name": "NYC Property Intel" },
+      "author": { "@type": "Person", "name": "Cristian Cedacero", "url": "https://github.com/ccedacero", "sameAs": ["https://github.com/ccedacero"] },
       "publisher": { "@type": "Organization", "name": "NYC Property Intel" },
       "datePublished": "2026-06-06",
-      "dateModified": "2026-06-06",
+      "dateModified": "2026-06-13",
       "mainEntityOfPage": { "@type": "WebPage", "@id": "https://nycpropertyintel.com/nyc-eviction-history-search" },
       "keywords": "nyc building eviction history search, nyc eviction records by address, marshal evictions nyc, how to check evictions before buying nyc, executed evictions vs eviction filings nyc"
     },
@@ -74,7 +74,7 @@
           "name": "How do I look up a building's eviction history in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Search NYC Open Data's Evictions dataset (6z8x-wfk4) by the building's EVICTION_ADDRESS, or query by BBL for an exact match. The records show City Marshal executed evictions, residential and commercial, citywide from 2017 to the present, with executed date, apartment number, borough, and ZIP. NYC Property Intel runs this lookup by address or BBL and returns the residential/commercial split and the units affected in one query."
+            "text": "Search NYC Open Data's Evictions dataset (6z8x-wfk4) by the building's EVICTION_ADDRESS, or query by BBL for an exact match. That dataset holds roughly 126,000 City Marshal executed evictions — residential and commercial, citywide, from 2017 to the present — each with an executed date, apartment number, borough, and ZIP. One catch worth knowing before you start: the addresses are free text and are not normalized to a BBL, so a single building can appear under several spellings or house-number variants, and searching only one form will undercount it. Try every variant, and for a corner or multi-entrance building, check the alternate street addresses too. NYC Property Intel does this resolution for you: give it an address or BBL and it returns the residential/commercial split and the number of units affected in one query, so you don't have to reconcile the spellings by hand."
           }
         },
         {
@@ -82,7 +82,7 @@
           "name": "Does a NYC eviction search show eviction filings or only executed evictions?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Only executed evictions, where a City Marshal actually removed the occupant. The public Evictions dataset does not include eviction filings, settlements, or dismissals, and most filed cases never reach an execution. For the full case history and the live docket you need the New York State court (OCA) record and typically your attorney. Treat the executed-eviction count as a floor on a building's tenant conflict, not the complete picture."
+            "text": "Only executed evictions — cases where a City Marshal physically removed the occupant after a warrant was issued. The public Evictions dataset (6z8x-wfk4, ~126,000 records since 2017) deliberately excludes eviction filings, settlements, stipulations, and dismissals, and the large majority of filed housing-court cases never reach an execution at all. So the number you see is the floor on a building's tenant conflict, not the ceiling: a building with heavy litigation but few executions can still be a churn problem. For the full case history — filings, holdovers, settlements, and the live docket — you need the New York State court (OCA) record, and in practice your attorney pulls it. Use the executed-eviction count to decide which buildings are worth that deeper, paid look, then have counsel order the full docket before you're contractually committed and the leverage is gone."
           }
         },
         {
@@ -90,7 +90,7 @@
           "name": "How far back does NYC eviction data go?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "NYC's public Evictions dataset covers City Marshal executions from 2017 to the present and is updated regularly. Evictions executed before 2017 are not in the dataset, so a building with a long pre-2017 history may show fewer records than its full timeline would suggest."
+            "text": "NYC's public Evictions dataset (6z8x-wfk4) covers City Marshal executions from 2017 to the present — roughly 126,000 records — and is refreshed regularly as marshals report new executions. Anything executed before 2017 simply isn't in the file, so a long-held building with a turbulent 1990s or 2000s history can look quieter on paper than its full timeline would suggest. That's the main caveat to keep in mind: a low or zero count is evidence of no recent executed evictions, not proof of a stable tenancy across the building's life. There is also a short reporting lag, so a very recent execution may take time to appear. For pre-2017 patterns or an absolutely current picture, pair the dataset with the live housing-court docket through your attorney. NYC Property Intel always stamps the data vintage on what it returns, so you know exactly how fresh the eviction signal is before you lean on it."
           }
         },
         {
@@ -98,7 +98,7 @@
           "name": "Is a high eviction count a reason not to buy a NYC building?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Not by itself. A cluster of executed evictions is a distress signal worth investigating: it can flag turnover-driven cash-flow risk, distressed management, or an owner clearing rent-stabilized tenants, which carries overcharge and litigation exposure. The right response is to ask the seller, pull the live docket, and consult counsel, not to assume the worst or to treat a zero count as a guarantee of stability."
+            "text": "Not by itself. A cluster of executed evictions in the dataset (6z8x-wfk4, 2017–present) is a distress signal worth investigating, not a verdict. It can flag turnover-driven cash-flow risk, distressed or absentee management, or — the one that carries real legal exposure — an owner clearing rent-stabilized tenants, which invites overcharge claims and litigation you'd inherit with the building. But context decides everything: a large building will naturally show more executions than a small one, and commercial executions read differently from residential ones. The right response to a high count is to ask the seller directly, pull the live housing-court docket, and run the rent-stabilization and HPD-litigation checks before you draw conclusions — and to remember that a zero count is not a guarantee of stability either. Treat the number as the start of a conversation with your attorney, priced into your offer, not a reason to walk on sight."
           }
         },
         {
@@ -106,7 +106,7 @@
           "name": "Can I check evictions before I make an offer?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Eviction history is public, so you can read it during pre-offer due diligence while the price is still negotiable, rather than discovering a churn problem after you close. Run it alongside the rest of the pre-offer due-diligence checklist, including violations, liens, and rent-stabilization signals, to see the full risk picture before you bid."
+            "text": "Yes — and that's exactly when it's worth the most. Eviction history is public record, drawn from NYC Open Data's Evictions dataset (6z8x-wfk4, ~126,000 executions since 2017), so nothing stops you from reading it during pre-offer due diligence while the price is still negotiable — rather than discovering a churn or harassment problem after you've signed and wired a deposit. Pulled early, a heavy eviction pattern becomes a negotiating lever or a clean walk-away, not a sunk cost. The caveat is to read it in context, not in isolation: run it alongside the rest of the pre-offer due-diligence checklist — open violations, tax liens, ECB judgments, and rent-stabilization signals — so one data point doesn't drive the whole decision. NYC Property Intel is built for this moment: one address returns the eviction split plus the surrounding risk profile in a single query, before you bid."
           }
         },
         {
@@ -114,7 +114,7 @@
           "name": "What does a NYC eviction-history search NOT replace?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It does not replace a title search, an official DHCR rent-history request, a physical inspection, or the live housing-court docket, and it is not legal advice. It surfaces the executed-eviction record from public data as one distress signal among many; you verify the current docket and the building's condition, and your attorney closes it out."
+            "text": "It does not replace a title search, an official DHCR rent-history request, a physical inspection, or the live housing-court docket — and it is not legal advice. The Evictions dataset (6z8x-wfk4) shows executed City Marshal evictions from 2017 onward and nothing more: no filings, no settlements, no current case status, and no guarantee that a quiet record means a clean building. It is one distress signal among many, best used to decide where to point the expensive, authoritative checks. The data also carries the usual public-record caveats — free-text addresses, a reporting lag, and a 2017 start date that hides older history. So treat it as a fast, free first screen: it tells you which buildings deserve a deeper look, then you verify the current docket and the building's physical condition, and your attorney and title company close it out. Verify before you wire money."
           }
         }
       ]
@@ -135,7 +135,7 @@
         "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
         "inLanguage": "en-US",
         "datePublished": "2026-06-06",
-        "dateModified": "2026-06-06",
+        "dateModified": "2026-06-13",
         "breadcrumb": { "@id": "https://nycpropertyintel.com/nyc-eviction-history-search#breadcrumb" }
       },
       {
@@ -171,7 +171,7 @@
   <main class="legal-page article-page" id="article-content">
     <article class="container">
 <h1 id="nyc-building-eviction-history-search-by-address-the-investor-distress-signal">NYC Building Eviction History Search by Address (the Investor Distress Signal)</h1>
-<p class="article-meta">By <strong>NYC Property Intel</strong> · Updated June 3, 2026 · 10 min read</p>
+<p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 13, 2026 · 10 min read</p>
 <p>Before you buy an occupied NYC building, its eviction history tells you something the rent roll won&rsquo;t: how often the relationship between this building and its tenants has broken down all the way to a marshal at the door. You can search it by address in NYC&rsquo;s public records — and reading it correctly is one of the cheapest, fastest distress checks in pre-offer due diligence. This page is one check in the complete <a href="/nyc-property-due-diligence">NYC property due-diligence checklist</a>; here we go deep on evictions specifically: what the data is, how to search it, how to read it, and — just as important — what it cannot tell you.</p>
 <blockquote>
 <h3 id="tldr-key-takeaways">TL;DR / Key Takeaways</h3>
@@ -250,17 +250,17 @@
 <hr />
 <h2 id="faq-nyc-eviction-history-search">FAQ: NYC Eviction History Search</h2>
 <h3 id="how-do-i-look-up-a-buildings-eviction-history-in-nyc">How do I look up a building&rsquo;s eviction history in NYC?</h3>
-<p>Search NYC Open Data&rsquo;s &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>) by the building&rsquo;s <code>EVICTION_ADDRESS</code>, or query by BBL for an exact match. The records show City Marshal executed evictions — residential and commercial — citywide from 2017 to the present, with executed date, apartment number, borough, and ZIP. NYC Property Intel runs this lookup by address or BBL and returns the residential/commercial split and the units affected in one query.</p>
+<p>Search NYC Open Data&rsquo;s &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>) by the building&rsquo;s <code>EVICTION_ADDRESS</code>, or query by BBL for an exact match. That dataset holds roughly <strong>126,000 City Marshal executed evictions</strong> — residential and commercial, citywide, from 2017 to the present — each with an executed date, apartment number, borough, and ZIP. One catch worth knowing before you start: the addresses are free text and are not normalized to a BBL, so a single building can appear under several spellings or house-number variants, and searching only one form will undercount it. Try every variant, and for a corner or multi-entrance building, check the alternate street addresses too. NYC Property Intel does this resolution for you: give it an address or BBL and it returns the residential/commercial split and the number of units affected in one query, so you don&rsquo;t have to reconcile the spellings by hand.</p>
 <h3 id="does-a-nyc-eviction-search-show-eviction-filings-or-only-executed-evictions">Does a NYC eviction search show eviction filings or only executed evictions?</h3>
-<p>Only executed evictions — cases where a City Marshal actually removed the occupant. The public &ldquo;Evictions&rdquo; dataset does not include eviction <em>filings</em>, settlements, or dismissals; most filed cases never reach an execution. For the full case history and the live docket you need the New York State court (OCA) record and, typically, your attorney. Treat the executed-eviction count as a floor on a building&rsquo;s tenant conflict, not the complete picture.</p>
+<p>Only executed evictions — cases where a City Marshal physically removed the occupant after a warrant was issued. The public &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>, ~126,000 records since 2017) deliberately excludes eviction <em>filings</em>, settlements, stipulations, and dismissals, and the large majority of filed housing-court cases never reach an execution at all. So the number you see is the floor on a building&rsquo;s tenant conflict, not the ceiling: a building with heavy litigation but few executions can still be a churn problem. For the full case history — filings, holdovers, settlements, and the live docket — you need the New York State court (OCA) record, and in practice your attorney pulls it. Use the executed-eviction count to decide which buildings are worth that deeper, paid look, then have counsel order the full docket before you&rsquo;re contractually committed and the leverage is gone.</p>
 <h3 id="how-far-back-does-nyc-eviction-data-go">How far back does NYC eviction data go?</h3>
-<p>NYC&rsquo;s public &ldquo;Evictions&rdquo; dataset covers City Marshal executions from 2017 to the present and is updated regularly. Evictions executed before 2017 are not in the dataset, so a building with a long pre-2017 history may show fewer records than its full timeline would suggest.</p>
+<p>NYC&rsquo;s public &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>) covers City Marshal executions from <strong>2017 to the present</strong> — roughly 126,000 records — and is refreshed regularly as marshals report new executions. Anything executed before 2017 simply isn&rsquo;t in the file, so a long-held building with a turbulent 1990s or 2000s history can look quieter on paper than its full timeline would suggest. That&rsquo;s the main caveat to keep in mind: a low or zero count is evidence of no <em>recent</em> executed evictions, not proof of a stable tenancy across the building&rsquo;s life. There is also a short reporting lag, so a very recent execution may take time to appear. For pre-2017 patterns or an absolutely current picture, pair the dataset with the live housing-court docket through your attorney. NYC Property Intel always stamps the data vintage on what it returns, so you know exactly how fresh the eviction signal is before you lean on it.</p>
 <h3 id="is-a-high-eviction-count-a-reason-not-to-buy-a-nyc-building">Is a high eviction count a reason not to buy a NYC building?</h3>
-<p>Not by itself. A cluster of executed evictions is a distress signal worth investigating — it can flag turnover-driven cash-flow risk, distressed management, or an owner clearing rent-stabilized tenants (which carries overcharge and litigation exposure). But the right response is to ask the seller, pull the live docket, and consult counsel — not to assume the worst or, conversely, to treat a zero count as a guarantee of stability.</p>
+<p>Not by itself. A cluster of executed evictions in the dataset (<code>6z8x-wfk4</code>, 2017&ndash;present) is a distress <em>signal</em> worth investigating, not a verdict. It can flag turnover-driven cash-flow risk, distressed or absentee management, or — the one that carries real legal exposure — an owner clearing rent-stabilized tenants, which invites overcharge claims and litigation you&rsquo;d inherit with the building. But context decides everything: a large building will naturally show more executions than a small one, and commercial executions read differently from residential ones. The right response to a high count is to ask the seller directly, pull the live housing-court docket, and run the rent-stabilization and HPD-litigation checks before you draw conclusions — and to remember that a <em>zero</em> count is not a guarantee of stability either. Treat the number as the start of a conversation with your attorney, priced into your offer, not a reason to walk on sight.</p>
 <h3 id="can-i-check-evictions-before-i-make-an-offer">Can I check evictions before I make an offer?</h3>
-<p>Yes — that&rsquo;s the point. Eviction history is public, so you can read it during pre-offer due diligence while the price is still negotiable, rather than discovering a churn problem after you&rsquo;ve closed. Run it alongside the rest of the <a href="/nyc-property-due-diligence">pre-offer due-diligence checklist</a> — violations, liens, and rent-stabilization signals — to see the full risk picture before you bid.</p>
+<p>Yes — and that&rsquo;s exactly when it&rsquo;s worth the most. Eviction history is public record, drawn from NYC Open Data&rsquo;s &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>, ~126,000 executions since 2017), so nothing stops you from reading it during pre-offer due diligence while the price is still negotiable — rather than discovering a churn or harassment problem after you&rsquo;ve signed and wired a deposit. Pulled early, a heavy eviction pattern becomes a negotiating lever or a clean walk-away, not a sunk cost. The caveat is to read it in context, not in isolation: run it alongside the rest of the <a href="/nyc-property-due-diligence">pre-offer due-diligence checklist</a> — open violations, tax liens, ECB judgments, and rent-stabilization signals — so one data point doesn&rsquo;t drive the whole decision. NYC Property Intel is built for this moment: one address returns the eviction split plus the surrounding risk profile in a single query, before you bid.</p>
 <h3 id="what-does-an-eviction-history-search-not-replace">What does an eviction-history search NOT replace?</h3>
-<p>It does not replace a title search, an official DHCR rent-history request, a physical inspection, or the live housing-court docket — and it is not legal advice. It surfaces the executed-eviction record from public data as one distress signal among many; you verify the current docket and the building&rsquo;s condition, and your attorney closes it out.</p>
+<p>It does not replace a title search, an official DHCR rent-history request, a physical inspection, or the live housing-court docket — and it is not legal advice. The &ldquo;Evictions&rdquo; dataset (<code>6z8x-wfk4</code>) shows executed City Marshal evictions from 2017 onward and nothing more: no filings, no settlements, no current case status, and no guarantee that a quiet record means a clean building. It is one distress signal among many, best used to decide where to point the expensive, authoritative checks. The data also carries the usual public-record caveats — free-text addresses, a reporting lag, and a 2017 start date that hides older history. So treat it as a fast, free first screen: it tells you which buildings deserve a deeper look, then you verify the current docket and the building&rsquo;s physical condition, and your attorney and title company close it out. Verify before you wire money.</p>
 <hr />
 <p><em>Data sources &amp; last updated: NYC Open Data &ldquo;Evictions&rdquo; (<code>6z8x-wfk4</code>), City Marshal executions reported by the NYC Department of Investigation, 2017–present, updated regularly. NYC Property Intel surfaces and flags public records; it is not a title search, an appraisal, a housing-court docket, or legal advice. Verify before you wire money.</em></p>
       <aside class="article-cta-box" id="scan">
