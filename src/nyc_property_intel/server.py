@@ -23,6 +23,8 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any
 
+import asyncpg
+
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -507,6 +509,16 @@ def main() -> None:
                     "SELECT id, bbl, address, query, report_md, created_at "
                     "FROM shared_reports WHERE id = $1",
                     rid,
+                )
+            except asyncpg.UndefinedTableError:
+                # Table not provisioned yet (no report has ever been written).
+                # A missing table means the report definitionally does not
+                # exist → 404, not a 503. The table self-provisions on the
+                # first report write (chat._ensure_reports_table).
+                return Response(
+                    '{"error":"not_found"}',
+                    status_code=404,
+                    media_type="application/json",
                 )
             except Exception as exc:
                 logger.warning("report_handler DB error: %s", exc)
