@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Free NYC HPD Violations Lookup by Address | NYC Property Intel</title>
+  <meta name="description" content="Look up any NYC building's HPD violations by address, free. Class A, B, C breakdown, open vs. closed status, sourced from the official city record and synced daily.">
+  <meta name="keywords" content="hpd violations lookup, nyc hpd violations by address, hpd violation search, hpd violations free, housing maintenance code violations nyc, hpd class c violations, check hpd violations before renting">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NYC Property Intel">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Free NYC HPD Violations Lookup by Address">
+  <meta property="og:description" content="Look up any NYC building's HPD violations by address, free. Class A/B/C breakdown and open vs. closed status from the official city record, synced daily.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NYC Property Intel">
+  <meta property="og:url" content="https://nycpropertyintel.com/hpd-violations">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://nycpropertyintel.com/assets/og-card.png?v=2">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Free NYC HPD Violations Lookup by Address">
+  <meta name="twitter:description" content="Class A/B/C breakdown and open vs. closed status for any NYC building, from the official city record.">
+  <meta name="twitter:image" content="https://nycpropertyintel.com/assets/og-card.png?v=2">
+  <meta name="twitter:creator" content="@nycpropertyintel">
+  <meta name="twitter:site" content="@nycpropertyintel">
+
+  <link rel="canonical" href="https://nycpropertyintel.com/hpd-violations">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css?v=20260612">
+  <script src="js/posthog-init.js?v=20260522" defer></script>
+
+  <!-- WebPage + FAQPage + Breadcrumb structured data -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://nycpropertyintel.com/hpd-violations#webpage",
+      "url": "https://nycpropertyintel.com/hpd-violations",
+      "name": "Free NYC HPD Violations Lookup by Address",
+      "description": "Look up any NYC building's HPD violations by address: Class A, B, C breakdown and open vs. closed status, sourced from the official city record and synced daily.",
+      "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+      "inLanguage": "en-US",
+      "datePublished": "2026-06-12",
+      "dateModified": "2026-06-12",
+      "breadcrumb": { "@id": "https://nycpropertyintel.com/hpd-violations#breadcrumb" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://nycpropertyintel.com/hpd-violations#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
+        { "@type": "ListItem", "position": 2, "name": "HPD Violations Lookup", "item": "https://nycpropertyintel.com/hpd-violations" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I look up HPD violations for a NYC building?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Enter the building's street address (or its 10-digit BBL) and the lookup returns every Housing Maintenance Code violation HPD has recorded against that property: the class breakdown (A, B, C and I), which violations are still open, when they were issued, and the inspector's description of each condition. The data comes from NYC Open Data's Housing Maintenance Code Violations dataset (wvxf-dwi5), the same record HPD itself publishes, mirrored and synced on a daily cadence. The free manual alternative is HPD Online (hpdonline.nyc.gov), which works one building at a time and requires you to interpret the raw record yourself. The advantage of querying by BBL is precision: street addresses are free text in city systems, so address-string searches can miss records or pull in a neighbor's building."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What do HPD violation classes A, B and C mean?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "HPD classifies every Housing Maintenance Code violation by severity. Class A is non-hazardous — think a missing sign or a minor leak — and generally carries a 90-day correction window. Class B is hazardous — for example, no smoke detector, broken public-door locks, or vermin — generally with a 30-day window. Class C is immediately hazardous — no heat, no hot water, lead-based paint, rodent infestation — and generally must be corrected within 24 hours; the City can step in, do the work through its Emergency Repair Program, and bill the owner. There is also Class I, which covers administrative orders such as vacate orders. For a buyer or renter, the Class C count is the headline number: a building carrying many open Class C violations has conditions the law treats as urgent that the owner has not fixed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this HPD violations lookup really free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Your first lookups are free with no signup, and a free account currently gets you 10 queries a day — enough to compare several buildings or run a deeper follow-up on one. The underlying data is public record, and the project is open source (the code is on GitHub), so you can also self-host it or verify exactly how the numbers are produced. We make the public record usable in one query instead of several city websites; we don't paywall the record itself. If you need more volume or a timestamped report you can hand to an attorney or partner, that's the paid tier we're building — but checking a building before you rent, bid, or litigate costs nothing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do HPD violations transfer to the new owner when a building is sold?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Violations attach to the property — identified by its Borough-Block-Lot (BBL) — not to the person who owned it when the violation was issued. When you buy a NYC building you step into the seller's shoes: open HPD violations, their correction obligations, and any related Emergency Repair Program charges come with the deed. That is why the violation check belongs in pre-offer due diligence, while the price is still negotiable, rather than after contract signing when discovering a hundred open violations becomes your problem at the closing table. A heavy open-violation load is also a negotiating lever: documented conditions the seller must cure, or a justified price reduction. Run the lookup before you offer, and have your attorney verify anything material directly with HPD before closing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How current is the violation data, and how do I know it's accurate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The violations mirror syncs from NYC Open Data on a daily cadence, and every answer is stamped with its data vintage so you know exactly what you're reading. Accuracy is checked, not assumed: an automated weekly audit cross-checks a sample of our records against the live city record, field by field, and flags any contradiction. The most recent audit matched 51,187 HPD violation records against the city's published data with zero classification contradictions. Two honest caveats: city source systems themselves lag real-world events (an inspection from yesterday may not be in any public dataset yet), and a small share of records show status differences against the live record at any moment because closures propagate on the city's schedule. We surface the record; conditions on the ground are what an inspection is for."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should I check HPD violations before renting an apartment?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — it is one of the fastest free checks a NYC renter can run, and it tells you how the landlord actually maintains the building, regardless of how good the listing photos look. Look at three things: the open Class C count (immediately hazardous conditions like no heat or lead paint that haven't been fixed), whether open violations are recent or years old (chronic neglect shows up as old, still-open violations), and the volume relative to building size — 40 open violations in a 10-unit building is a very different story than 40 in a 200-unit complex. Heat and hot-water violations in winter months are a particularly telling pattern. Check the buildings you're comparing before you hand over a deposit; it takes one query each."
+          }
+        }
+      ]
+    }
+  ]
+}
+  </script>
+</head>
+<body>
+  <a href="#lookup-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a href="/" class="nav-logo">NYC Property Intel</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/nyc-property-due-diligence">Due-Diligence Guide</a></li>
+        <li><a href="/chat" class="btn btn-sm btn-accent">Try It Free &rarr;</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="legal-page article-page" id="lookup-content">
+    <article class="container">
+      <h1>Free NYC HPD Violations Lookup by Address</h1>
+      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 12, 2026</p>
+
+      <p>Enter any NYC address and get the building's full HPD violation record — the Class A/B/C breakdown, what's still open, and when each violation was issued — pulled from the official city record in one query. No signup for your first lookups.</p>
+
+      <div class="lookup-hero">
+        <form id="lookup-form" data-query-template="Show me all HPD violations for {address}, including the class breakdown and how many are still open" novalidate>
+          <div class="hero-signup-fields">
+            <input
+              type="text"
+              class="signup-input"
+              id="lookup-address"
+              placeholder="e.g. 132 West 169th St, Bronx"
+              autocomplete="street-address"
+              aria-label="NYC building address"
+              required
+            >
+            <button type="submit" class="btn btn-primary signup-btn">Check violations free &rarr;</button>
+          </div>
+        </form>
+        <p class="lookup-hero-note">Works with a street address or a 10-digit BBL. First queries free, no signup required.</p>
+        <span class="lookup-fresh">✓ Data synced daily from NYC Open Data · last audit matched 51,187 records against the live city record with 0 contradictions</span>
+      </div>
+
+      <div class="lookup-sample">
+        <h3>What you get — real example</h3>
+        <p><strong>132 West 169th Street, Bronx</strong> (BBL 2025180028) — 6-story, 25-unit multifamily, built 1931:</p>
+        <table>
+          <thead>
+            <tr><th>Record</th><th>Count</th><th>What it means</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>HPD violations, total</td><td>132</td><td>Full Housing Maintenance Code history on record</td></tr>
+            <tr><td class="lookup-flag">Currently open</td><td class="lookup-flag">100</td><td>Uncorrected as of the data vintage — the headline risk number</td></tr>
+            <tr><td class="lookup-flag">Class C (immediately hazardous)</td><td class="lookup-flag">21</td><td>Heat, hot water, lead paint, vermin — 24-hour correction class</td></tr>
+            <tr><td>Class B (hazardous)</td><td>68</td><td>30-day correction class</td></tr>
+            <tr><td>Class A (non-hazardous)</td><td>40</td><td>90-day correction class</td></tr>
+            <tr><td>Class I (orders)</td><td>3</td><td>Administrative orders, e.g. vacate orders</td></tr>
+          </tbody>
+        </table>
+        <p class="lookup-sample-meta">Live data retrieved June 12, 2026 from the NYC Property Intel production database (source: NYC Open Data wvxf-dwi5). The chat answer also lists each violation's description, issue date, and status.</p>
+      </div>
+
+      <h2>What HPD violations tell you about a building</h2>
+      <p>HPD (the NYC Department of Housing Preservation &amp; Development) enforces the Housing Maintenance Code in residential buildings. When an inspector documents a condition — no heat, a leak, vermin, broken locks — it becomes a violation on the building's permanent public record, classified by severity: <strong>Class A</strong> (non-hazardous), <strong>Class B</strong> (hazardous), <strong>Class C</strong> (immediately hazardous), plus <strong>Class I</strong> administrative orders. The record is one of the most honest signals available about how a building is actually run: listings and rent rolls are marketing, but the violation history is what city inspectors found when they showed up.</p>
+      <p>Two numbers matter most: the <strong>open Class C count</strong> (urgent conditions the owner hasn't fixed) and the <strong>age of open violations</strong> (chronic neglect shows up as years-old, still-open records). And remember: violations attach to the property, not the owner — if you buy the building, you inherit them. HPD is also only one of three violation systems; <a href="/dob-violations">DOB and ECB violations</a> live in separate databases with separate (and monetary) consequences.</p>
+
+      <h2>Who uses this check</h2>
+      <ul>
+        <li><strong>Renters</strong> — see how a landlord actually maintains the building before signing a lease or handing over a deposit.</li>
+        <li><strong>Buyers &amp; investors</strong> — pre-offer due diligence: open violations are inherited liabilities and negotiating leverage.</li>
+        <li><strong>Attorneys</strong> — pull the violation posture in seconds during intake, before committing to the full agency-by-agency pull.</li>
+      </ul>
+      <p>This check is one item on the complete <a href="/nyc-property-due-diligence">NYC pre-offer due-diligence checklist</a> — violations are where most people start, but liens, litigations, and rent-stabilization status round out the risk picture.</p>
+
+      <h2>FAQ: NYC HPD Violations Lookup</h2>
+
+      <h3>How do I look up HPD violations for a NYC building?</h3>
+      <p>Enter the building's street address (or its 10-digit BBL) above and the lookup returns every Housing Maintenance Code violation HPD has recorded against that property: the class breakdown (A, B, C and I), which violations are still open, when they were issued, and the inspector's description of each condition. The data comes from NYC Open Data's Housing Maintenance Code Violations dataset (<code>wvxf-dwi5</code>) — the same record HPD itself publishes — mirrored and synced on a daily cadence. The free manual alternative is HPD Online (hpdonline.nyc.gov), which works one building at a time and requires you to interpret the raw record yourself. The advantage of querying by BBL is precision: street addresses are free text in city systems, so address-string searches can miss records or pull in a neighbor's building.</p>
+
+      <h3>What do HPD violation classes A, B and C mean?</h3>
+      <p>HPD classifies every Housing Maintenance Code violation by severity. <strong>Class A</strong> is non-hazardous — think a missing sign or a minor leak — and generally carries a 90-day correction window. <strong>Class B</strong> is hazardous — for example, no smoke detector, broken public-door locks, or vermin — generally with a 30-day window. <strong>Class C</strong> is immediately hazardous — no heat, no hot water, lead-based paint, rodent infestation — and generally must be corrected within 24 hours; the City can step in, do the work through its Emergency Repair Program, and bill the owner. There is also <strong>Class I</strong>, which covers administrative orders such as vacate orders. For a buyer or renter, the Class C count is the headline number: a building carrying many open Class C violations has conditions the law treats as urgent that the owner has not fixed.</p>
+
+      <h3>Is this HPD violations lookup really free?</h3>
+      <p>Yes. Your first lookups are free with no signup, and a free account currently gets you 10 queries a day — enough to compare several buildings or run a deeper follow-up on one. The underlying data is public record, and the project is open source (<a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">code on GitHub</a>), so you can also self-host it or verify exactly how the numbers are produced. We make the public record usable in one query instead of several city websites; we don't paywall the record itself. If you need more volume or a timestamped report you can hand to an attorney or partner, that's the paid tier we're building — but checking a building before you rent, bid, or litigate costs nothing.</p>
+
+      <h3>Do HPD violations transfer to the new owner when a building is sold?</h3>
+      <p>Yes. Violations attach to the property — identified by its Borough-Block-Lot (BBL) — not to the person who owned it when the violation was issued. When you buy a NYC building you step into the seller's shoes: open HPD violations, their correction obligations, and any related Emergency Repair Program charges come with the deed. That is why the violation check belongs in <em>pre-offer</em> due diligence, while the price is still negotiable, rather than after contract signing when discovering a hundred open violations becomes your problem at the closing table. A heavy open-violation load is also a negotiating lever: documented conditions the seller must cure, or a justified price reduction. Run the lookup before you offer, and have your attorney verify anything material directly with HPD before closing.</p>
+
+      <h3>How current is the violation data, and how do I know it's accurate?</h3>
+      <p>The violations mirror syncs from NYC Open Data on a daily cadence, and every answer is stamped with its data vintage so you know exactly what you're reading. Accuracy is checked, not assumed: an automated weekly audit cross-checks a sample of our records against the live city record, field by field, and flags any contradiction. The most recent audit (June 12, 2026) matched 51,187 HPD violation records against the city's published data with <strong>zero classification contradictions</strong>. Two honest caveats: city source systems themselves lag real-world events — an inspection from yesterday may not be in any public dataset yet — and a small share of records show status differences against the live record at any moment because closures propagate on the city's schedule. We surface the record; conditions on the ground are what an inspection is for.</p>
+
+      <h3>Should I check HPD violations before renting an apartment?</h3>
+      <p>Yes — it is one of the fastest free checks a NYC renter can run, and it tells you how the landlord actually maintains the building, regardless of how good the listing photos look. Look at three things: the open Class C count (immediately hazardous conditions like no heat or lead paint that haven't been fixed), whether open violations are recent or years old (chronic neglect shows up as old, still-open violations), and the volume relative to building size — 40 open violations in a 10-unit building is a very different story than 40 in a 200-unit complex. Heat and hot-water violations in winter months are a particularly telling pattern. Check the buildings you're comparing before you hand over a deposit; it takes one query each.</p>
+
+      <hr />
+      <p><em>Data source: NYC Open Data &ldquo;Housing Maintenance Code Violations&rdquo; (<code>wvxf-dwi5</code>), published by HPD, synced daily. NYC Property Intel surfaces and flags public records; it is not a title search, an appraisal, an inspection, or legal advice. Verify with the source agency and your professionals before you transact.</em></p>
+
+      <aside class="article-cta-box">
+        <h2>Check any NYC building's violations — free</h2>
+        <p>HPD is one of three violation systems. One query also covers DOB and ECB violations, liens, litigation history, evictions, and rent-stabilization signals — across 20+ official city datasets.</p>
+        <p><a href="/chat" class="btn btn-primary">Scan an address free &rarr;</a></p>
+        <p class="article-cta-fine">Due diligence, not a title search, appraisal, or legal advice.</p>
+      </aside>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-disclaimer">
+        <p>
+          <strong>Disclaimer:</strong> NYC Property Intel is provided for
+          <strong>educational and informational purposes only</strong>. It does not constitute
+          legal, tax, financial, or investment advice. The information presented is sourced
+          from NYC public records and may not be current, complete, or accurate. This tool is
+          <strong>not a substitute</strong> for a professional title search, property appraisal,
+          environmental assessment, or building inspection. Always consult qualified professionals
+          (attorneys, licensed appraisers, engineers) before making real estate decisions. NYC Property Intel
+          is not affiliated with the City of New York or any city agency.
+        </p>
+        <p>
+          This tool must not be used for property valuations in connection with credit or lending decisions.
+          It is not an appraisal tool.
+        </p>
+        <p>
+          All real estate data is subject to the
+          <a href="https://www.hud.gov/program_offices/fair_housing_equal_opp/fair_housing_act_overview" target="_blank" rel="noopener noreferrer">Federal Fair Housing Act</a>
+          and to New York State and New York City Human Rights Laws.
+        </p>
+      </div>
+      <div class="footer-links">
+        <a href="/nyc-property-due-diligence">Due Diligence Guide</a>
+        <a href="/dob-violations">DOB &amp; ECB Violations Lookup</a>
+        <a href="/property-owner-lookup">Property Owner Lookup</a>
+        <a href="/legal">Terms of Use &amp; Privacy Policy</a>
+        <a href="/legal#fair-housing-policy">Fair Housing Policy</a>
+        <a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span class="footer-license">MIT License</span>
+      </div>
+      <p class="footer-copy">&copy; 2026 NYC Property Intel. Not affiliated with the City of New York.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=20260530" defer></script>
+  <script src="js/lookup.js?v=20260612" defer></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

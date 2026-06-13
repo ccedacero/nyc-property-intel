@@ -134,6 +134,17 @@
         sidebar.classList.toggle("open");
       });
     }
+
+    // Prefill from ?q= (lookup-page handoff). Never auto-submit — the user
+    // confirms with Send, and the anon counter only increments on submit.
+    const prefill = params.get("q");
+    if (prefill) {
+      textarea.value = prefill.slice(0, 500);
+      textarea.dispatchEvent(new Event("input"));
+      textarea.focus();
+      window.history.replaceState({}, "", window.location.pathname);
+      if (typeof posthog !== "undefined") posthog.capture("chat_prefill_arrival");
+    }
   }
 
   /* ── Magic link activation ────────────────────────────────────────── */

@@ -208,7 +208,7 @@
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
   <link rel="dns-prefetch" href="https://app.loops.so">
 
-  <link rel="stylesheet" href="css/style.css?v=20260517">
+  <link rel="stylesheet" href="css/style.css?v=20260612">
 
   <!-- PostHog analytics -->
   <script src="js/posthog-init.js?v=20260522" defer></script>
@@ -260,7 +260,7 @@
         <div class="hero-actions hero-actions-primary" style="display:flex; justify-content:center; margin-bottom:1.25rem;">
           <a href="/chat" class="btn btn-primary btn-hero" style="padding:1rem 2.25rem; font-size:1.0625rem;">Try It Now &mdash; Free &rarr;</a>
         </div>
-        <p class="hero-note">First 3 queries free, no signup &middot; Open source (MIT)</p>
+        <p class="hero-note">First 3 queries free, no signup &middot; Open source (MIT) &middot; Data synced daily from NYC Open Data</p>
 
         <div class="hero-actions-secondary" style="margin-top:1rem;">
           <a href="#how-it-works" class="link-subtle">See how it works &darr;</a>
@@ -307,6 +307,45 @@
             </div>
           </div>
         </details>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SAMPLE OUTPUT (trust block: real data, freshness, byline)       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section class="section" id="sample-output">
+      <div class="container">
+        <h2>What an answer actually looks like</h2>
+        <p class="section-intro">
+          Real data for a real building &mdash; pulled live from the production database on <strong>June 12, 2026</strong>.
+        </p>
+        <div class="lookup-sample" style="max-width:760px; margin-left:auto; margin-right:auto;">
+          <h3>&ldquo;Any red flags on 132 West 169th St, Bronx?&rdquo;</h3>
+          <p><strong>132 West 169th Street, Bronx</strong> (BBL 2025180028) &mdash; 6-story, 25-unit multifamily, built 1931:</p>
+          <table>
+            <thead>
+              <tr><th>Check</th><th>Result</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>HPD violations</td><td><span class="lookup-flag">100 open</span> of 132 on record &mdash; incl. <span class="lookup-flag">21 Class&nbsp;C</span> (immediately hazardous)</td></tr>
+              <tr><td>DOB violations</td><td><span class="lookup-flag">10 active</span> of 38 on record</td></tr>
+              <tr><td>ECB (OATH) violations</td><td>16 active &mdash; <span class="lookup-flag">$38,581 in penalties outstanding</span></td></tr>
+              <tr><td>Owner of record</td><td>132 WEST 169 ST HSNG (PLUTO) &mdash; HPD registration lists the head officer &amp; managing agent</td></tr>
+            </tbody>
+          </table>
+          <p class="lookup-sample-meta">Every answer is stamped with its data vintage. An automated weekly audit cross-checks our records field-by-field against the live city record &mdash; the June 12, 2026 audit matched 70,000+ records with <strong>zero contradictions</strong>.</p>
+        </div>
+        <p style="text-align:center; margin-top:1.5rem;">
+          Free dedicated lookups:&nbsp;
+          <a href="/hpd-violations">HPD violations</a> &middot;
+          <a href="/dob-violations">DOB &amp; ECB violations</a> &middot;
+          <a href="/property-owner-lookup">Property owner</a> &middot;
+          <a href="/nyc-eviction-history-search">Eviction history</a>
+        </p>
+        <p style="text-align:center; color:var(--text-secondary); font-size:0.9rem; margin-top:1rem;">
+          Built and maintained by <a href="https://github.com/ccedacero" target="_blank" rel="noopener noreferrer">Cristian Cedacero</a>,
+          an independent engineer building in the open on NYC Open Data.
+        </p>
       </div>
     </section>
 
@@ -1019,6 +1058,9 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
 
       <div class="footer-links">
         <a href="/nyc-property-due-diligence">Due Diligence Guide</a>
+        <a href="/hpd-violations">HPD Violations Lookup</a>
+        <a href="/dob-violations">DOB &amp; ECB Violations Lookup</a>
+        <a href="/property-owner-lookup">Property Owner Lookup</a>
         <a href="/legal">Terms of Use &amp; Privacy Policy</a>
         <a href="/legal#fair-housing-policy">Fair Housing Policy</a>
         <a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>

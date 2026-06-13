@@ -66,6 +66,10 @@ scripts/*.sh
 # Private notes, launch copy, build-environment artifacts (never publish)
 docs/pending-todos-*.md
 docs/launch-copy/
+# Internal Claude planning/research artifacts — keep local only
+docs/next-phase-plan-*.md
+docs/seo-audit-*.md
+docs/decisions-log.md
 .claude/skills/
 .claude/worktrees/
 .claude/settings.local.json

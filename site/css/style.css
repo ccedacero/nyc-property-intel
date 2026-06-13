@@ -1588,3 +1588,44 @@ abbr[title] {
 .article-cta-fine { font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
 
 .article-page hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* ── Lookup pages (per-agency demand-capture) ─────────────────────── */
+
+.lookup-hero {
+  margin: 1.5rem 0 2.5rem;
+  padding: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.lookup-hero .hero-signup-fields { justify-content: flex-start; }
+.lookup-hero-note {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.lookup-fresh {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--success);
+}
+
+.lookup-sample {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+.lookup-sample h3 { margin-top: 0; }
+.lookup-sample table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
+.lookup-sample th, .lookup-sample td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.lookup-sample th { color: var(--text-muted); font-weight: 600; font-size: 0.8125rem; }
+.lookup-sample-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0; }
+.lookup-flag { color: var(--danger); font-weight: 600; }
