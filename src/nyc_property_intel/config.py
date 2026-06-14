@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     # Transactional email ID for the web chat activation email
     # Create in Loops: Transactional → New → add {{activationUrl}} variable
     loops_chat_transactional_id: str = ""
+    # Transactional email ID for the "watch this building" change alert (1.9).
+    # Create in Loops: Transactional → New → add {{address}}, {{changes}},
+    # {{reportUrl}} variables. Until set, alerts are computed but not sent.
+    loops_watch_transactional_id: str = ""
 
     # ── PostHog analytics ────────────────────────────────────────────────
     # Project API key from https://us.posthog.com/settings/project

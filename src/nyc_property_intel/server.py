@@ -19,6 +19,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 from contextlib import asynccontextmanager
 from typing import Any
@@ -37,7 +38,7 @@ from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import PLAN_LIMITS, TokenAuth
 from nyc_property_intel.chat import make_chat_handlers, make_signup_endpoint_handler
 from nyc_property_intel.config import settings
-from nyc_property_intel.loops_webhook import make_webhook_handler
+from nyc_property_intel.loops_webhook import is_disposable_domain, make_webhook_handler
 from nyc_property_intel.db import db_lifespan
 from nyc_property_intel.geoclient import close_client as _close_geoclient
 from nyc_property_intel.socrata import close_client as _close_socrata
@@ -547,6 +548,51 @@ def main() -> None:
                 headers={"Cache-Control": "public, max-age=600"},
             )
 
+        async def watch_handler(request: Request) -> Response:
+            """Subscribe (email, bbl) to building-change alerts (feature 1.9).
+
+            Public + auth-free, like the report permalink. Validates email shape
+            + a non-disposable domain + a 10-digit BBL, then records the watch
+            (baseline = the building's current open-risk snapshot, so the user
+            is only alerted on future changes).
+            """
+
+            def _err(code: str, status: int) -> Response:
+                return Response(
+                    json.dumps({"error": code}),
+                    status_code=status,
+                    media_type="application/json",
+                )
+
+            try:
+                body = await request.json()
+            except Exception:
+                return _err("invalid_json", 400)
+
+            email = str(body.get("email") or "").strip().lower()
+            bbl = str(body.get("bbl") or "").strip()
+            address = str(body.get("address") or "").strip() or None
+
+            if len(email) > 254 or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+                return _err("invalid_email", 400)
+            try:
+                if is_disposable_domain(email.split("@", 1)[1]):
+                    return _err("disposable_email", 400)
+            except Exception:
+                pass  # never block a signup on a validator hiccup
+            if not (bbl.isdigit() and len(bbl) == 10):
+                return _err("invalid_bbl", 400)
+
+            try:
+                from nyc_property_intel.watch import register_watch
+
+                await register_watch(email, bbl, address)
+            except Exception as exc:
+                logger.warning("watch register failed for %s/%s: %s", email, bbl, exc)
+                return _err("unavailable", 503)
+
+            return Response('{"ok":true}', media_type="application/json")
+
         if use_streamable:
             @asynccontextmanager
             async def _combined_lifespan(app):
@@ -562,6 +608,7 @@ def main() -> None:
                     Route("/api/activate", activate_handler, methods=["POST"]),
                     Route("/api/chat", chat_handler, methods=["POST"]),
                     Route("/api/report/{id}", report_handler, methods=["GET"]),
+                    Route("/api/watch", watch_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
@@ -576,6 +623,7 @@ def main() -> None:
                 Route("/api/activate", activate_handler, methods=["POST"]),
                 Route("/api/chat", chat_handler, methods=["POST"]),
                 Route("/api/report/{id}", report_handler, methods=["GET"]),
+                Route("/api/watch", watch_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
 

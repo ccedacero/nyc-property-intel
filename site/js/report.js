@@ -16,6 +16,59 @@
   var statusEl = document.getElementById("report-status");
   var bodyEl = document.getElementById("report-body");
   var ctaEl = document.getElementById("report-cta");
+  var watchEl = document.getElementById("report-watch");
+  var watchForm = document.getElementById("report-watch-form");
+  var watchEmail = document.getElementById("report-watch-email");
+  var watchMsg = document.getElementById("report-watch-msg");
+
+  function isValidEmail(e) {
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+  }
+
+  // Wire the "watch this building" form once we know the BBL (feature 1.9).
+  function setupWatch(bbl, address) {
+    if (!watchEl || !watchForm || !bbl) return;
+    watchEl.hidden = false;
+    watchForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = (watchEmail.value || "").trim();
+      if (!isValidEmail(email)) {
+        watchMsg.textContent = "Please enter a valid email address.";
+        return;
+      }
+      var btn = watchForm.querySelector("button");
+      btn.disabled = true;
+      watchMsg.textContent = "Saving…";
+      fetch(API_BASE + "/api/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, bbl: bbl, address: address || null }),
+      })
+        .then(function (res) {
+          if (res.ok) {
+            watchForm.innerHTML =
+              "<p class=\"report-watch-msg\">✓ You're watching this building. " +
+              "We'll email you if a new violation, litigation, or lien shows up.</p>";
+            if (typeof posthog !== "undefined") {
+              posthog.capture("building_watch_subscribed", { bbl: bbl });
+            }
+          } else {
+            return res.json().catch(function () { return {}; }).then(function (d) {
+              var map = {
+                invalid_email: "Please enter a valid email address.",
+                disposable_email: "Please use a non-disposable email address.",
+              };
+              watchMsg.textContent = map[d.error] || "Couldn't save that right now. Please try again.";
+              btn.disabled = false;
+            });
+          }
+        })
+        .catch(function () {
+          watchMsg.textContent = "Connection error. Please try again.";
+          btn.disabled = false;
+        });
+    });
+  }
 
   function renderMarkdown(text) {
     if (typeof marked === "undefined" || typeof DOMPurify === "undefined") {
@@ -87,6 +140,8 @@
         if (statusEl) statusEl.hidden = true;
         if (bodyEl) bodyEl.innerHTML = renderMarkdown(data.report_md || "");
         if (ctaEl) ctaEl.hidden = false;
+
+        setupWatch(data.bbl, data.address);
 
         if (typeof posthog !== "undefined") {
           posthog.capture("shared_report_viewed", { bbl: data.bbl || null });
