@@ -1654,3 +1654,16 @@ abbr[title] {
 .report-body { margin-top: 1rem; }
 .report-body > :first-child { margin-top: 0; }
 .report-body table { width: 100%; }
+
+/* ── Watch this building (feature 1.9 — report page) ──────────────── */
+.report-watch {
+  margin: 2rem 0 1rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.report-watch h2 { border: none; padding: 0; margin: 0 0 0.5rem; }
+.report-watch p { margin: 0 0 1rem; color: var(--text-secondary); }
+.report-watch .hero-signup-fields { justify-content: flex-start; }
+.report-watch-msg { margin: 0.6rem 0 0; font-size: 0.875rem; color: var(--text-secondary); min-height: 1.2em; }

@@ -25,13 +25,13 @@
 
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
 
-  <link rel="stylesheet" href="css/style.css?v=20260614">
-  <link rel="stylesheet" href="css/chat.css?v=20260614">
+  <link rel="stylesheet" href="css/style.css?v=20260614b">
+  <link rel="stylesheet" href="css/chat.css?v=20260614b">
 
   <script src="js/posthog-init.js?v=20260522" defer></script>
   <script src="js/vendor/marked.min.js?v=20260425b" defer></script>
   <script src="js/vendor/purify.min.js?v=20260425b" defer></script>
-  <script src="js/report.js?v=20260614" defer></script>
+  <script src="js/report.js?v=20260614b" defer></script>
 </head>
 <body>
   <a href="#report-content" class="skip-link">Skip to report</a>
@@ -61,6 +61,27 @@
       </div>
 
       <div id="report-body" class="report-body"></div>
+
+      <!-- Watch-this-building alert (feature 1.9) — the retention surface. -->
+      <aside class="report-watch" id="report-watch" hidden>
+        <h2>Watch this building</h2>
+        <p>Get one email if this building picks up a new violation, litigation, or lien. Only when something changes — no digest, no spam.</p>
+        <form id="report-watch-form" novalidate>
+          <div class="hero-signup-fields">
+            <input
+              type="email"
+              id="report-watch-email"
+              class="signup-input"
+              placeholder="you@email.com"
+              autocomplete="email"
+              required
+              aria-label="Email address for building alerts"
+            >
+            <button type="submit" class="btn btn-primary signup-btn">Watch this building</button>
+          </div>
+          <p class="report-watch-msg" id="report-watch-msg" role="status" aria-live="polite"></p>
+        </form>
+      </aside>
 
       <!-- Run-your-own CTA -->
       <aside class="article-cta-box" id="report-cta" hidden>

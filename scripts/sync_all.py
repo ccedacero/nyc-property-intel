@@ -255,6 +255,21 @@ def main() -> None:
     elif args.skip_mv_refresh:
         logger.info("skipping MV refresh (--skip-mv-refresh)")
 
+    # Post-sync "watch this building" alerts (feature 1.9) — tier-1 only, after
+    # the MV refresh so the open-risk snapshot reads fresh data. The relevant
+    # source tables (hpd/dob/ecb violations, hpd_litigations) all load on tier-1.
+    # process_watches is defensive (never raises); wrapped again here so an
+    # alert hiccup can never change the sync's exit code.
+    if not args.only and args.tier == 1:
+        logger.info("processing watched-building alerts (post-sync, tier=1)")
+        try:
+            from nyc_property_intel.watch import process_watches
+
+            stats = asyncio.run(process_watches(dry_run=False))
+            logger.info("watch alerts: %s", stats)
+        except Exception:
+            logger.exception("process_watches crashed — sync exit code unchanged")
+
     if failed:
         sys.exit(2)
     # Drift warnings are informational — surfaced via log + email.
