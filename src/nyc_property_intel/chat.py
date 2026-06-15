@@ -86,9 +86,14 @@ _anthropic_tools: list[dict] | None = None
 _IP_RATE_LIMIT = 10          # requests per minute per IP (chat endpoint)
 _SIGNUP_IP_RATE_LIMIT = 3    # signups per IP per hour
 _SIGNUP_IP_WINDOW = 3600     # 1 hour in seconds
+_WATCH_IP_RATE_LIMIT = 20    # building-watch registrations per IP per hour
+                             # (looser than signup — a real user may watch
+                             # several buildings in a session; the per-email
+                             # cap + double-opt-in carry the abuse defense)
 
 _ip_buckets: TTLCache = TTLCache(maxsize=50_000, ttl=60)
 _signup_ip_buckets: TTLCache = TTLCache(maxsize=10_000, ttl=_SIGNUP_IP_WINDOW)
+_watch_ip_buckets: TTLCache = TTLCache(maxsize=10_000, ttl=_SIGNUP_IP_WINDOW)
 
 
 # ── Client + tools ────────────────────────────────────────────────────
@@ -138,6 +143,15 @@ def _check_signup_ip_rate_limit(ip: str) -> bool:
     if count >= _SIGNUP_IP_RATE_LIMIT:
         return False
     _signup_ip_buckets[ip] = count + 1
+    return True
+
+
+def _check_watch_ip_rate_limit(ip: str) -> bool:
+    """Allow at most _WATCH_IP_RATE_LIMIT building-watch registrations per IP per hour."""
+    count = _watch_ip_buckets.get(ip, 0)
+    if count >= _WATCH_IP_RATE_LIMIT:
+        return False
+    _watch_ip_buckets[ip] = count + 1
     return True
 
 
