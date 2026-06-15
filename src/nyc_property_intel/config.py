@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     # Create in Loops: Transactional → New → add {{address}}, {{changes}},
     # {{reportUrl}} variables. Until set, alerts are computed but not sent.
     loops_watch_transactional_id: str = ""
+    # Transactional email ID for the watch double-opt-in CONFIRMATION email.
+    # Variable: {DATA_VARIABLE:confirmUrl}. When set, a new email must confirm
+    # before any alerts send (closes third-party watch-bombing). When unset,
+    # watches auto-confirm so the feature still works (graceful degradation).
+    loops_watch_confirm_transactional_id: str = ""
+    # Max active watches per email address (abuse cap).
+    watch_max_per_email: int = 25
 
     # ── PostHog analytics ────────────────────────────────────────────────
     # Project API key from https://us.posthog.com/settings/project

@@ -46,22 +46,30 @@
       })
         .then(function (res) {
           if (res.ok) {
-            watchForm.innerHTML =
-              "<p class=\"report-watch-msg\">✓ You're watching this building. " +
-              "We'll email you if a new violation, litigation, or lien shows up.</p>";
-            if (typeof posthog !== "undefined") {
-              posthog.capture("building_watch_subscribed", { bbl: bbl });
-            }
-          } else {
             return res.json().catch(function () { return {}; }).then(function (d) {
-              var map = {
-                invalid_email: "Please enter a valid email address.",
-                disposable_email: "Please use a non-disposable email address.",
-              };
-              watchMsg.textContent = map[d.error] || "Couldn't save that right now. Please try again.";
-              btn.disabled = false;
+              var msg = d.confirm_required
+                ? "✓ Almost there — check your inbox and click the confirmation " +
+                  "link to start getting alerts for this building."
+                : "✓ You're watching this building. We'll email you if a new " +
+                  "violation, litigation, or lien shows up.";
+              watchForm.innerHTML = "<p class=\"report-watch-msg\">" + msg + "</p>";
+              if (typeof posthog !== "undefined") {
+                posthog.capture("building_watch_subscribed", {
+                  bbl: bbl, confirm_required: !!d.confirm_required,
+                });
+              }
             });
           }
+          return res.json().catch(function () { return {}; }).then(function (d) {
+            var map = {
+              invalid_email: "Please enter a valid email address.",
+              disposable_email: "Please use a non-disposable email address.",
+              watch_limit: "You've reached the limit of watched buildings for this email.",
+              rate_limited: "Too many requests — please try again in a little while.",
+            };
+            watchMsg.textContent = map[d.error] || "Couldn't save that right now. Please try again.";
+            btn.disabled = false;
+          });
         })
         .catch(function () {
           watchMsg.textContent = "Connection error. Please try again.";

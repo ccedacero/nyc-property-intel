@@ -74,17 +74,25 @@ async def _ensure_watch_table(pool) -> None:
             last_seen        JSONB NOT NULL,
             created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             last_notified_at TIMESTAMPTZ,
-            active           BOOLEAN NOT NULL DEFAULT TRUE
+            active           BOOLEAN NOT NULL DEFAULT TRUE,
+            confirmed        BOOLEAN NOT NULL DEFAULT FALSE,
+            confirmed_at     TIMESTAMPTZ
         )
         """
+    )
+    # Double-opt-in columns — ALTER for tables created before migration 017.
+    await pool.execute(
+        "ALTER TABLE watched_buildings "
+        "ADD COLUMN IF NOT EXISTS confirmed BOOLEAN NOT NULL DEFAULT FALSE, "
+        "ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ"
     )
     await pool.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_watched_buildings_email_bbl "
         "ON watched_buildings (email, bbl)"
     )
     await pool.execute(
-        "CREATE INDEX IF NOT EXISTS idx_watched_buildings_active "
-        "ON watched_buildings (bbl) WHERE active"
+        "CREATE INDEX IF NOT EXISTS idx_watched_buildings_confirmed_active "
+        "ON watched_buildings (bbl) WHERE active AND confirmed"
     )
     _watch_table_ready = True
 
@@ -110,32 +118,128 @@ def diff_increases(prev: dict, cur: dict) -> list[str]:
     return out
 
 
-async def register_watch(email: str, bbl: str, address: str | None) -> str:
+async def register_watch(email: str, bbl: str, address: str | None) -> dict:
     """Subscribe (email, BBL). Baseline = current snapshot, so the user is only
-    alerted on changes that happen *after* they start watching. Idempotent:
-    re-subscribing reactivates and refreshes the address without re-baselining.
+    alerted on changes that happen *after* they start watching. Idempotent.
+
+    Returns a status dict:
+      {"status": "confirmed"}             — active; will be alerted
+      {"status": "pending", "token": id}  — needs email confirmation (send the
+                                            confirm email with this token)
+      {"status": "limit_exceeded"}        — email is at the active-watch cap
+
+    Double-opt-in: a watch is only confirmed if (a) confirmation emails aren't
+    configured (graceful degradation — feature still works), or (b) this email
+    already has a confirmed watch. Otherwise it's pending until the email clicks
+    the confirm link — which closes third-party watch-bombing.
     """
     email = email.strip().lower()
     pool = await get_pool()
     await _ensure_watch_table(pool)
+
+    stats = await pool.fetchrow(
+        """
+        SELECT COUNT(*) FILTER (WHERE active)      AS active_count,
+               COALESCE(bool_or(confirmed), FALSE) AS any_confirmed,
+               COALESCE(bool_or(bbl = $2), FALSE)  AS has_bbl
+        FROM watched_buildings WHERE email = $1
+        """,
+        email,
+        bbl,
+    )
+    # Cap only applies to a genuinely NEW building for this email.
+    if not stats["has_bbl"] and stats["active_count"] >= settings.watch_max_per_email:
+        return {"status": "limit_exceeded"}
+
+    confirm_enabled = bool(settings.loops_watch_confirm_transactional_id)
+    confirmed = (not confirm_enabled) or bool(stats["any_confirmed"])
+
     snap_json = json.dumps(await snapshot_counts(pool, bbl))
     wid = secrets.token_urlsafe(8)
     row = await pool.fetchrow(
         """
-        INSERT INTO watched_buildings (id, email, bbl, address, baseline, last_seen)
-        VALUES ($1, $2, $3, $4, $5::jsonb, $5::jsonb)
+        INSERT INTO watched_buildings
+            (id, email, bbl, address, baseline, last_seen, confirmed, confirmed_at)
+        VALUES ($1, $2, $3, $4, $5::jsonb, $5::jsonb, $6, CASE WHEN $6 THEN NOW() END)
         ON CONFLICT (email, bbl) DO UPDATE
             SET active = TRUE,
-                address = COALESCE(EXCLUDED.address, watched_buildings.address)
-        RETURNING id
+                address = COALESCE(EXCLUDED.address, watched_buildings.address),
+                confirmed = watched_buildings.confirmed OR EXCLUDED.confirmed,
+                confirmed_at = COALESCE(
+                    watched_buildings.confirmed_at,
+                    CASE WHEN EXCLUDED.confirmed THEN NOW() END
+                )
+        RETURNING id, confirmed
         """,
         wid,
         email,
         bbl,
         (address or None) and address[:160],
         snap_json,
+        confirmed,
     )
-    return row["id"]
+    if row["confirmed"]:
+        return {"status": "confirmed"}
+    return {"status": "pending", "token": row["id"]}
+
+
+async def confirm_email(token: str) -> str | None:
+    """Confirm every watch for the email that owns this token (the row id from a
+    pending registration). Returns the confirmed email, or None if the token is
+    unknown. Idempotent.
+    """
+    pool = await get_pool()
+    await _ensure_watch_table(pool)
+    email = await pool.fetchval(
+        "SELECT email FROM watched_buildings WHERE id = $1", token
+    )
+    if not email:
+        return None
+    await pool.execute(
+        "UPDATE watched_buildings "
+        "SET confirmed = TRUE, confirmed_at = COALESCE(confirmed_at, NOW()) "
+        "WHERE email = $1 AND NOT confirmed",
+        email,
+    )
+    logger.info("watch email confirmed: %s", email)
+    return email
+
+
+async def _send_confirm_email(email: str, confirm_url: str) -> bool:
+    """Send the double-opt-in confirmation email. Gated on the confirm template;
+    returns True on a successful send.
+    """
+    if not settings.loops_api_key or not settings.loops_watch_confirm_transactional_id:
+        logger.warning(
+            "watch confirm email not configured (api_key/confirm_transactional_id) — "
+            "NOT sending to %s",
+            email,
+        )
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"{_LOOPS_API_BASE}/transactional",
+                headers={
+                    "Authorization": f"Bearer {settings.loops_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "transactionalId": settings.loops_watch_confirm_transactional_id,
+                    "email": email,
+                    "dataVariables": {"confirmUrl": confirm_url},
+                },
+            )
+    except Exception as exc:
+        logger.error("watch confirm email to %s raised: %s", email, exc)
+        return False
+    if not resp.is_success:
+        logger.error(
+            "watch confirm email to %s failed: %s %s", email, resp.status_code, resp.text
+        )
+        return False
+    logger.info("watch confirm email sent to %s", email)
+    return True
 
 
 async def _send_watch_email(
@@ -195,7 +299,7 @@ async def process_watches(dry_run: bool = False) -> dict:
         await _ensure_watch_table(pool)
         rows = await pool.fetch(
             "SELECT id, email, bbl, address, last_seen, last_notified_at "
-            "FROM watched_buildings WHERE active"
+            "FROM watched_buildings WHERE active AND confirmed"
         )
     except Exception:
         logger.exception("process_watches: failed to load watches")

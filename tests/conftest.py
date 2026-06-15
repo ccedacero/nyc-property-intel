@@ -39,6 +39,14 @@ async def _init_db_pool_for_integration(request):
     The module-level _pool in db.py is reset on each iteration.
     """
     if not request.node.get_closest_marker("integration"):
+        # Defensive: a prior integration test may leave db._pool bound to a now-closed
+        # event loop. Clear the dangling reference so a pure unit test that reaches
+        # get_pool() builds a fresh pool on its own loop instead of inheriting the
+        # stale one (which surfaced as a spurious "another operation is in progress"
+        # failure in test_neighborhood_alone_accepted during full-suite runs).
+        import nyc_property_intel.db as _db
+
+        _db._pool = None
         yield
         return
 

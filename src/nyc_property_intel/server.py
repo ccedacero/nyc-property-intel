@@ -36,7 +36,12 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from nyc_property_intel.analytics import capture as ph_capture
 from nyc_property_intel.app import mcp
 from nyc_property_intel.auth import PLAN_LIMITS, TokenAuth
-from nyc_property_intel.chat import make_chat_handlers, make_signup_endpoint_handler
+from nyc_property_intel.chat import (
+    _check_watch_ip_rate_limit,
+    _get_client_ip,
+    make_chat_handlers,
+    make_signup_endpoint_handler,
+)
 from nyc_property_intel.config import settings
 from nyc_property_intel.loops_webhook import is_disposable_domain, make_webhook_handler
 from nyc_property_intel.db import db_lifespan
@@ -583,14 +588,58 @@ def main() -> None:
             if not (bbl.isdigit() and len(bbl) == 10):
                 return _err("invalid_bbl", 400)
 
-            try:
-                from nyc_property_intel.watch import register_watch
+            # Abuse control: IP rate limit (after shape validation, so malformed
+            # probes don't consume the budget). Per-email cap + double-opt-in are
+            # enforced in register_watch.
+            if not _check_watch_ip_rate_limit(_get_client_ip(request)):
+                return _err("rate_limited", 429)
 
-                await register_watch(email, bbl, address)
+            try:
+                from nyc_property_intel.watch import _send_confirm_email, register_watch
+
+                result = await register_watch(email, bbl, address)
             except Exception as exc:
                 logger.warning("watch register failed for %s/%s: %s", email, bbl, exc)
                 return _err("unavailable", 503)
 
+            status = result.get("status")
+            if status == "limit_exceeded":
+                return _err("watch_limit", 429)
+            if status == "pending":
+                # New, unconfirmed email — send the double-opt-in confirmation.
+                confirm_url = f"https://nycpropertyintel.com/watch-confirm?t={result['token']}"
+                await _send_confirm_email(email, confirm_url)
+                return Response(
+                    '{"ok":true,"confirm_required":true}', media_type="application/json"
+                )
+            return Response('{"ok":true}', media_type="application/json")
+
+        async def watch_confirm_handler(request: Request) -> Response:
+            """Confirm a watch email (double-opt-in). POST {"token": "<id>"}."""
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            token = str(body.get("token") or "").strip()
+            if not (6 <= len(token) <= 32) or not all(
+                c.isalnum() or c in "-_" for c in token
+            ):
+                return Response(
+                    '{"error":"invalid_token"}', status_code=400, media_type="application/json"
+                )
+            try:
+                from nyc_property_intel.watch import confirm_email
+
+                email = await confirm_email(token)
+            except Exception as exc:
+                logger.warning("watch confirm failed: %s", exc)
+                return Response(
+                    '{"error":"unavailable"}', status_code=503, media_type="application/json"
+                )
+            if email is None:
+                return Response(
+                    '{"error":"not_found"}', status_code=404, media_type="application/json"
+                )
             return Response('{"ok":true}', media_type="application/json")
 
         if use_streamable:
@@ -609,6 +658,7 @@ def main() -> None:
                     Route("/api/chat", chat_handler, methods=["POST"]),
                     Route("/api/report/{id}", report_handler, methods=["GET"]),
                     Route("/api/watch", watch_handler, methods=["POST"]),
+                    Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
@@ -624,6 +674,7 @@ def main() -> None:
                 Route("/api/chat", chat_handler, methods=["POST"]),
                 Route("/api/report/{id}", report_handler, methods=["GET"]),
                 Route("/api/watch", watch_handler, methods=["POST"]),
+                Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
 
