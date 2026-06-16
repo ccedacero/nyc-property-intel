@@ -117,6 +117,12 @@ class Settings(BaseSettings):
     # `free_global_limit_reached`. Authenticated requests are unaffected.
     # Tune up before launch spikes; this is a cost cap, not a quality signal.
     chat_anon_global_hourly_cap: int = 200
+    # Daily backstop (gate 0.5): hard ceiling on anonymous /api/chat queries per
+    # rolling 24h, server-wide. The hourly cap alone allows ~200×24=4800/day under
+    # a sustained spike; this bounds the worst-case daily Anthropic spend during a
+    # launch. Generous enough not to throttle a strong launch day; lower via env
+    # if cost-sensitive. Same graceful 429 + `free_global_limit_reached`.
+    chat_anon_global_daily_cap: int = 2500
 
     # ── /api/signup Cloudflare Turnstile (deferred — accepted but NOT enforced) ──
     # When True, the new POST /api/signup handler will validate the

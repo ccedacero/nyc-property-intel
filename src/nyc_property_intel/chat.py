@@ -1202,6 +1202,51 @@ def make_chat_handlers(auth: TokenAuth):
                     status_code=429,
                 )
 
+            # Daily backstop (gate 0.5) — caps worst-case daily anon Anthropic
+            # spend during a launch spike. Same DB-backed, fail-open pattern.
+            try:
+                pool = await auth._get_pool()
+                daily_row = await pool.fetchrow(
+                    "SELECT COUNT(*) AS cnt FROM anon_chat_queries "
+                    "WHERE called_at > NOW() - INTERVAL '24 hours'"
+                )
+                daily_cnt = (
+                    int(daily_row["cnt"])
+                    if daily_row and daily_row["cnt"] is not None
+                    else 0
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Anon global daily cap check failed (fail-open): %s", exc
+                )
+                daily_cnt = 0
+
+            if daily_cnt >= settings.chat_anon_global_daily_cap:
+                logger.warning(
+                    "Anon global daily cap reached: %d/%d in the last 24h",
+                    daily_cnt,
+                    settings.chat_anon_global_daily_cap,
+                )
+                ph_capture(
+                    "anonymous",
+                    "anon_global_daily_cap_reached",
+                    {
+                        "global_count_last_24h": daily_cnt,
+                        "cap": settings.chat_anon_global_daily_cap,
+                    },
+                )
+                return JSONResponse(
+                    {
+                        "error": "free_global_limit_reached",
+                        "message": (
+                            "The free tier has hit today's capacity. "
+                            "Sign up for a free account to continue, or "
+                            "try again tomorrow."
+                        ),
+                    },
+                    status_code=429,
+                )
+
         # Pre-compute IP hash for anonymous tracking. We never store the raw IP.
         # `client_ip` was already extracted above for IP rate limiting (handles
         # Fastly / CF / x-forwarded-for chain). If extraction failed entirely
