@@ -25,13 +25,13 @@
 
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
 
-  <link rel="stylesheet" href="/css/style.css?v=20260614b">
-  <link rel="stylesheet" href="/css/chat.css?v=20260614b">
+  <link rel="stylesheet" href="/css/style.css?v=20260616">
+  <link rel="stylesheet" href="/css/chat.css?v=20260616">
 
   <script src="/js/posthog-init.js?v=20260522" defer></script>
   <script src="/js/vendor/marked.min.js?v=20260425b" defer></script>
   <script src="/js/vendor/purify.min.js?v=20260425b" defer></script>
-  <script src="/js/report.js?v=20260615" defer></script>
+  <script src="/js/report.js?v=20260616" defer></script>
 </head>
 <body>
   <a href="#report-content" class="skip-link">Skip to report</a>
@@ -56,11 +56,18 @@
       <h1 id="report-title">Loading report…</h1>
       <p class="article-meta" id="report-meta"></p>
 
+      <div id="report-actions" class="report-actions" hidden>
+        <button type="button" id="report-print-btn" class="btn btn-outline btn-sm">⬇ Download / Print</button>
+      </div>
+
       <div id="report-status" class="report-status">
         <p>Loading this property report…</p>
       </div>
 
       <div id="report-body" class="report-body"></div>
+
+      <!-- Print-only provenance footer (populated by report.js) -->
+      <div id="report-print-footer"></div>
 
       <!-- Watch-this-building alert (feature 1.9) — the retention surface. -->
       <aside class="report-watch" id="report-watch" hidden>

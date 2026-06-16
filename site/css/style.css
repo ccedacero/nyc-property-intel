@@ -1667,3 +1667,30 @@ abbr[title] {
 .report-watch p { margin: 0 0 1rem; color: var(--text-secondary); }
 .report-watch .hero-signup-fields { justify-content: flex-start; }
 .report-watch-msg { margin: 0.6rem 0 0; font-size: 0.875rem; color: var(--text-secondary); min-height: 1.2em; }
+
+/* ── Report page: download/print + Pro painted-door (2026-06-16) ───── */
+.report-actions { margin: 0.5rem 0 1rem; }
+#report-print-footer { display: none; }
+
+.report-pro-probe {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border);
+}
+.report-pro-probe p { margin: 0 0 0.75rem; color: var(--text-secondary); }
+
+@media print {
+  .site-header, .skip-link, #report-actions, #report-watch,
+  #report-cta, .report-pro-probe, .nav-toggle { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .article-page article { max-width: 100%; }
+  #report-print-footer {
+    display: block;
+    margin-top: 2rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #ccc;
+    font-size: 10px;
+    color: #555;
+  }
+  a { color: #000 !important; text-decoration: none !important; }
+}

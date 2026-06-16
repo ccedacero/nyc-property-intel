@@ -20,6 +20,47 @@
   var watchForm = document.getElementById("report-watch-form");
   var watchEmail = document.getElementById("report-watch-email");
   var watchMsg = document.getElementById("report-watch-msg");
+  var actionsEl = document.getElementById("report-actions");
+  var printBtn = document.getElementById("report-print-btn");
+  var printFooterEl = document.getElementById("report-print-footer");
+
+  // Free Download/Print: browser print-to-PDF of the styled report. The print
+  // stylesheet (style.css @media print) strips chrome and stamps a provenance
+  // footer carrying this permalink — so a saved/forwarded PDF links back here.
+  function setupDownload(address, bbl, createdIso) {
+    if (!actionsEl || !printBtn) return;
+    actionsEl.hidden = false;
+    if (printFooterEl) {
+      var bits = ["Source: " + window.location.href];
+      if (bbl) bits.push("BBL " + bbl);
+      bits.push("NYC Property Intel — official NYC public records, informational only (not legal, financial, or appraisal advice).");
+      printFooterEl.textContent = bits.join("  ·  ");
+    }
+    printBtn.addEventListener("click", function () {
+      if (typeof posthog !== "undefined") posthog.capture("report_download_print", { bbl: bbl || null });
+      window.print();
+    });
+  }
+
+  // Painted-door WTP probe (no billing): after someone sets a free watch, gauge
+  // demand for a paid "monitor many buildings" tier. A click is the signal.
+  function appendProProbe(email, bbl) {
+    if (!watchEl) return;
+    var box = document.createElement("div");
+    box.className = "report-pro-probe";
+    box.innerHTML =
+      "<p>Watching more than one building? <strong>Pro monitoring</strong> — " +
+      "watch unlimited buildings + same-day alerts, <strong>$19/mo</strong>.</p>" +
+      "<button type=\"button\" class=\"btn btn-sm btn-accent\" id=\"report-pro-notify\">Notify me at launch</button>";
+    watchEl.appendChild(box);
+    var btn = box.querySelector("#report-pro-notify");
+    btn.addEventListener("click", function () {
+      if (typeof posthog !== "undefined") {
+        posthog.capture("pro_monitoring_interest", { price_shown: 19, bbl: bbl || null, email: email || null });
+      }
+      box.innerHTML = "<p class=\"report-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
+    });
+  }
 
   function isValidEmail(e) {
     return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
@@ -58,6 +99,7 @@
                   bbl: bbl, confirm_required: !!d.confirm_required,
                 });
               }
+              appendProProbe(email, bbl);  // painted-door WTP probe
             });
           }
           return res.json().catch(function () { return {}; }).then(function (d) {
@@ -150,6 +192,7 @@
         if (ctaEl) ctaEl.hidden = false;
 
         setupWatch(data.bbl, data.address);
+        setupDownload(data.address, data.bbl, data.created_at);
 
         if (typeof posthog !== "undefined") {
           posthog.capture("shared_report_viewed", { bbl: data.bbl || null });
