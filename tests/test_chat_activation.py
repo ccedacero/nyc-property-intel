@@ -97,7 +97,7 @@ class TestActivateHandlerReturnsToken:
         pool = _FakePool(row={"encrypted_token": "encrypted-blob"})
         auth = _FakeAuth(pool)
 
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         link_id = str(uuid.uuid4())
         body = json.dumps({"magic_token": link_id}).encode()
@@ -119,7 +119,7 @@ class TestActivateHandlerReturnsToken:
         plaintext = "nyprop_abcdef0123456789abcdef0123456789"
         pool = _FakePool(row={"encrypted_token": "blob"})
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({"magic_token": str(uuid.uuid4())}).encode())
 
@@ -138,7 +138,7 @@ class TestActivateHandlerReturnsToken:
         """The SQL must atomically UPDATE used_at and only succeed once."""
         pool = _FakePool(row={"encrypted_token": "blob"})
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         link_id = str(uuid.uuid4())
         request = _make_request(json.dumps({"magic_token": link_id}).encode())
@@ -164,7 +164,7 @@ class TestActivateHandlerRejectsBadInput:
         """If the UPDATE returns no row, link is used/expired — return 410."""
         pool = _FakePool(row=None)  # atomic UPDATE found nothing
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({"magic_token": str(uuid.uuid4())}).encode())
         response = await activate(request)
@@ -177,7 +177,7 @@ class TestActivateHandlerRejectsBadInput:
     async def test_missing_magic_token_returns_400(self) -> None:
         pool = _FakePool()
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({}).encode())
         response = await activate(request)
@@ -189,7 +189,7 @@ class TestActivateHandlerRejectsBadInput:
     async def test_non_uuid_magic_token_returns_400(self) -> None:
         pool = _FakePool()
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({"magic_token": "not-a-uuid"}).encode())
         response = await activate(request)
@@ -201,7 +201,7 @@ class TestActivateHandlerRejectsBadInput:
     async def test_invalid_json_body_returns_400(self) -> None:
         pool = _FakePool()
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(b"not-json{{")
         response = await activate(request)
@@ -213,7 +213,7 @@ class TestActivateHandlerRejectsBadInput:
         """Fernet failure must not leak the encrypted blob or anything else."""
         pool = _FakePool(row={"encrypted_token": "tampered-blob"})
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({"magic_token": str(uuid.uuid4())}).encode())
 
@@ -227,7 +227,7 @@ class TestActivateHandlerRejectsBadInput:
     async def test_db_error_returns_500_no_token(self) -> None:
         pool = _FakePool(raise_exc=RuntimeError("connection lost"))
         auth = _FakeAuth(pool)
-        _, activate, _ = make_chat_handlers(auth)
+        _, activate, _, _ = make_chat_handlers(auth)
 
         request = _make_request(json.dumps({"magic_token": str(uuid.uuid4())}).encode())
         response = await activate(request)
@@ -284,7 +284,7 @@ class TestChatHandlerCookieAuth:
         # We don't need the streaming body to actually run — just verify
         # validate() was called with the cookie value.
         with patch.object(chat_module, "_get_anthropic_tools", return_value=[]):
-            _, _, chat_handler = make_chat_handlers(auth)
+            _, _, chat_handler, _ = make_chat_handlers(auth)
             # Reset the IP rate-limit bucket so the test is deterministic.
             chat_module._ip_buckets.clear()
             response = await chat_handler(request)

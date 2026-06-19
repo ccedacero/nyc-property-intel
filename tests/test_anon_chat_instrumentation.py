@@ -123,7 +123,7 @@ async def _drain_streaming_response(response: Any) -> str:
     return "".join(chunks)
 
 
-async def _fake_agentic_stream(_messages: list[dict]):
+async def _fake_agentic_stream(_messages: list[dict], owner_token_hash=None):
     """Yield a single `done` SSE chunk so the chat handler's stream wrapper
     runs to completion without making real Anthropic calls."""
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
@@ -206,7 +206,7 @@ class TestChatHandlerAnonPath:
         """An anon query → one INSERT into anon_chat_queries."""
         pool = _RecordingPool()
         auth = _FakeAuth(pool)
-        _, _, chat_handler = make_chat_handlers(auth)
+        _, _, chat_handler, _ = make_chat_handlers(auth)
 
         # Pin the secret so the resulting ip_hash is deterministic.
         monkeypatch.setattr(settings, "anon_ip_hash_secret", "test-secret")
@@ -251,7 +251,7 @@ class TestChatHandlerAnonPath:
         must still succeed."""
         pool = _RecordingPool()
         auth = _FakeAuth(pool)
-        _, _, chat_handler = make_chat_handlers(auth)
+        _, _, chat_handler, _ = make_chat_handlers(auth)
 
         monkeypatch.setattr(chat_module, "_agentic_stream", _fake_agentic_stream)
 
@@ -289,7 +289,7 @@ class TestChatHandlerAnonPath:
         still complete normally — observability failures are non-fatal."""
         pool = _RecordingPool(raise_on_execute=RuntimeError("table missing"))
         auth = _FakeAuth(pool)
-        _, _, chat_handler = make_chat_handlers(auth)
+        _, _, chat_handler, _ = make_chat_handlers(auth)
 
         monkeypatch.setattr(chat_module, "_agentic_stream", _fake_agentic_stream)
 
@@ -318,7 +318,7 @@ class TestChatHandlerAnonPath:
         settings dynamically so the test stays correct on future tuning."""
         pool = _RecordingPool()
         auth = _FakeAuth(pool)
-        _, _, chat_handler = make_chat_handlers(auth)
+        _, _, chat_handler, _ = make_chat_handlers(auth)
 
         monkeypatch.setattr(settings, "cookie_secret", "test-cookie-secret")
         cookie_val = make_session_cookie(
@@ -369,12 +369,12 @@ class TestChatHandlerAnonPath:
 
         pool = _AnalyzeUsedPool()
         auth = _FakeAuth(pool)
-        _, _, chat_handler = make_chat_handlers(auth)
+        _, _, chat_handler, _ = make_chat_handlers(auth)
 
         monkeypatch.setattr(settings, "anon_ip_hash_secret", "test-secret")
         monkeypatch.setattr(chat_module, "_ANON_IP_HASH_FALLBACK", None)
 
-        async def _fake_analyze_stream(_messages: list[dict]):
+        async def _fake_analyze_stream(_messages: list[dict], owner_token_hash=None):
             # The model tries to run a full DD — the handler intercepts this
             # tool_start and blocks it because the free DD is spent.
             yield f"data: {json.dumps({'type': 'tool_start', 'name': 'analyze_property'})}\n\n"

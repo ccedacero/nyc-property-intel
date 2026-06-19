@@ -484,12 +484,19 @@
     const fullUrl = window.location.origin + relUrl;
     const box = document.createElement("div");
     box.className = "chat-report-permalink";
+    // For signed-in users the report is also saved to their private history
+    // (/reports) — the retention surface. Anonymous users only get the
+    // anonymous shareable link, so we don't promise them a history.
+    const savedLine = (authState === "trial")
+      ? `<a class="chat-report-permalink-saved" href="/reports">✓ Saved to <strong>Your Reports</strong> &rarr;</a>`
+      : "";
     box.innerHTML = `
       <span class="chat-report-permalink-label">🔗 Shareable report link</span>
       <div class="chat-report-permalink-row">
         <input type="text" class="chat-report-permalink-input" readonly value="${escapeHtml(fullUrl)}" aria-label="Shareable report link">
         <button type="button" class="chat-report-permalink-copy">Copy</button>
       </div>
+      ${savedLine}
     `;
     if (afterEl && afterEl.parentNode) {
       afterEl.parentNode.insertBefore(box, afterEl.nextSibling);

@@ -245,6 +245,17 @@ async def db_lifespan(server: Any):
         "CREATE INDEX IF NOT EXISTS idx_shared_reports_created_at "
         "ON shared_reports (created_at DESC)"
     )
+    # Migration 016 — tie reports to their authenticated creator for the
+    # private "Your Reports" history (retention surface). Nullable; anonymous
+    # reports keep owner_token_hash NULL and stay anonymous permalinks.
+    await pool.execute(
+        "ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS owner_token_hash TEXT"
+    )
+    await pool.execute(
+        "CREATE INDEX IF NOT EXISTS idx_shared_reports_owner "
+        "ON shared_reports (owner_token_hash, created_at DESC) "
+        "WHERE owner_token_hash IS NOT NULL"
+    )
     try:
         yield
     finally:

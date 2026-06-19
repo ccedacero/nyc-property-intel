@@ -140,3 +140,35 @@ def test_persist_caps_field_lengths():
     assert len(args[4]) == 1000              # query capped
     assert len(args[5]) == _REPORT_MAX_CHARS  # report_md capped
     assert rid is not None
+
+
+# ── owner_token_hash (migration 016 — "Your Reports" retention surface) ──
+
+
+def test_persist_stamps_owner_token_hash():
+    """Authenticated callers' reports carry their token_hash so they show up
+    in the private /reports history."""
+    long_md = "# Report\n\n" + ("data point. " * 60)
+    fake_pool = AsyncMock()
+    chat_module._reports_table_ready = False
+    with patch.object(chat_module, "get_pool", new=AsyncMock(return_value=fake_pool)):
+        _run(
+            _persist_shared_report(
+                "1008200001", "350 5TH AVE", "q", long_md,
+                owner_token_hash="abc123hash",
+            )
+        )
+    args = _insert_call_args(fake_pool)
+    # args = (sql, id, bbl, address, query, report_md, owner_token_hash)
+    assert args[6] == "abc123hash"
+
+
+def test_persist_owner_defaults_to_none_for_anonymous():
+    """Anonymous (free-tier) reports stay owner-less — anonymous permalinks."""
+    long_md = "# Report\n\n" + ("data point. " * 60)
+    fake_pool = AsyncMock()
+    chat_module._reports_table_ready = False
+    with patch.object(chat_module, "get_pool", new=AsyncMock(return_value=fake_pool)):
+        _run(_persist_shared_report("1008200001", "350 5TH AVE", "q", long_md))
+    args = _insert_call_args(fake_pool)
+    assert args[6] is None
