@@ -150,6 +150,16 @@ img {
   color: var(--text-primary);
 }
 
+/* Demoted nav item — developer/MCP path recedes behind the primary chat CTA */
+.nav-links a.nav-link-subtle {
+  opacity: 0.7;
+  font-size: 0.8125rem;
+}
+
+.nav-links a.nav-link-subtle:hover {
+  opacity: 1;
+}
+
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -1649,6 +1659,46 @@ abbr[title] {
   background: var(--surface, rgba(255, 255, 255, 0.02));
 }
 .report-status .btn { margin-top: 0.75rem; }
+
+/* ── "Your Reports" history list (/reports) ─────────────────────────── */
+.reports-list {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.reports-item { margin: 0; }
+.reports-item-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, rgba(255, 255, 255, 0.02));
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.reports-item-link:hover {
+  border-color: var(--accent, #3b82f6);
+  background: rgba(255, 255, 255, 0.04);
+}
+.reports-item-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.0625rem;
+}
+.reports-item-query {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  font-style: italic;
+}
+.reports-item-meta {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
 /* Rendered markdown prose inherits .article-page / .legal-page typography
    (h1–h3, p, ul/ol, table all styled above); report-body only needs spacing. */
 .report-body { margin-top: 1rem; }

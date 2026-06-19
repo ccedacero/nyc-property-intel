@@ -416,7 +416,7 @@ def main() -> None:
         # Starlette does NOT auto-run a mounted sub-app's lifespan, so we
         # propagate it here. SSE has no such requirement.
         webhook_handler = make_webhook_handler(auth)
-        signup_handler, activate_handler, chat_handler = make_chat_handlers(auth)
+        signup_handler, activate_handler, chat_handler, reports_mine_handler = make_chat_handlers(auth)
         # Public website signup endpoint — replaces the direct-to-Loops
         # form ID. See docs/signup-rebuild-plan-2026-05-06.md.
         api_signup_handler = make_signup_endpoint_handler(auth)
@@ -657,6 +657,7 @@ def main() -> None:
                     Route("/api/activate", activate_handler, methods=["POST"]),
                     Route("/api/chat", chat_handler, methods=["POST"]),
                     Route("/api/report/{id}", report_handler, methods=["GET"]),
+                    Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                     Route("/api/watch", watch_handler, methods=["POST"]),
                     Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                     Mount("/", mcp_app),
@@ -673,6 +674,7 @@ def main() -> None:
                 Route("/api/activate", activate_handler, methods=["POST"]),
                 Route("/api/chat", chat_handler, methods=["POST"]),
                 Route("/api/report/{id}", report_handler, methods=["GET"]),
+                Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                 Route("/api/watch", watch_handler, methods=["POST"]),
                 Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                 Mount("/", mcp_app),

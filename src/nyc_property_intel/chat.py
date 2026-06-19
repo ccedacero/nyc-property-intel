@@ -21,6 +21,7 @@ import uuid
 from collections.abc import AsyncIterator
 
 import anthropic
+import asyncpg
 import httpx
 from cachetools import TTLCache
 from cryptography.fernet import Fernet, InvalidToken
@@ -465,13 +466,32 @@ async def _ensure_reports_table(pool) -> None:
         "CREATE INDEX IF NOT EXISTS idx_shared_reports_created_at "
         "ON shared_reports (created_at DESC)"
     )
+    # Migration 016 — owner_token_hash ties a report to its authenticated
+    # creator for the private "Your Reports" history. Idempotent ALTER so the
+    # column self-provisions in the chat path (which doesn't run startup DDL).
+    await pool.execute(
+        "ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS owner_token_hash TEXT"
+    )
+    await pool.execute(
+        "CREATE INDEX IF NOT EXISTS idx_shared_reports_owner "
+        "ON shared_reports (owner_token_hash, created_at DESC) "
+        "WHERE owner_token_hash IS NOT NULL"
+    )
     _reports_table_ready = True
 
 
 async def _persist_shared_report(
-    bbl: str | None, address: str | None, query: str, report_md: str
+    bbl: str | None,
+    address: str | None,
+    query: str,
+    report_md: str,
+    owner_token_hash: str | None = None,
 ) -> str | None:
     """Store a completed analysis and return its short permalink id.
+
+    `owner_token_hash` ties the report to its authenticated creator so it shows
+    up in their private "Your Reports" history (migration 016). None for
+    anonymous (free-tier) callers — those stay anonymous shareable permalinks.
 
     Best-effort: any failure returns None and is swallowed by the caller so a
     DB hiccup can never break the chat stream.
@@ -484,20 +504,27 @@ async def _persist_shared_report(
     await _ensure_reports_table(pool)
     await pool.execute(
         """
-        INSERT INTO shared_reports (id, bbl, address, query, report_md)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO shared_reports (id, bbl, address, query, report_md, owner_token_hash)
+        VALUES ($1, $2, $3, $4, $5, $6)
         """,
         rid,
         bbl,
         (address or None) and address[:160],
         (query or "")[:1000],
         report_md[:_REPORT_MAX_CHARS],
+        owner_token_hash,
     )
     return rid
 
 
-async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
-    """Run the Claude + tool_use agentic loop and yield SSE lines."""
+async def _agentic_stream(
+    messages: list[dict], owner_token_hash: str | None = None
+) -> AsyncIterator[str]:
+    """Run the Claude + tool_use agentic loop and yield SSE lines.
+
+    `owner_token_hash` (set for authenticated callers) is stamped on any
+    persisted report so it appears in that user's "Your Reports" history.
+    """
     client = _get_client()
     tools = _get_anthropic_tools()
     tool_calls_made = 0
@@ -653,7 +680,11 @@ async def _agentic_stream(messages: list[dict]) -> AsyncIterator[str]:
     if ran_analyze and resolved_bbl:
         try:
             rid = await _persist_shared_report(
-                resolved_bbl, resolved_address, user_query, "".join(report_text_parts)
+                resolved_bbl,
+                resolved_address,
+                user_query,
+                "".join(report_text_parts),
+                owner_token_hash=owner_token_hash,
             )
             if rid:
                 yield f"data: {json.dumps({'type': 'report_saved', 'id': rid, 'url': f'/r/{rid}'})}\n\n"
@@ -915,7 +946,7 @@ async def _rotate_token_and_create_magic_link(
 # ── Handler factory ───────────────────────────────────────────────────
 
 def make_chat_handlers(auth: TokenAuth):
-    """Return (signup_handler, activate_handler, chat_handler) bound to auth."""
+    """Return (signup_handler, activate_handler, chat_handler, reports_mine_handler) bound to auth."""
 
     async def signup_handler(request: Request) -> JSONResponse:
         """Provision a trial token and email an activation link to the user."""
@@ -1342,7 +1373,11 @@ def make_chat_handlers(auth: TokenAuth):
             if token_info and pool:
                 analyze_count_today = await _count_analyze_today(pool, token_info.token_hash)
 
-            async for chunk in _agentic_stream(anthropic_messages):
+            # Stamp persisted reports with the authenticated creator so they
+            # appear in that user's "Your Reports" history (migration 016).
+            # Anonymous (free-tier) callers stay owner-less.
+            owner_hash = token_info.token_hash if (token_info and is_authenticated) else None
+            async for chunk in _agentic_stream(anthropic_messages, owner_token_hash=owner_hash):
                 # Intercept tool_start for analyze_property to enforce limits
                 try:
                     parsed = json.loads(chunk.removeprefix("data: ").strip())
@@ -1438,7 +1473,60 @@ def make_chat_handlers(auth: TokenAuth):
 
         return response
 
-    return signup_handler, activate_handler, chat_handler
+    async def reports_mine_handler(request: Request) -> JSONResponse:
+        """GET /api/reports/mine — the caller's saved report history.
+
+        The retention surface (migration 016 / GTM Phase 0 §3b #6). Authenticated
+        only: reads the token from the Bearer header (web frontend's localStorage
+        token) or the HttpOnly `nyc_pi_token` cookie, and returns that user's
+        reports newest-first. Anonymous callers get 401 — they have no stable
+        identity to key a history on.
+        """
+        auth_header = request.headers.get("authorization", "")
+        raw_token = request.cookies.get("nyc_pi_token") or (
+            auth_header[7:] if auth_header.startswith("Bearer ") else None
+        )
+        if not raw_token:
+            return JSONResponse({"error": "auth_required"}, status_code=401)
+
+        token_info = await auth.validate(raw_token)
+        if token_info is None:
+            return JSONResponse({"error": "invalid_token"}, status_code=401)
+
+        try:
+            pool = await auth._get_pool()
+            rows = await pool.fetch(
+                """
+                SELECT id, bbl, address, query, created_at
+                FROM shared_reports
+                WHERE owner_token_hash = $1
+                ORDER BY created_at DESC
+                LIMIT 100
+                """,
+                token_info.token_hash,
+            )
+        except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError):
+            # Table/column not provisioned yet (no owned report ever written) →
+            # an empty history, not an error.
+            return JSONResponse({"reports": []})
+        except Exception as exc:
+            logger.warning("reports_mine_handler DB error: %s", exc)
+            return JSONResponse({"error": "unavailable"}, status_code=503)
+
+        reports = [
+            {
+                "id": r["id"],
+                "url": f"/r/{r['id']}",
+                "bbl": r["bbl"],
+                "address": r["address"],
+                "query": r["query"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in rows
+        ]
+        return JSONResponse({"reports": reports})
+
+    return signup_handler, activate_handler, chat_handler, reports_mine_handler
 
 
 # ── Public /api/signup handler (replaces direct-to-Loops form) ────────

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Your Reports | NYC Property Intel</title>
+  <meta name="description" content="Your saved NYC property due-diligence reports — every full analysis you've run, kept in one place.">
+  <!-- Private, per-user history. Never index. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f172a">
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
+
+  <link rel="stylesheet" href="/css/style.css?v=20260619">
+
+  <script src="/js/posthog-init.js?v=20260522" defer></script>
+  <script src="/js/reports.js?v=20260619" defer></script>
+</head>
+<body>
+  <a href="#reports-content" class="skip-link">Skip to your reports</a>
+
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a href="/" class="nav-logo">NYC Property Intel</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/nyc-property-due-diligence">Due-Diligence Guide</a></li>
+        <li><a href="/chat" class="btn btn-sm btn-accent">New report &rarr;</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="legal-page article-page" id="reports-content">
+    <article class="container">
+
+      <p class="article-eyebrow">NYC Property Intel · Your History</p>
+      <h1>Your Reports</h1>
+      <p class="article-meta" id="reports-meta">Every full due-diligence report you run is saved here automatically.</p>
+
+      <!-- Loading -->
+      <div id="reports-status" class="report-status">
+        <p>Loading your reports…</p>
+      </div>
+
+      <!-- Signed-out / no token -->
+      <aside class="article-cta-box" id="reports-signedout" hidden>
+        <h2>Your reports live here once you have a free account</h2>
+        <p>Run a full due-diligence report while signed in and it&rsquo;s saved to this page automatically &mdash; a permanent link you can reopen, print to PDF, or forward. No account yet? It&rsquo;s free.</p>
+        <p><a href="/chat" class="btn btn-primary">Start a free report &rarr;</a></p>
+      </aside>
+
+      <!-- The list -->
+      <ul class="reports-list" id="reports-list" hidden></ul>
+
+      <!-- Empty (authenticated, but no reports yet) -->
+      <aside class="article-cta-box" id="reports-empty" hidden>
+        <h2>No reports yet</h2>
+        <p>Ask for a full due-diligence report on any NYC address &mdash; for example, <em>&ldquo;Full due diligence on 123 Atlantic Ave, Brooklyn&rdquo;</em> &mdash; and it&rsquo;ll show up here automatically.</p>
+        <p><a href="/chat" class="btn btn-primary">Run your first report &rarr;</a></p>
+      </aside>
+
+      <!-- New-report CTA (shown under a non-empty list) -->
+      <aside class="article-cta-box" id="reports-cta" hidden>
+        <h2>Run another</h2>
+        <p>Scan any NYC building across 20+ official datasets in one query.</p>
+        <p><a href="/chat" class="btn btn-primary">New report &rarr;</a></p>
+      </aside>
+
+    </article>
+  </main>
+</body>
+</html>

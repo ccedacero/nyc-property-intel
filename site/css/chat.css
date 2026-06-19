@@ -733,6 +733,15 @@
   color: var(--accent);
   margin-bottom: 0.5rem;
 }
+.chat-report-permalink-saved {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.chat-report-permalink-saved:hover { color: var(--text-primary); }
+.chat-report-permalink-saved strong { color: var(--accent); }
 .chat-report-permalink-row {
   display: flex;
   gap: 0.5rem;
