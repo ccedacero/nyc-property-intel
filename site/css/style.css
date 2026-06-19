@@ -150,6 +150,16 @@ img {
   color: var(--text-primary);
 }
 
+/* Demoted nav item — developer/MCP path recedes behind the primary chat CTA */
+.nav-links a.nav-link-subtle {
+  opacity: 0.7;
+  font-size: 0.8125rem;
+}
+
+.nav-links a.nav-link-subtle:hover {
+  opacity: 1;
+}
+
 .nav-toggle {
   display: none;
   flex-direction: column;
