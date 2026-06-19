@@ -142,7 +142,7 @@ def test_persist_caps_field_lengths():
     assert rid is not None
 
 
-# ── owner_token_hash (migration 016 — "Your Reports" retention surface) ──
+# ── owner_token_hash (migration 018 — "Your Reports" retention surface) ──
 
 
 def test_persist_stamps_owner_token_hash():
