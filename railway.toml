@@ -2,7 +2,13 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "sh -c 'echo \"[startup] Service=$RAILWAY_SERVICE_NAME\"; case \"$RAILWAY_SERVICE_NAME\" in *backfill*) PYTHONUNBUFFERED=1 uv run python scripts/run_backfill.py;; *cron*) PYTHONUNBUFFERED=1 uv run nyc-property-intel-sync;; *) PYTHONUNBUFFERED=1 uv run nyc-property-intel;; esac'"
+# One image, several Railway services, dispatched by $RAILWAY_SERVICE_NAME:
+#   *backfill* → one-shot historical backfill
+#   *audit*    → weekly data coverage audit (cron). Name must contain "audit"
+#                and NOT "cron" (patterns match in order; audit is checked first).
+#   *cron*     → scheduled data sync (+ watch alerts)
+#   *          → the MCP/web server (default)
+startCommand = "sh -c 'echo \"[startup] Service=$RAILWAY_SERVICE_NAME\"; case \"$RAILWAY_SERVICE_NAME\" in *backfill*) PYTHONUNBUFFERED=1 uv run python scripts/run_backfill.py;; *audit*) PYTHONUNBUFFERED=1 uv run python scripts/coverage_audit.py;; *cron*) PYTHONUNBUFFERED=1 uv run nyc-property-intel-sync;; *) PYTHONUNBUFFERED=1 uv run nyc-property-intel;; esac'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 healthcheckPath = "/healthz"

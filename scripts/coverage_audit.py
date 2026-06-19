@@ -293,6 +293,23 @@ async def main() -> None:
         f.write("\n".join(lines))
     print(f"\n# wrote {md_path}", file=sys.stderr)
 
+    # One-line summary for cron/log visibility. On Railway the markdown above is
+    # written to an ephemeral container fs and lost on recycle, so the retained
+    # logs are the durable audit record. Greppable marker: '[coverage-audit]'.
+    counts = " ".join(
+        f"{s}={len(by_status.get(s, []))}" for s in order if by_status.get(s)
+    )
+    red = [
+        r["key"]
+        for s in ("DEFICIT", "NEVER_SYNCED", "ERROR")
+        for r in by_status.get(s, [])
+    ]
+    summary = f"[coverage-audit] {today} {counts}"
+    summary += f" | RED_FLAGS: {', '.join(sorted(red))}" if red else " | RED_FLAGS: none"
+    # Stays exit 0 (matches the repo's cron convention — never crash-loop a cron);
+    # alert on the RED_FLAGS marker in logs rather than on a non-zero exit.
+    print(summary)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
