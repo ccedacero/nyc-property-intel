@@ -466,7 +466,7 @@ async def _ensure_reports_table(pool) -> None:
         "CREATE INDEX IF NOT EXISTS idx_shared_reports_created_at "
         "ON shared_reports (created_at DESC)"
     )
-    # Migration 016 — owner_token_hash ties a report to its authenticated
+    # Migration 018 — owner_token_hash ties a report to its authenticated
     # creator for the private "Your Reports" history. Idempotent ALTER so the
     # column self-provisions in the chat path (which doesn't run startup DDL).
     await pool.execute(
@@ -490,7 +490,7 @@ async def _persist_shared_report(
     """Store a completed analysis and return its short permalink id.
 
     `owner_token_hash` ties the report to its authenticated creator so it shows
-    up in their private "Your Reports" history (migration 016). None for
+    up in their private "Your Reports" history (migration 018). None for
     anonymous (free-tier) callers — those stay anonymous shareable permalinks.
 
     Best-effort: any failure returns None and is swallowed by the caller so a
@@ -1374,7 +1374,7 @@ def make_chat_handlers(auth: TokenAuth):
                 analyze_count_today = await _count_analyze_today(pool, token_info.token_hash)
 
             # Stamp persisted reports with the authenticated creator so they
-            # appear in that user's "Your Reports" history (migration 016).
+            # appear in that user's "Your Reports" history (migration 018).
             # Anonymous (free-tier) callers stay owner-less.
             owner_hash = token_info.token_hash if (token_info and is_authenticated) else None
             async for chunk in _agentic_stream(anthropic_messages, owner_token_hash=owner_hash):
@@ -1476,7 +1476,7 @@ def make_chat_handlers(auth: TokenAuth):
     async def reports_mine_handler(request: Request) -> JSONResponse:
         """GET /api/reports/mine — the caller's saved report history.
 
-        The retention surface (migration 016 / GTM Phase 0 §3b #6). Authenticated
+        The retention surface (migration 018 / GTM Phase 0 §3b #6). Authenticated
         only: reads the token from the Bearer header (web frontend's localStorage
         token) or the HttpOnly `nyc_pi_token` cookie, and returns that user's
         reports newest-first. Anonymous callers get 401 — they have no stable

@@ -1,7 +1,7 @@
 /**
  * NYC Property Intel — "Your Reports" history (/reports).
  *
- * The retention surface (migration 016 / GTM Phase 0 §3b #6). Reads the trial
+ * The retention surface (migration 018 / GTM Phase 0 §3b #6). Reads the trial
  * token from localStorage (same key the chat uses), fetches the caller's saved
  * reports from the Railway API, and renders them newest-first as links to the
  * existing /r/<id> permalink viewer.
