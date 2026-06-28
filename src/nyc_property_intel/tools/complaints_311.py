@@ -69,7 +69,12 @@ def _soql_escape(value: str) -> str:
 
 
 def _summarize(complaints: list[dict[str, Any]]) -> dict[str, Any]:
-    open_count = sum(1 for c in complaints if (c.get("status") or "").upper() == "OPEN")
+    # 311 active states are Open/In Progress/Pending/Assigned/Started, not just
+    # 'Open'; count everything not Closed. Matches _SQL_311_SUMMARY in analysis.py
+    # (commit 261be7d); the prior 'OPEN'-only filter under-reported active complaints.
+    # NOTE: this summarizes the LIMIT-capped result window, not the building total.
+    closed_count = sum(1 for c in complaints if (c.get("status") or "").upper() == "CLOSED")
+    open_count = len(complaints) - closed_count
     type_counts: dict[str, int] = {}
     for c in complaints:
         ct = c.get("complaint_type") or "Unknown"
@@ -77,7 +82,7 @@ def _summarize(complaints: list[dict[str, Any]]) -> dict[str, Any]:
     top_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:5]
     return {
         "open": open_count,
-        "closed": len(complaints) - open_count,
+        "closed": closed_count,
         "top_complaint_types": [{"type": t, "count": c} for t, c in top_types],
     }
 
