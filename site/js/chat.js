@@ -147,6 +147,25 @@
     }
   }
 
+  /* ── Apply a freshly-issued trial token (magic-link OR instant signup) ── */
+
+  function applyIssuedToken(newToken) {
+    token = newToken;
+    authState = "trial";
+    localStorage.setItem(TOKEN_KEY, token);
+    // Reset anon counter — they now have a proper token
+    queryCount = 0;
+    localStorage.setItem(QUERY_COUNT_KEY, "0");
+    // Reset trial counter for the new day
+    trialQueryCount = 0;
+    const todayUTC = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(TRIAL_DATE_KEY, todayUTC);
+    localStorage.setItem(TRIAL_COUNT_KEY, "0");
+    updateAuthUI();
+    updateCounter();
+    appendSystemMessage("You're in. 10 queries per day, including up to 5 full due-diligence reports. Start with an address below.");
+  }
+
   /* ── Magic link activation ────────────────────────────────────────── */
 
   async function activateMagicLink(id) {
@@ -166,20 +185,7 @@
       }
       const data = await res.json();
       if (data.token) {
-        token = data.token;
-        authState = "trial";
-        localStorage.setItem(TOKEN_KEY, token);
-        // Reset anon counter — they now have a proper token
-        queryCount = 0;
-        localStorage.setItem(QUERY_COUNT_KEY, "0");
-        // Reset trial counter for the new day
-        trialQueryCount = 0;
-        const todayUTC = new Date().toISOString().slice(0, 10);
-        localStorage.setItem(TRIAL_DATE_KEY, todayUTC);
-        localStorage.setItem(TRIAL_COUNT_KEY, "0");
-        updateAuthUI();
-        updateCounter();
-        appendSystemMessage("You're in. 10 queries per day, including up to 5 full due-diligence reports. Start with an address below.");
+        applyIssuedToken(data.token);
         if (typeof posthog !== "undefined") posthog.capture("chat_activated");
       }
     } catch {
@@ -379,7 +385,7 @@
       <p class="chat-gate-heading">Continue with 10 free queries/day</p>
       <p class="chat-gate-sub">
         Get <strong>10 queries/day free for 30 days</strong> — including up to
-        5 full due-diligence reports. No credit card required. Your activation link arrives in under a minute.
+        5 full due-diligence reports. No credit card. Drop your email and keep going — no link to click.
       </p>
       <form class="chat-gate-form" id="gate-form" novalidate>
         <input
@@ -391,7 +397,7 @@
           required
           aria-label="Email address"
         >
-        <button type="submit" class="gate-submit-btn" id="gate-submit" disabled aria-disabled="true">Send my activation link</button>
+        <button type="submit" class="gate-submit-btn" id="gate-submit" disabled aria-disabled="true">Get free access</button>
       </form>
       <p class="chat-gate-error" id="gate-error" role="alert" aria-live="polite"></p>
     `;
@@ -434,16 +440,23 @@
           gateError.textContent = data.error || "Something went wrong. Please try again.";
           submitBtn.disabled = false;
           submitBtn.textContent = "Get free access";
+        } else if (data.token) {
+          // Brand-new email: token issued instantly — no round-trip. Drop the
+          // gate and let them keep working right here.
+          gate.remove();
+          applyIssuedToken(data.token);
+          if (typeof posthog !== "undefined") posthog.capture("chat_signup", { email, instant: true });
         } else {
+          // Returning email: token is gated behind the emailed link (prevents
+          // email-based token hijack). Ask them to click it.
           gate.innerHTML = `
             <p class="chat-gate-heading">Check your inbox.</p>
             <p class="chat-gate-sub">
-              We sent an activation link to <strong>${escapeHtml(email)}</strong>.
-              Click it to continue — you'll have 10 queries/day, including full due-diligence reports.
-              You can close this tab and return once you've clicked the link.
+              Looks like you've signed up before — we sent a fresh activation link to
+              <strong>${escapeHtml(email)}</strong>. Click it to continue with 10 queries/day.
             </p>
           `;
-          if (typeof posthog !== "undefined") posthog.capture("chat_signup", { email });
+          if (typeof posthog !== "undefined") posthog.capture("chat_signup", { email, instant: false });
         }
       } catch {
         gateError.textContent = "Connection error. Please try again.";

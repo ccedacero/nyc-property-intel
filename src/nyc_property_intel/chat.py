@@ -1010,6 +1010,19 @@ def make_chat_handlers(auth: TokenAuth):
         except Exception:
             logger.exception("Failed to send activation email to %s", email)
 
+        # Activation-friction fix: for a BRAND-NEW email, `token` is the valid
+        # just-issued trial token, so hand it straight back and let the user
+        # keep working in the SAME tab — no leave-your-inbox round-trip. That
+        # round-trip was the #1 activation leak (most web signups never came
+        # back to click the link). The email still goes out as a link for
+        # other devices / a paper trail.
+        #
+        # For a RE-SIGNUP (created=False) we must NOT return a token: the valid
+        # token was rotated behind the magic link precisely so that typing
+        # someone else's email cannot revoke or hijack their access. Those
+        # users still verify by clicking the emailed link.
+        if created:
+            return JSONResponse({"ok": True, "token": token})
         return JSONResponse({"ok": True})
 
     async def activate_handler(request: Request) -> JSONResponse:
