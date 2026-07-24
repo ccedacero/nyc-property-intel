@@ -161,12 +161,18 @@ class Settings(BaseSettings):
         (always 0 count → unlimited free queries). Empty web_chat_token_key
         causes a fatal Fernet ValueError on first magic-link activation.
         Both must be set in any non-stdio (HTTP) deployment.
+
+        Gate strictly on MCP_TRANSPORT — the only signal that this process will
+        actually serve HTTP (server.py serves HTTP only when transport is
+        http/sse/streamable-http; otherwise it runs stdio). We must NOT treat a
+        bare PORT env var as "is HTTP": Railway injects PORT into every service,
+        including the sync/cron containers, so the old `or bool(PORT)` clause
+        made the daily cron crash on import (it imports config via watch.py) even
+        though it never serves HTTP and never needs these web-chat secrets.
         """
         import os
         transport = os.environ.get("MCP_TRANSPORT", "").lower()
-        is_http = transport in ("http", "sse", "streamable-http") or bool(
-            os.environ.get("PORT")
-        )
+        is_http = transport in ("http", "sse", "streamable-http")
         if is_http:
             missing = []
             if not self.cookie_secret:

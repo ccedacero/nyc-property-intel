@@ -175,7 +175,11 @@ DATASETS: dict[str, DatasetCfg] = {
     "marshal_evictions_all": DatasetCfg(
         key="marshal_evictions_all", socrata_id="6z8x-wfk4",
         table="marshal_evictions_all",
-        cursor_col="executeddate", pk_cols=("courtindexnumber", "docketnumber", "executeddate"), tier=2,
+        # tier=1 (daily): the weekly cron service's egress IP started getting
+        # 403'd by NYC Open Data's edge on 2026-07-12 (dataset + token both fine
+        # from every other IP). The daily cron's IP is clean, and evictions is
+        # low-churn, so sync it there instead of the blocked weekly service.
+        cursor_col="executeddate", pk_cols=("courtindexnumber", "docketnumber", "executeddate"), tier=1,
         socrata_cursor_col="executed_date",
         column_map={
             "evictionpossession": "evictionlegalpossession",
