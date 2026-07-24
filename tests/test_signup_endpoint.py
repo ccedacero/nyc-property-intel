@@ -30,7 +30,7 @@ import pytest
 from starlette.requests import Request
 
 from nyc_property_intel import chat as chat_module
-from nyc_property_intel.chat import make_signup_endpoint_handler
+from nyc_property_intel.chat import make_chat_handlers, make_signup_endpoint_handler
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
@@ -464,6 +464,50 @@ class TestReSignupRotation:
         )
         # Magic link still issued so the user gets an activation email.
         assert patch_create_magic_link.await_count == 1
+
+
+# ── In-chat gate: instant token for new signups (activation-leak fix) ─
+
+
+class TestChatSignupInstantToken:
+    """The in-chat gate (/api/chat/signup) hands a BRAND-NEW user their token
+    immediately so they keep working in the same tab — killing the
+    leave-your-inbox round-trip that was the #1 activation leak. A RE-SIGNUP
+    gets no token in the body: its rotated token stays behind the emailed
+    magic link so typing someone else's email can't revoke/hijack access.
+    """
+
+    async def test_new_email_returns_token_instantly(
+        self, captured_events, patch_mx_ok, patch_email_send, patch_create_magic_link,
+    ) -> None:
+        auth = _FakeAuth(created=True)
+        signup, _, _, _ = make_chat_handlers(auth)
+        body = json.dumps({"email": "brandnew@example.com"}).encode()
+        resp = await signup(_make_request(body, ip="203.0.113.90"))
+        assert resp.status_code == 200
+        payload = json.loads(resp.body)
+        assert payload["ok"] is True
+        assert payload["token"] == auth.return_token, (
+            "a brand-new signup must get its token in the JSON body so the "
+            "browser continues without the email round-trip"
+        )
+        # Email still sent (link for other devices / paper trail).
+        assert patch_email_send.await_count == 1
+
+    async def test_resignup_returns_no_token(
+        self, captured_events, patch_mx_ok, patch_email_send, patch_create_magic_link,
+    ) -> None:
+        auth = _FakeAuth(created=False)
+        signup, _, _, _ = make_chat_handlers(auth)
+        body = json.dumps({"email": "returner@example.com"}).encode()
+        resp = await signup(_make_request(body, ip="203.0.113.91"))
+        assert resp.status_code == 200
+        payload = json.loads(resp.body)
+        assert payload["ok"] is True
+        assert "token" not in payload, (
+            "a re-signup must NOT leak a token — the rotated token is gated "
+            "behind the emailed magic link to prevent email-based hijack"
+        )
 
 
 # ── Failure modes that must not leak / break ─────────────────────────
