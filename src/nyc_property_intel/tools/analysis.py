@@ -55,6 +55,54 @@ SELECT bbl, hpd_total, hpd_class_a, hpd_class_b, hpd_class_c, hpd_open,
     dob_most_recent
 FROM mv_violation_summary WHERE bbl = $1;"""
 
+# Direct per-BBL fallback for when mv_violation_summary has no row for this BBL
+# (or the view does not exist). Reproduces VIEW 2's column semantics exactly
+# (see scripts/create_views.sql) so analyze_property NEVER reports null
+# violations for a building that actually has HPD/DOB records. Both aggregate
+# subqueries always return exactly one row (COUNT=0 / MAX=NULL when empty), so
+# the cross join yields exactly one summary row.
+_SQL_VIOLATION_SUMMARY_FALLBACK = """\
+SELECT
+    $1::text AS bbl,
+    COALESCE(h.hpd_total, 0)           AS hpd_total,
+    COALESCE(h.hpd_class_a, 0)         AS hpd_class_a,
+    COALESCE(h.hpd_class_b, 0)         AS hpd_class_b,
+    COALESCE(h.hpd_class_c, 0)         AS hpd_class_c,
+    COALESCE(h.hpd_open, 0)            AS hpd_open,
+    h.hpd_most_recent                  AS hpd_most_recent,
+    COALESCE(d.dob_total, 0)           AS dob_total,
+    COALESCE(d.dob_no_disposition, 0)  AS dob_no_disposition,
+    COALESCE(d.dob_has_disposition, 0) AS dob_has_disposition,
+    d.dob_most_recent                  AS dob_most_recent
+FROM
+    (SELECT
+        COUNT(*)                                         AS hpd_total,
+        COUNT(*) FILTER (WHERE class = 'A')              AS hpd_class_a,
+        COUNT(*) FILTER (WHERE class = 'B')              AS hpd_class_b,
+        COUNT(*) FILTER (WHERE class = 'C')              AS hpd_class_c,
+        COUNT(*) FILTER (WHERE violationstatus = 'Open') AS hpd_open,
+        MAX(inspectiondate)                              AS hpd_most_recent
+     FROM hpd_violations WHERE bbl = $1) h
+CROSS JOIN
+    (SELECT
+        COUNT(*)                                            AS dob_total,
+        COUNT(*) FILTER (WHERE dispositiondate IS NULL)     AS dob_no_disposition,
+        COUNT(*) FILTER (WHERE dispositiondate IS NOT NULL) AS dob_has_disposition,
+        MAX(issuedate)                                      AS dob_most_recent
+     FROM dob_violations WHERE bbl = $1) d;"""
+
+# ECB/OATH stats are NOT in mv_violation_summary — analyze_property previously
+# omitted them entirely. Query directly (bbl is indexed), mirroring
+# tools/issues.py. balancedue is floored at 0 per-row so overpayment credits
+# never sum to a semantically-invalid negative "balance due".
+_SQL_ECB_SUMMARY = """\
+SELECT
+    COUNT(*) AS ecb_total,
+    COUNT(*) FILTER (WHERE upper(ecbviolationstatus) = 'ACTIVE') AS ecb_active,
+    COALESCE(SUM(GREATEST(balancedue, 0)), 0)::numeric AS ecb_balance_due_total,
+    MAX(issuedate) AS ecb_most_recent
+FROM ecb_violations WHERE bbl = $1;"""
+
 _SQL_RECENT_SALES = """\
 SELECT saledate, saleprice, address, apartmentnumber, buildingclasscategory,
     buildingclassattimeofsale, residentialunits, commercialunits, totalunits,
@@ -195,11 +243,44 @@ async def _fetch_profile(bbl: str) -> dict[str, Any] | None:
 
 
 async def _fetch_violation_summary(bbl: str) -> dict[str, Any] | None:
+    """Per-BBL HPD/DOB/ECB violation counts for analyze_property.
+
+    Prefers the mv_violation_summary materialized view, but when the view has
+    no row for this BBL (or does not exist) it falls back to a direct
+    aggregation over the base tables — so analyze_property never reports null
+    violations for a building that actually has records. ECB counts are always
+    queried directly (they are not in the view), matching get_property_issues,
+    so ECB liens surface for the lender ICP instead of being silently omitted.
+    """
+    summary: dict[str, Any] | None = None
     try:
-        return await fetch_one(_SQL_VIOLATION_SUMMARY, bbl)
+        summary = await fetch_one(_SQL_VIOLATION_SUMMARY, bbl)
     except asyncpg.UndefinedTableError:
-        logger.info("mv_violation_summary not available")
-        return None
+        logger.info("mv_violation_summary not available, using direct fallback")
+
+    if summary is None:
+        # No row in the view (or no view) — compute HPD/DOB directly so we
+        # never hide real violations behind a null summary.
+        try:
+            summary = await fetch_one(_SQL_VIOLATION_SUMMARY_FALLBACK, bbl)
+        except asyncpg.UndefinedTableError:
+            logger.info("hpd/dob base tables not available for fallback summary")
+            summary = None
+
+    # ECB is never in the view — always augment when we have a summary.
+    if summary is not None:
+        summary = dict(summary)
+        try:
+            ecb = await fetch_one(_SQL_ECB_SUMMARY, bbl)
+            bal = (ecb or {}).get("ecb_balance_due_total")
+            summary["ecb_total"] = int((ecb or {}).get("ecb_total") or 0)
+            summary["ecb_active"] = int((ecb or {}).get("ecb_active") or 0)
+            summary["ecb_balance_due_total"] = float(bal) if bal is not None else 0.0
+            summary["ecb_most_recent"] = (ecb or {}).get("ecb_most_recent")
+        except asyncpg.UndefinedTableError:
+            logger.info("ecb_violations not loaded, skipping ECB in analyze summary")
+
+    return summary
 
 
 async def _fetch_recent_sales(bbl: str) -> list[dict[str, Any]]:
@@ -494,6 +575,19 @@ def _build_violations_and_compliance(
             "most_recent": dob_most_recent,
         }
 
+    # ECB/OATH violations — carry real penalty balances and are a direct lien
+    # signal for lenders. Previously omitted from analyze_property entirely.
+    ecb_viol: dict[str, Any] | None = None
+    if violations is not None and violations.get("ecb_total") is not None:
+        ecb_total = int(violations.get("ecb_total") or 0)
+        if ecb_total > 0 or violations.get("ecb_most_recent"):
+            ecb_viol = {
+                "total": ecb_total,
+                "active": int(violations.get("ecb_active") or 0),
+                "balance_due_total": float(violations.get("ecb_balance_due_total") or 0.0),
+                "most_recent": violations.get("ecb_most_recent"),
+            }
+
     hpd_comp: dict[str, Any] | None = None
     if hpd_complaints is not None:
         total = int(hpd_complaints.get("total_complaints") or 0)
@@ -534,6 +628,7 @@ def _build_violations_and_compliance(
     return {
         "hpd_violations": hpd_viol,
         "dob_violations": dob_viol,
+        "ecb_violations": ecb_viol,
         "hpd_complaints": hpd_comp,
         "hpd_litigations": hpd_lit,
         "building_permits": bldg_permits,
@@ -901,7 +996,7 @@ async def analyze_property(bbl: str) -> dict:
     data_gaps: list[str] = []
     if violations is None:
         data_gaps.append(
-            "Violation summary unavailable — mv_violation_summary may need to be created"
+            "Violation summary temporarily unavailable for this building"
         )
     if not recent_sales:
         data_gaps.append("No DOF sales records found for this property")
