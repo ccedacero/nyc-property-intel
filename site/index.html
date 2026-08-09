@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>NYC Property Intel — Know the building before you sign, offer, or file</title>
+  <title>NYC Property Intel — Free NYC Property Due Diligence Tool</title>
   <meta name="description" content="NYC property due diligence in one query. Violations, liens, sales, permits, ownership from 20+ official city datasets. Free. Open source.">
   <meta name="keywords" content="NYC property due diligence, NYC building violations, ACRIS search, HPD violations, NYC property records, MCP server, Claude real estate, NYC public records, NYC property owner lookup, DOB violations NYC">
   <meta name="robots" content="index, follow">
@@ -33,188 +33,206 @@
 
   <!-- JSON-LD Structured Data (consolidated @graph) -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://nycpropertyintel.com/#website",
-        "url": "https://nycpropertyintel.com/",
-        "name": "NYC Property Intel",
-        "description": "Free MCP server for NYC property due diligence from public records",
-        "inLanguage": "en-US",
-        "publisher": { "@id": "https://nycpropertyintel.com/#organization" },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://nycpropertyintel.com/chat?q={search_term_string}"
-          },
-          "query-input": "required name=search_term_string"
-        }
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://nycpropertyintel.com/#website",
+      "url": "https://nycpropertyintel.com/",
+      "name": "NYC Property Intel",
+      "alternateName": "Property Intel",
+      "description": "Free MCP server for NYC property due diligence from public records",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://nycpropertyintel.com/#organization"
       },
-      {
-        "@type": "Organization",
-        "@id": "https://nycpropertyintel.com/#organization",
-        "name": "NYC Property Intel",
-        "url": "https://nycpropertyintel.com/",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://nycpropertyintel.com/assets/logo-400.png",
-          "width": 400,
-          "height": 400
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://nycpropertyintel.com/chat?q={search_term_string}"
         },
-        "description": "NYC real estate due diligence tool — surfaces public record data from 20+ official city datasets via Claude AI.",
-        "founder": { "@id": "https://nycpropertyintel.com/#person" },
-        "sameAs": [
-          "https://github.com/ccedacero/nyc-property-intel",
-          "https://x.com/nycpropertyintel"
-        ]
-      },
-      {
-        "@type": "Person",
-        "@id": "https://nycpropertyintel.com/#person",
-        "name": "Cristian Cedacero",
-        "description": "Independent software engineer; creator and maintainer of NYC Property Intel.",
-        "url": "https://github.com/ccedacero",
-        "sameAs": ["https://github.com/ccedacero"]
-      },
-      {
-        "@type": "SoftwareApplication",
-        "@id": "https://nycpropertyintel.com/#software",
-        "name": "NYC Property Intel",
-        "description": "MCP server for NYC property due diligence — surfaces public record data from 20+ city datasets via Claude AI",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": ["macOS", "Linux", "Windows", "Web"],
-        "softwareVersion": "0.1.1",
-        "dateModified": "2026-05-31",
-        "url": "https://nycpropertyintel.com/",
-        "downloadUrl": "https://github.com/ccedacero/nyc-property-intel",
-        "author": { "@id": "https://nycpropertyintel.com/#person" },
-        "publisher": { "@id": "https://nycpropertyintel.com/#organization" },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD",
-          "availability": "https://schema.org/InStock"
-        },
-        "license": "https://opensource.org/licenses/MIT"
-      },
-      {
-        "@type": "FAQPage",
-        "@id": "https://nycpropertyintel.com/#faq",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "What data sources does NYC Property Intel use?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "NYC Property Intel aggregates data from 20+ official NYC public record datasets including PLUTO (property profiles), HPD violations, DOB violations, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incident records, NYPD crime complaints, 311 service requests, marshal eviction records, and DOB complaints. All data is sourced from NYC Open Data and city agency databases."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is NYC Property Intel a property appraisal tool?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "No. NYC Property Intel is a due diligence research tool, not an appraisal tool. It surfaces public record data for informational purposes only. It does not estimate property values and must not be used as a substitute for a licensed appraisal or for credit decisions."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Does NYC Property Intel comply with fair housing law?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes. NYC Property Intel provides building and property data from public city records only. It does not provide demographic data, tenant screening, or any analysis based on protected characteristics. The tool actively refuses requests that could facilitate housing discrimination."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is NYC Property Intel free?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes, in tiers: anyone can try 3 free queries in the chat with no signup (resets daily); after that, sign up for free to get a personal token good for 10 queries per day for 30 days (~300 total; including up to 5 full due-diligence reports per day); self-host is unlimited under the MIT license."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What is a BBL number and how do I find it?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BBL stands for Borough-Block-Lot, the unique 10-digit identifier for every tax lot in New York City. For example, 1-00835-0001 is a Manhattan property. You can find a property's BBL by searching its address using NYC Property Intel's lookup_property tool, or through NYC's ZoLa map or ACRIS."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What is the difference between HPD, DOB, and ECB violations?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "HPD violations are housing code violations issued by the Department of Housing Preservation and Development, classified as A (non-hazardous), B (hazardous), or C (immediately hazardous). DOB violations are building code violations from the Department of Buildings. ECB violations are issued by the Environmental Control Board (now OATH) for building, fire, and environmental infractions with monetary penalties."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I check NYC building violations?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "You can check NYC building violations using NYC Property Intel by providing an address or BBL. The get_property_issues tool returns both HPD housing violations and DOB building code violations with severity, status, and dates. Alternatively, you can search individual agency websites: HPD Online for housing violations, DOB BIS or DOB NOW for building violations."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Can AI access NYC public property records?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes. NYC Property Intel is an MCP (Model Context Protocol) server that gives Claude AI direct access to 20+ NYC public record datasets. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due diligence reports — all from public city records. Available as a hosted service or self-hosted via the open-source repo."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I check NYC property tax liens?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "NYC property tax liens are publicly listed by the Department of Finance (DOF) on the annual tax lien sale list. Using NYC Property Intel's get_liens_and_encumbrances tool, you can query outstanding DOF tax liens and ACRIS mortgage records for any property by address or BBL. The tool shows lender names, outstanding amounts, and satisfaction status — essential for understanding a property's full debt profile before purchase."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I find NYC rent stabilized buildings?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "You can check whether an NYC building has rent-stabilized units using NYC Property Intel's get_rent_stabilization tool. It returns unit counts by year for 2007–2017, derived from NYC DOF property tax bills via taxbills.nyc / JustFix.nyc. A declining count over time may indicate deregulation. Important: coverage currently ends at 2017 and predates the 2019 HSTPA rent-law changes, so it does not reflect current registration status — verify current status directly with NY State Homes and Community Renewal (DHCR). You can also ask: 'Is [address] rent stabilized?' and Claude will pull the data automatically."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I look up building permits in NYC?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "NYC building permits are filed with the Department of Buildings (DOB) and recorded in the BIS (Building Information System). Using NYC Property Intel's get_building_permits tool, you can retrieve all DOB job filings for a property — new buildings, alterations, demolitions, and sign permits — including scope of work, estimated cost, job status, and applicant name. Ask Claude: 'What permits have been filed at [address]?'"
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What is ACRIS in NYC?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "ACRIS (Automated City Register Information System) is the NYC Department of Finance's online database of recorded property documents, including deeds, mortgages, liens, satisfactions, and UCC filings. NYC Property Intel queries ACRIS data to show ownership transfer history, recorded mortgages, and lien satisfactions. ACRIS records go back to 1966 and are a primary source for establishing chain of title in NYC real estate transactions."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Can I monitor an NYC building for new violations?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes — look up the building in the chat and use the free Watch this building option (it also appears on every shared report page). You'll get an email alert if the building picks up a new HPD, DOB, or ECB violation or a new HPD litigation case — only when something actually changes, checked against the daily data sync, and at most one email per building per week. It's free for up to 25 buildings per email, and you can stop alerts at any time."
-            }
-          }
-        ]
+        "query-input": "required name=search_term_string"
       }
-    ]
-  }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://nycpropertyintel.com/#organization",
+      "name": "NYC Property Intel",
+      "alternateName": "Property Intel",
+      "url": "https://nycpropertyintel.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://nycpropertyintel.com/assets/logo-400.png",
+        "width": 400,
+        "height": 400
+      },
+      "description": "NYC real estate due diligence tool — surfaces public record data from 20+ official city datasets via Claude AI.",
+      "founder": {
+        "@id": "https://nycpropertyintel.com/#person"
+      },
+      "sameAs": [
+        "https://github.com/ccedacero/nyc-property-intel",
+        "https://x.com/nycpropertyintel"
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://nycpropertyintel.com/#person",
+      "name": "Cristian Cedacero",
+      "description": "Independent software engineer; creator and maintainer of NYC Property Intel.",
+      "url": "https://github.com/ccedacero",
+      "sameAs": [
+        "https://github.com/ccedacero"
+      ]
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://nycpropertyintel.com/#software",
+      "name": "NYC Property Intel",
+      "description": "MCP server for NYC property due diligence — surfaces public record data from 20+ city datasets via Claude AI",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": [
+        "macOS",
+        "Linux",
+        "Windows",
+        "Web"
+      ],
+      "softwareVersion": "0.1.1",
+      "dateModified": "2026-05-31",
+      "url": "https://nycpropertyintel.com/",
+      "downloadUrl": "https://github.com/ccedacero/nyc-property-intel",
+      "author": {
+        "@id": "https://nycpropertyintel.com/#person"
+      },
+      "publisher": {
+        "@id": "https://nycpropertyintel.com/#organization"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "license": "https://opensource.org/licenses/MIT"
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://nycpropertyintel.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is NYC Property Intel free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, in tiers: (1) anyone can try 3 free queries in the chat with no signup at all; (2) after that, sign up for free to get a personal token good for 10 queries per day for 30 days (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development — sign up and we’ll reach out when they launch."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What data sources does NYC Property Intel use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "NYC Property Intel aggregates data from 20+ official NYC public record datasets: PLUTO (property profiles), HPD violations and complaints, DOB violations and permits, DOF sales records, ACRIS deed transfers, rent stabilization data, tax assessments, FDNY fire incidents, NYPD crime complaints, 311 service requests, marshal eviction records, and more. All data is loaded from NYC Open Data into PostgreSQL via the nycdb project as a local mirror for query performance. The Socrata API is used as a fallback only."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a BBL number and how do I find it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "BBL stands for Borough-Block-Lot — the unique 10-digit identifier for every tax lot in New York City. For example, 1-00835-0001 is a Manhattan property (Borough 1, Block 835, Lot 1). You can find a property’s BBL by asking Claude: “Look up [address]” — the lookup_property tool resolves any NYC street address to its canonical BBL automatically. BBLs are also available via NYC’s ZoLa map and the ACRIS website."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I check NYC building violations?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ask Claude: “What violations does [address] have?” The get_property_issues tool returns HPD housing violations (Class A non-hazardous, Class B hazardous, Class C immediately hazardous), DOB building code violations, and ECB/OATH monetary penalties. Results include open/closed status, issue date, and penalty amounts. Class C violations are the most serious — they are classed as immediately hazardous, can trigger HPD emergency repairs billed back to the owner, and the liability transfers to the buyer at closing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I check NYC property tax liens?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ask Claude: “Does [address] have any tax liens?” The get_liens_and_encumbrances tool returns outstanding DOF tax liens from the annual lien sale list and ACRIS mortgage records — lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property — you inherit them when you close. Worth checking before any offer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I find NYC rent stabilized buildings?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ask Claude: “Is [address] rent stabilized?” The get_rent_stabilization tool returns rent-stabilized unit counts by year for 2007–2017, derived from NYC DOF property tax bills via taxbills.nyc / JustFix.nyc. A declining count over time may indicate deregulation — a critical factor in cash-flow underwriting for multifamily properties. (2018–present coverage planned.)"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is ACRIS in NYC?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ACRIS (Automated City Register Information System) is the NYC Department of Finance’s database of recorded property documents — deeds, mortgages, liens, satisfactions, and UCC filings going back to 1966. NYC Property Intel queries ACRIS data to show ownership transfer history, recorded mortgages, and lien satisfactions. Ask Claude: “Show me the deed history for [address]” or “What mortgages are recorded on [address]?”"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between HPD, DOB, and ECB violations?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "HPD violations are housing code violations issued by the Department of Housing Preservation and Development, classified as A (non-hazardous), B (hazardous), or C (immediately hazardous). DOB violations are building code violations from the Department of Buildings. ECB violations are issued by the Environmental Control Board (now OATH) for building, fire, and environmental infractions — they carry monetary penalties. All three are surfaced by the get_property_issues tool."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is NYC Property Intel a property appraisal tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. NYC Property Intel is a due diligence research tool, not an appraisal tool. It surfaces public record data for informational purposes only. It does not estimate property values and must not be used as a substitute for a licensed appraisal or for credit decisions. Always consult a licensed appraiser for valuation opinions."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does NYC Property Intel comply with fair housing law?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. NYC Property Intel provides building and property data from public city records only. It does not provide demographic data, tenant screening, or any analysis based on protected characteristics. It operates in compliance with the Fair Housing Act, the New York State Human Rights Law, and the NYC Human Rights Law. See the Fair Housing section for full details."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I look up building permits in NYC?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "NYC building permits are filed with the Department of Buildings (DOB) and recorded in the BIS (Building Information System). Using NYC Property Intel’s get_building_permits tool, you can retrieve all DOB job filings for a property — new buildings, alterations, demolitions, and sign permits — including scope of work, estimated cost, job status, and applicant name. Ask Claude: “What permits have been filed at [address]?”"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can AI access NYC public property records?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. NYC Property Intel is an MCP server that gives Claude AI direct access to 20+ NYC public record datasets. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due-diligence reports — all from public city records. Available as a hosted service or self-hosted via the open-source repo."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I monitor an NYC building for new violations?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — look up the building in the chat and use the free Watch this building option (it also appears on every shared report page). You’ll get an email alert if the building picks up a new HPD, DOB, or ECB violation or a new HPD litigation case — only when something actually changes, checked against the daily data sync, and at most one email per building per week. It’s free for up to 25 buildings per email, and you can stop alerts at any time."
+          }
+        }
+      ]
+    }
+  ]
+}
   </script>
 
   <link rel="canonical" href="https://nycpropertyintel.com/">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site index">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 
@@ -224,7 +242,7 @@
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
   <link rel="dns-prefetch" href="https://app.loops.so">
 
-  <link rel="stylesheet" href="css/style.css?v=20260612">
+  <link rel="stylesheet" href="css/style.css?v=20260809">
 
   <!-- PostHog analytics -->
   <script src="js/posthog-init.js?v=20260522" defer></script>
@@ -532,6 +550,7 @@
       <div class="container">
         <h2>18 Tools, 20+ NYC Datasets</h2>
         <p class="section-intro">
+          NYC Property Intel queries 20+ official NYC datasets across 9 city agencies through 18 AI tools, from a single address or BBL.
           Each tool queries one or more official NYC public datasets. Building and property records only &mdash; no demographics, no tenant screening.
         </p>
 
@@ -941,7 +960,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">Is NYC Property Intel free?</summary>
             <div class="faq-a">
-              <p>Yes, in tiers: (1) anyone can try <strong>3 free queries</strong> in the chat with no signup at all (resets daily); (2) after that, <strong>sign up for free</strong> to get a personal token good for <strong>10 queries per day for 30 days</strong> (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development &mdash; <a href="#hero-signup-form-wrapper">sign up</a> and we&rsquo;ll reach out when they launch.</p>
+              <p>Yes, in tiers: (1) anyone can try <strong>3 free queries</strong> in the chat with no signup at all; (2) after that, <strong>sign up for free</strong> to get a personal token good for <strong>10 queries per day for 30 days</strong> (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development &mdash; <a href="#hero-signup-form-wrapper">sign up</a> and we&rsquo;ll reach out when they launch.</p>
             </div>
           </details>
 
@@ -962,7 +981,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">How do I check NYC building violations?</summary>
             <div class="faq-a">
-              <p>Ask Claude: <em>&ldquo;What violations does [address] have?&rdquo;</em> The <code>get_property_issues</code> tool returns HPD housing violations (Class&nbsp;A non-hazardous, Class&nbsp;B hazardous, Class&nbsp;C immediately hazardous), DOB building code violations, and ECB/OATH monetary penalties. Results include open/closed status, issue date, and penalty amounts. Class C violations are the most serious &mdash; they can block a Certificate of Occupancy and transfer liability to the buyer at closing.</p>
+              <p>Ask Claude: <em>&ldquo;What violations does [address] have?&rdquo;</em> The <code>get_property_issues</code> tool returns HPD housing violations (Class&nbsp;A non-hazardous, Class&nbsp;B hazardous, Class&nbsp;C immediately hazardous), DOB building code violations, and ECB/OATH monetary penalties. Results include open/closed status, issue date, and penalty amounts. Class C violations are the most serious &mdash; they are classed as immediately hazardous, can trigger HPD emergency repairs billed back to the owner, and the liability transfers to the buyer at closing.</p>
             </div>
           </details>
 
@@ -1088,6 +1107,8 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
         <a href="/hpd-violations">HPD Violations Lookup</a>
         <a href="/dob-violations">DOB &amp; ECB Violations Lookup</a>
         <a href="/property-owner-lookup">Property Owner Lookup</a>
+        <a href="/nyc-eviction-history-search">Eviction History Search</a>
+        <a href="/nyc-eviction-record-check">Check Your Eviction Record</a>
         <a href="/legal">Terms of Use &amp; Privacy Policy</a>
         <a href="/legal#fair-housing-policy">Fair Housing Policy</a>
         <a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>

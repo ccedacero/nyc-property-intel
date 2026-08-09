@@ -31,9 +31,10 @@
   <meta name="twitter:site" content="@nycpropertyintel">
 
   <link rel="canonical" href="https://nycpropertyintel.com/property-owner-lookup">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site index">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260612">
+  <link rel="stylesheet" href="css/style.css?v=20260809">
   <script src="js/posthog-init.js?v=20260522" defer></script>
 
   <!-- WebPage + FAQPage + Breadcrumb structured data -->
@@ -47,18 +48,38 @@
       "url": "https://nycpropertyintel.com/property-owner-lookup",
       "name": "Free NYC Property Owner Lookup by Address",
       "description": "Find out who owns any NYC building: owner of record, HPD registration contacts behind the LLC, and recent deed transfers, from official city records.",
-      "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+      "isPartOf": {
+        "@id": "https://nycpropertyintel.com/#website"
+      },
       "inLanguage": "en-US",
       "datePublished": "2026-06-12",
       "dateModified": "2026-08-09",
-      "breadcrumb": { "@id": "https://nycpropertyintel.com/property-owner-lookup#breadcrumb" }
+      "breadcrumb": {
+        "@id": "https://nycpropertyintel.com/property-owner-lookup#breadcrumb"
+      }
     },
     {
       "@type": "BreadcrumbList",
       "@id": "https://nycpropertyintel.com/property-owner-lookup#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
-        { "@type": "ListItem", "position": 2, "name": "Property Owner Lookup", "item": "https://nycpropertyintel.com/property-owner-lookup" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://nycpropertyintel.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "NYC Property Due Diligence",
+          "item": "https://nycpropertyintel.com/nyc-property-due-diligence"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Property Owner Lookup",
+          "item": "https://nycpropertyintel.com/property-owner-lookup"
+        }
       ]
     },
     {
@@ -69,7 +90,7 @@
           "name": "How do I find out who owns a building in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Enter the address and the lookup pulls the ownership picture from three official records at once: the owner of record from the city's PLUTO tax-lot database, the deed history from ACRIS (the city register of recorded documents, which shows who legally holds title and when it last transferred), and — for residential buildings of three or more units — the HPD registration, which lists the people behind the ownership entity: the head officer and the managing agent, with the addresses they registered. Doing this manually means three separate city systems with three different search interfaces. The single biggest thing to understand is that many NYC buildings are owned through LLCs, so the name on the tax roll is often a company; the HPD registration is the public record that usually puts human names behind it."
+            "text": "Enter the address above and the lookup pulls the ownership picture from three official records at once: the owner of record from the city's PLUTO tax-lot database, the deed history from ACRIS (the city register of recorded documents, which shows who legally holds title and when it last transferred), and — for residential buildings of three or more units — the HPD registration, which lists the people behind the ownership entity: the head officer and the managing agent, with the addresses they registered. Doing this manually means three separate city systems with three different search interfaces. The single biggest thing to understand is that many NYC buildings are owned through LLCs, so the name on the tax roll is often a company; the HPD registration is the public record that usually puts human names behind it."
           }
         },
         {
@@ -130,7 +151,7 @@
   <main class="legal-page article-page" id="lookup-content">
     <article class="container">
       <h1>Free NYC Property Owner Lookup by Address</h1>
-      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 12, 2026</p>
+      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated August 9, 2026</p>
 
       <p>Enter any NYC address and find out who owns the building — the owner of record, the people listed on the HPD registration behind an LLC, and the recent deed history — from official city records in one query.</p>
 
@@ -154,7 +175,7 @@
       </div>
 
       <div class="lookup-sample">
-        <h3>What you get — real example</h3>
+        <h2>What you get — real example</h2>
         <p><strong>132 West 169th Street, Bronx</strong> (BBL 2025180028) — 6-story, 25-unit multifamily, built 1931:</p>
         <table>
           <thead>

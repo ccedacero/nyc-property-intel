@@ -31,9 +31,10 @@
   <meta name="twitter:site" content="@nycpropertyintel">
 
   <link rel="canonical" href="https://nycpropertyintel.com/dob-violations">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site index">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260612">
+  <link rel="stylesheet" href="css/style.css?v=20260809">
   <script src="js/posthog-init.js?v=20260522" defer></script>
 
   <!-- WebPage + FAQPage + Breadcrumb structured data -->
@@ -47,18 +48,38 @@
       "url": "https://nycpropertyintel.com/dob-violations",
       "name": "Free NYC DOB & ECB Violations Lookup by Address",
       "description": "Look up any NYC building's DOB and ECB violations by address: open violations, outstanding ECB penalties, and lien risk under Local Law 153, from the official city record.",
-      "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+      "isPartOf": {
+        "@id": "https://nycpropertyintel.com/#website"
+      },
       "inLanguage": "en-US",
       "datePublished": "2026-06-12",
       "dateModified": "2026-08-09",
-      "breadcrumb": { "@id": "https://nycpropertyintel.com/dob-violations#breadcrumb" }
+      "breadcrumb": {
+        "@id": "https://nycpropertyintel.com/dob-violations#breadcrumb"
+      }
     },
     {
       "@type": "BreadcrumbList",
       "@id": "https://nycpropertyintel.com/dob-violations#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
-        { "@type": "ListItem", "position": 2, "name": "DOB & ECB Violations Lookup", "item": "https://nycpropertyintel.com/dob-violations" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://nycpropertyintel.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "NYC Property Due Diligence",
+          "item": "https://nycpropertyintel.com/nyc-property-due-diligence"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "DOB & ECB Violations Lookup",
+          "item": "https://nycpropertyintel.com/dob-violations"
+        }
       ]
     },
     {
@@ -69,7 +90,7 @@
           "name": "What is the difference between a DOB violation and an ECB violation?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Both are issued by the NYC Department of Buildings, but they have different consequences. A standard DOB violation is a compliance flag: it sits on the building's record, blocks sign-offs and certain permits, and must be cured — but it doesn't itself carry a fine. An ECB violation (adjudicated by OATH, the Office of Administrative Trials and Hearings) carries a monetary penalty. If the owner doesn't pay or doesn't appear, the penalty becomes a default judgment that remains enforceable for eight years — and under Local Law 153 of 2017 an unpaid ECB judgment can be entered as a tax lien against the property. The expensive mistake is checking one system and assuming it's the whole picture: a condition that reads resolved in the DOB record can still owe a five-figure ECB balance."
+            "text": "Both are issued by the NYC Department of Buildings, but they have different consequences. A standard DOB violation is a compliance flag: it sits on the building's record, blocks sign-offs and certain permits, and must be cured — but it doesn't itself carry a fine. An ECB violation (adjudicated by OATH, the Office of Administrative Trials and Hearings) carries a monetary penalty. If the owner doesn't pay or doesn't appear, the penalty becomes a default judgment that remains enforceable for eight years — and under Local Law 153 of 2017 an unpaid ECB judgment can be entered as a tax lien against the property. The expensive mistake is checking one system and assuming it's the whole picture: a condition that reads “resolved” in the DOB record can still owe a five-figure ECB balance."
           }
         },
         {
@@ -77,7 +98,7 @@
           "name": "How do I check DOB and ECB violations for a NYC building?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Enter the building's address (or 10-digit BBL) and the lookup returns both records together: DOB violations from NYC Open Data dataset 3h2n-5cm9 and ECB violations from dataset 6bgk-3dad, with each violation's status, type, and any outstanding penalty balance. Checking manually is harder than it sounds, because DOB's own records are split across two systems — legacy BIS holds older records and DOB NOW holds current filings — and a manual check of only one misses an entire class of violations. Querying by BBL pulls the consolidated record in one pass. Whatever tool you use, confirm anything material against the agency record before closing; this lookup is the fast first pass that tells you whether deeper digging is warranted."
+            "text": "Enter the building's address (or 10-digit BBL) above and the lookup returns both records together: DOB violations from NYC Open Data dataset 3h2n-5cm9 and ECB violations from dataset 6bgk-3dad, with each violation's status, type, and any outstanding penalty balance. Checking manually is harder than it sounds, because DOB's own records are split across two systems — legacy BIS holds older records and DOB NOW holds current filings — and a manual check of only one misses an entire class of violations. Querying by BBL pulls the consolidated record in one pass. Whatever tool you use, confirm anything material against the agency record before closing; this lookup is the fast first pass that tells you whether deeper digging is warranted."
           }
         },
         {
@@ -138,7 +159,7 @@
   <main class="legal-page article-page" id="lookup-content">
     <article class="container">
       <h1>Free NYC DOB &amp; ECB Violations Lookup by Address</h1>
-      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 12, 2026</p>
+      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated August 9, 2026</p>
 
       <p>Enter any NYC address and get the building's DOB and ECB violation record together — open violations, violation types, and outstanding ECB penalty balances — from the official city record in one query. These are the violations that carry <strong>money</strong>: unpaid ECB judgments can become tax liens on the property.</p>
 
@@ -162,7 +183,7 @@
       </div>
 
       <div class="lookup-sample">
-        <h3>What you get — real example</h3>
+        <h2>What you get — real example</h2>
         <p><strong>132 West 169th Street, Bronx</strong> (BBL 2025180028) — 6-story, 25-unit multifamily, built 1931:</p>
         <table>
           <thead>

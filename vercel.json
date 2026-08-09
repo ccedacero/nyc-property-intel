@@ -48,6 +48,12 @@
       ]
     },
     {
+      "source": "/:page(nyc-property-due-diligence|nyc-eviction-history-search|nyc-eviction-record-check|hpd-violations|dob-violations|property-owner-lookup)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" }
+      ]
+    },
+    {
       "source": "/r/:id",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }

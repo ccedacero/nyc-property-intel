@@ -27,6 +27,7 @@ PAGES = [
     ("/", "index.html", "weekly", "1.0"),
     ("/nyc-property-due-diligence", "nyc-property-due-diligence.html", "monthly", "0.9"),
     ("/nyc-eviction-history-search", "nyc-eviction-history-search.html", "monthly", "0.8"),
+    ("/nyc-eviction-record-check", "nyc-eviction-record-check.html", "monthly", "0.8"),
     ("/hpd-violations", "hpd-violations.html", "monthly", "0.8"),
     ("/dob-violations", "dob-violations.html", "monthly", "0.8"),
     ("/property-owner-lookup", "property-owner-lookup.html", "monthly", "0.8"),

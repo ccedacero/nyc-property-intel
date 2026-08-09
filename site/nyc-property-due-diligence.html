@@ -33,9 +33,10 @@
   <meta name="twitter:site" content="@nycpropertyintel">
 
   <link rel="canonical" href="https://nycpropertyintel.com/nyc-property-due-diligence">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site index">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260603">
+  <link rel="stylesheet" href="css/style.css?v=20260809">
   <script src="js/posthog-init.js?v=20260522" defer></script>
 
   <!-- Article + FAQPage structured data -->
@@ -47,11 +48,30 @@
       "@type": "Article",
       "headline": "NYC Property Due Diligence: The Complete Pre-Offer Checklist (20+ City Data Sources)",
       "description": "The complete NYC pre-offer due diligence checklist: violations, liens, rent-stabilization and more across 20+ city data sources. Due diligence, not a title search. Run it as one AI query.",
-      "author": { "@type": "Person", "name": "Cristian Cedacero", "url": "https://github.com/ccedacero", "sameAs": ["https://github.com/ccedacero"] },
-      "publisher": { "@type": "Organization", "name": "NYC Property Intel" },
+      "author": {
+        "@type": "Person",
+        "name": "Cristian Cedacero",
+        "url": "https://github.com/ccedacero",
+        "sameAs": [
+          "https://github.com/ccedacero"
+        ]
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NYC Property Intel",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://nycpropertyintel.com/assets/logo-400.png",
+          "width": 400,
+          "height": 400
+        }
+      },
+      "image": "https://nycpropertyintel.com/assets/og-card.png?v=2",
       "datePublished": "2026-06-03",
       "dateModified": "2026-08-09",
-      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://nycpropertyintel.com/nyc-property-due-diligence" },
+      "mainEntityOfPage": {
+        "@id": "https://nycpropertyintel.com/nyc-property-due-diligence#webpage"
+      },
       "keywords": "nyc property due diligence checklist, nyc property violations check, nyc property liens search, rent stabilization due diligence nyc, acris lien search, ecb violation lien nyc, 1031 exchange nyc due diligence"
     },
     {
@@ -62,7 +82,7 @@
           "name": "Do building violations transfer to the new owner in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller, so the buyer steps into the shoes of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. For example, a building carrying tens of thousands of dollars in outstanding ECB default judgments can be impossible to close, because the title company will not insure over them and the seller cannot pay them off."
+            "text": "Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller — so the buyer “steps into the shoes” of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. A building carrying tens of thousands of dollars in outstanding ECB default judgments, for example, can be impossible to close: the title company will not insure over them and the seller cannot pay them off. NYC Property Intel surfaces every open violation, summons balance, and docketed judgment before you bid — but we flag exposure, we don’t clear liens or issue title insurance."
           }
         },
         {
@@ -70,23 +90,23 @@
           "name": "Is NYC Property Intel the same as a title search?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen that aggregates 20+ public city data sources into one query so you see risk signals (ACRIS mortgages, ECB/OATH liens, DOF tax liens) before you make an offer. Some encumbrances — foreclosure lis pendens, mechanics liens, most docketed money judgments, and building loan contracts — are filed with the courts or County Clerk (NYSCEF) and never appear in ACRIS, so a clean ACRIS read is not a clean title. Always order a full title search before closing."
+            "text": "No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen: it aggregates 20+ public city data sources into one query so you see risk signals (ACRIS mortgages, ECB/OATH liens, DOF tax liens) before you make an offer. Critically, some encumbrances — foreclosure lis pendens, mechanics liens, most docketed money judgments, and building loan contracts — are filed with the courts or County Clerk (NYSCEF) and never appear in ACRIS at all. A “clean” ACRIS read is not a clean title. Always order a full title search before closing."
           }
         },
         {
           "@type": "Question",
-          "name": "How do I know if a building is rent stabilized in NYC?",
+          "name": "How do I know if a building is rent stabilized?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "There is no authoritative, current, per-unit public source. DHCR registration is owner-self-reported and unaudited, and the only way to confirm is to contact NYS HCR. NYC Property Intel combines DHCR registration counts (2007–2017 data, predating the 2019 HSTPA reforms), building age and unit count, and active 421-a/J-51 status to flag that a building almost certainly contains stabilized units, which should trigger a formal DHCR rent-history request. It is a screen, not a legal ruling, and does not replace the official per-unit DHCR history."
+            "text": "There is no authoritative, current, per-unit public source — DHCR registration is owner-self-reported and unaudited, and “the only way to know if your apartment is rent stabilized is to contact NYS HCR” (NYC Rent Guidelines Board). NYC Property Intel’s rent-stabilization check combines DHCR registration counts (2007–2017 data, which predate the 2019 HSTPA reforms), building age and unit count (PLUTO/DOF), and active 421-a/J-51 status to flag “this building almost certainly contains stabilized units” — a strong red flag that should trigger a formal DHCR rent-history request. It’s a screen, not a legal ruling, and it does not replace the official per-unit DHCR history (which matters because new owners inherit overcharge liability with treble damages and a 6-year lookback)."
           }
         },
         {
           "@type": "Question",
-          "name": "Can you check property liens in NYC before I make an offer?",
+          "name": "Can you check liens before I make an offer?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. NYC Property Intel unifies DOF tax liens, ACRIS mortgages, and ECB/OATH judgment liens into one BBL query, shifting lien discovery from attorney review to before you offer. It also flags the common false-positive of an old mortgage with no recorded Satisfaction, labeling it unresolved on record rather than outstanding debt. It reads only machine-readable public data. Court-filed items — foreclosure lis pendens and docketed money judgments — live in the NY State courts (NYSCEF), not ACRIS, and still require a separate search today; and new liens can attach between contract and close, so a title continuation search is still required."
+            "text": "Yes — that’s the core move: shifting lien discovery from “your attorney finds it at contract” to “you see it before you offer.” The lien & encumbrance check unifies DOF tax liens, ACRIS mortgages, and ECB/OATH judgment liens into one BBL query. We also flag the common false-positive — an old mortgage with no recorded Satisfaction — which we label “unresolved on record, verify with lender,” never as outstanding debt. Three honest limits: court-filed foreclosure lis pendens and docketed money judgments live in NYSCEF (not ACRIS) and still need a separate search today — a dataset we’re adding; we only read machine-readable public data; and new liens can attach in the contract-to-close gap, so a title continuation search is still required."
           }
         },
         {
@@ -94,7 +114,7 @@
           "name": "Do open DOB or ECB violations stop me from closing in NYC?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments and many lenders won't fund until they're cleared, so unresolved violations can stall or kill a closing. ECB judgments stay enforceable for eight years, and under Local Law 153 of 2017 can be entered as a tax lien (automatically for buildings of three or fewer dwelling units, or above set dollar thresholds for larger buildings), so they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice the deal."
+            "text": "Often, yes. Title companies routinely refuse to insure over open ECB/OATH judgments, and many lenders won’t fund until they’re cleared — so unresolved violations can stall or kill a closing even when both parties want to proceed. Because ECB judgments stay enforceable for eight years — and under Local Law 153 of 2017 can be entered as a tax lien (automatically for a home of three or fewer units, or above $30,000–$60,000 thresholds for larger buildings) — they must typically be satisfied at or before closing. Finding them at the offer stage lets you make the seller cure them or reprice; finding them at closing usually means delay or collapse."
           }
         },
         {
@@ -102,7 +122,7 @@
           "name": "How long does NYC property due diligence take if I do it manually?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Done properly by hand, a single NYC building can take hours because you must log into DOB BIS and DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Most investors screen 5 to 10 properties per closed deal, which makes manual due diligence the bottleneck that forces corner-cutting. Running all 20+ sources as one query is what makes thorough pre-offer screening repeatable."
+            "text": "Done properly by hand, a single NYC building can take hours — you log into DOB BIS and DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR, then reconcile inconsistent BBLs and jargon across all of them. Multiply that by the 5–10 properties most investors screen per closed deal and manual due diligence becomes the bottleneck that forces corner-cutting. Running all 20+ sources as one query is what makes thorough pre-offer screening actually repeatable."
           }
         },
         {
@@ -110,7 +130,7 @@
           "name": "What does NYC Property Intel NOT replace?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Three things: a title search and title insurance (it surfaces ACRIS/DOF/ECB signals but cannot certify or insure ownership); an official DHCR rent-history request (it flags likely stabilization but cannot rule on legal rent); and a physical inspection (it shows FISP/LL11 facade status, C of O unit counts, and violation history but cannot see the boiler, roof, or a hidden illegal unit). Public data also has known limits including indexing lag, the confidential DHCR registry, and roughly 33% dobjobs drift, all of which are disclosed on every result."
+            "text": "Three things: (1) a title search and title insurance — we surface ACRIS/DOF/ECB signals but cannot certify ownership or insure it; (2) an official DHCR rent-history request — we flag likely stabilization but cannot rule on legal rent; and (3) a physical inspection — we show FISP/LL11 facade status, LL152 gas filings, C of O unit counts, and violation history, but we cannot see the boiler, the roof, or a hidden illegal unit. Public data also has known limits: indexing lag, the confidential DHCR registry, ~33% dobjobs drift, and occasionally mis-indexed BBLs. We disclose data vintage on every result — knowing what the public record can’t tell you is part of doing real due diligence."
           }
         }
       ]
@@ -167,13 +187,13 @@
   <main class="legal-page article-page" id="article-content">
     <article class="container">
 <h1 id="nyc-property-due-diligence-the-complete-pre-offer-checklist-20-city-data-sources">NYC Property Due Diligence: The Complete Pre-Offer Checklist (20+ City Data Sources)</h1>
-<p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 13, 2026 · 31 min read</p>
+<p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated August 9, 2026 · 31 min read</p>
 <p>Before you make an offer on any NYC building, you should already know its open violations, tax liens, ECB judgments, rent-stabilization exposure, and looming local-law compliance bills. The problem: that data is scattered across 20+ official city data sources, so most buyers don&rsquo;t find the deal-killer until attorney review or the closing table — after the money and leverage are gone. NYC Property Intel runs all 20+ sources in one query, so you find it <em>before</em> you bid.</p>
 <blockquote>
 <h3 id="tldr-key-takeaways">TL;DR / Key Takeaways</h3>
 <ul>
 <li><strong>NYC property due diligence is a pre-offer investigation</strong> of a building&rsquo;s public records — violations, liens, ownership, rent regulation, and capital-expense risk — across 20+ city data sources (DOB BIS, DOB NOW, ACRIS, ECB/OATH, HPD Online, DHCR, ZoLa, DOF).</li>
-<li><strong>Violations and liens follow the property, not the seller.</strong> Open DOB/HPD violations and ECB/OATH judgments attach to the BBL — the buyer inherits them. A two-family carrying, say, <strong>$87,000 in unpaid ECB judgments</strong> can die at title — the buyer inherits every dollar.</li>
+<li><strong>Violations and liens follow the property, not the seller.</strong> Open DOB/HPD violations and ECB/OATH judgments attach to the BBL — the buyer inherits them. A two-family carrying <strong>five figures in unpaid ECB judgments</strong> can die at title — the buyer inherits every dollar.</li>
 <li><strong>Timing is leverage.</strong> Find a $50K facade liability at the offer stage and you reprice or walk for free; find it at closing and you&rsquo;ve already paid for legal, inspection, and an accepted bid.</li>
 <li><strong>The data is fragmented by design.</strong> DOB alone runs <em>two</em> systems (legacy BIS + DOB NOW); checking only one misses entire classes of records.</li>
 <li><strong>This is due diligence, not a title search.</strong> It surfaces and flags public records. It does <strong>not</strong> replace a title search, an official DHCR rent-history request, or a physical inspection — and we say so on every check.</li>
@@ -191,7 +211,7 @@
 <li><strong>Does not cover:</strong> foreclosure/lis-pendens filings and docketed money judgments (these are NY State court records in NYSCEF, not ACRIS — a dataset we&rsquo;re adding), physical condition (you still need an inspection), a definitive title certification, or a legal opinion.</li>
 </ul>
 <h3 id="pre-offer-vs-pre-closing-why-timing-changes-everything">Pre-offer vs. pre-closing: why timing changes everything</h3>
-<p>Records are spread across more than a dozen city agencies, each with its own database, and the <a href="https://www.nyc.gov/site/buildings/dob/find-building-data.page" target="_blank" rel="nofollow noopener noreferrer">NYC Dept. of Buildings</a> itself warns that relying on only one system can cause you to miss critical information. Find a $50K facade liability at the offer stage and you negotiate the price down or walk for free. Find it at closing and you&rsquo;ve already spent on legal, inspection, and an accepted bid. Same data, very different leverage.</p>
+<p>NYC keeps its property records in a dozen-plus separate city and state systems, and the <a href="https://www.nyc.gov/site/buildings/dob/find-building-data.page" target="_blank" rel="nofollow noopener noreferrer">NYC Dept. of Buildings</a> itself warns that relying on only one system can cause you to miss critical information. Find a $50K facade liability at the offer stage and you negotiate the price down or walk for free. Find it at closing and you&rsquo;ve already spent on legal, inspection, and an accepted bid. Same data, very different leverage.</p>
 <h3 id="the-honest-limits-title-search-dhcr-rent-history-physical-inspection">The honest limits: title search, DHCR rent history, physical inspection</h3>
 <p>The tool flags risk from public data — it does not replace three things, and we say so plainly:</p>
 <ul>
@@ -204,11 +224,11 @@
 <h2 id="why-due-diligence-has-to-happen-before-you-make-an-offer-not-at-closing">Why Due Diligence Has to Happen Before You Make an Offer (Not at Closing)</h2>
 <p>Here is the brutal math of NYC due diligence today: by the time your attorney or title company finds the problem, it is too late to do anything but lose money. Discovery happens at contract review or — worse — at the closing table, after you have already wired your deposit, paid legal fees, and emotionally committed to the deal. At that point you have three bad options: eat the cost, walk away and forfeit, or inherit the liability. The fix is structural. <strong>Move risk discovery to before you make the offer, when the price is still negotiable.</strong></p>
 <h3 id="how-an-inherited-ecb-judgment-dies-at-closing">How an inherited ECB judgment dies at closing</h3>
-<p>Picture a two-family carrying <strong>$87,000 in outstanding ECB default judgments</strong>. The title company will not insure over them, the seller cannot pay them off, and the buyer&rsquo;s deposit and months evaporate — a &ldquo;dead deal.&rdquo; And a dead deal is the <em>good</em> outcome: at least the buyer did not close. The worse version is a dozen-plus open DOB/HPD violations surfacing days before closing, forcing a multi-week delay that collapses the deal and burns five figures in sunk legal and inspection fees.</p>
+<p>Picture a two-family carrying <strong>$87,000 in outstanding ECB default judgments</strong> (an illustrative figure, not a specific case). The title company will not insure over them, the seller cannot pay them off, and the buyer&rsquo;s deposit and months evaporate — a &ldquo;dead deal.&rdquo; And a dead deal is the <em>good</em> outcome: at least the buyer did not close. The worse version is a dozen-plus open DOB/HPD violations surfacing days before closing, forcing a multi-week delay that collapses the deal and burns five figures in sunk legal and inspection fees.</p>
 <h3 id="violations-and-liens-follow-the-property-not-the-seller">Violations and liens follow the property, not the seller</h3>
 <p>This is the part out-of-state buyers learn the hard way: open violations, OATH/ECB judgments, and liens attach to the BBL, not to the person who created them. You &ldquo;step into the seller&rsquo;s shoes.&rdquo; ECB judgments remain enforceable for <strong>eight years</strong> and must be satisfied at or before closing. Worse, under Local Law 153 of 2017 an unpaid ECB judgment can be entered as a permanent DOF tax lien against the property — and for a small home (a private dwelling, or any building with <strong>three or fewer dwelling units</strong>) that conversion is <strong>automatic, with no dollar minimum</strong>. Larger buildings convert only above set thresholds (6–19 units at $30,000+, 20+ units at $60,000+). Either way the judgment attaches to the BBL and must be cleared before you can close.</p>
 <h3 id="what-a-repriced-deal-looks-like-when-you-find-it-early">What a repriced deal looks like when you find it early</h3>
-<p>Run NYC Property Intel&rsquo;s <strong>full due-diligence scan</strong> on the address <em>before</em> you write the offer. In one query it surfaces DOF tax liens, ACRIS mortgages, and ECB/OATH judgments — the same encumbrances your title company would otherwise flag at closing. An $87,000 exposure stops being a deal-killer and becomes an <strong>$87,000 price reduction or a seller-cured condition.</strong></p>
+<p>Run NYC Property Intel&rsquo;s <strong>full due-diligence scan</strong> on the address <em>before</em> you write the offer. In one query it surfaces DOF tax liens, ACRIS mortgages, and ECB/OATH judgments — the same encumbrances your title company would otherwise flag at closing. That exposure stops being a deal-killer and becomes a <strong>price reduction or a seller-cured condition.</strong></p>
 <p>One honest caveat, because it protects you: this surfaces and flags public-record liens — it is <strong>not</strong> a title search or a title certification. Use it to walk into the offer informed, then let your title company do the formal continuation search.</p>
 <blockquote>
 <h3 id="run-a-free-risk-scan-on-any-nyc-address">🔎 Run a free Risk Scan on any NYC address</h3>
@@ -217,7 +237,7 @@
 </blockquote>
 <hr />
 <h2 id="where-nyc-property-data-actually-lives-the-fragmentation-problem">Where NYC Property Data Actually Lives (the Fragmentation Problem)</h2>
-<p>To truly vet one NYC building before you make an offer, you don&rsquo;t search one database — you search more than a dozen, each with its own login, search logic, and jargon. NYC property records are spread across more than a dozen city agencies, each with its own database, and a thorough pre-offer review touches 20+ official city public-record datasets. Miss one and you miss the violation, lien, or regulatory flag that kills the deal at closing. That&rsquo;s hours of manual cross-referencing per property — the root-cause pain that amplifies every other risk in this guide.</p>
+<p>To truly vet one NYC building before you make an offer, you don&rsquo;t search one database — you search more than a dozen, each with its own login, search logic, and jargon. NYC keeps property records in a dozen-plus separate city and state systems; a thorough pre-offer review touches the 20+ official datasets across 9 city agencies that NYC Property Intel queries. Miss one and you miss the violation, lien, or regulatory flag that kills the deal at closing. That&rsquo;s hours of manual cross-referencing per property — the root-cause pain that amplifies every other risk in this guide.</p>
 <h3 id="dob-bis-vs-dob-now-the-two-systems-people-forget-to-check-both">DOB BIS vs. DOB NOW: the two systems people forget to check both</h3>
 <p>This is the gap most buyers miss. The Department of Buildings runs <strong>two</strong> separate systems: <strong>DOB BIS</strong> (the legacy 1990s system holding older permits, violations, and Certificates of Occupancy) and <strong>DOB NOW</strong> (the current filing platform). Records did not all migrate. As the City itself warns, &ldquo;relying on only one of these systems could cause you to miss critical information&rdquo; (<a href="https://www.nyc.gov/site/buildings/dob/find-building-data.page" target="_blank" rel="nofollow noopener noreferrer">NYC Dept. of Buildings</a>). A facade (LL11/FISP) or boiler record can sit in one system while you&rsquo;re searching the other.</p>
 <h3 id="acris-dof-ecboath-hpd-online-dhcr-zola-what-each-holds">ACRIS, DOF, ECB/OATH, HPD Online, DHCR, ZoLa — what each holds</h3>
@@ -239,7 +259,7 @@
 <hr />
 <h2 id="check-1-building-violations-dob-ecb-hpd">Check 1: Building Violations — DOB, ECB &amp; HPD</h2>
 <p>The single most expensive mistake a NYC buyer makes is checking <em>one</em> violation system and assuming it&rsquo;s the whole picture. It isn&rsquo;t. DOB violations, ECB/OATH judgments, and HPD violations live in separate databases that don&rsquo;t talk to each other — and a violation that reads &ldquo;resolved&rdquo; in one can still owe a five-figure fine in another. A buyer can easily turn up <strong>a dozen-plus open DOB/HPD violations days before closing — enough to trigger a multi-week delay, a deal collapse, and five figures in sunk fees</strong>. Violations follow the property, not the seller — so whatever you miss, you inherit.</p>
-<p><strong>What is an ECB violation?</strong> An ECB (Environmental Control Board) violation is a penalty issued by the NYC Department of Buildings and adjudicated by the Office of Administrative Trials and Hearings (OATH). Unlike a standard DOB violation, an ECB violation carries a monetary fine — and under <strong>Local Law 153 of 2017 the City can enter an unpaid ECB judgment as a tax lien</strong> against the property: automatically for a private dwelling or any building with three or fewer dwelling units (no dollar minimum), or above set thresholds for larger buildings (6–19 units at $30,000+, 20+ units at $60,000+). Either way the unpaid fine attaches to the BBL, which is why &ldquo;the DOB site says resolved&rdquo; is dangerously incomplete.</p>
+<p><strong>What is an ECB violation?</strong> An ECB (Environmental Control Board) violation is a penalty issued by the NYC Department of Buildings and adjudicated by the Office of Administrative Trials and Hearings (OATH). Unlike a standard DOB violation, an ECB violation carries a monetary fine — and under <strong>Local Law 153 of 2017 the City can enter an unpaid ECB judgment as a tax lien</strong> against the property: automatically for a private dwelling or any building with three or fewer dwelling units (no dollar minimum), or above set thresholds for larger buildings (6–19 units at $30,000+, 20+ units at $60,000+). Either way the unpaid fine attaches to the BBL, which is why &ldquo;the DOB site says resolved&rdquo; is dangerously incomplete. NYC Property Intel surfaces open ECB/OATH balances alongside the DOB record so the resolved-but-unpaid gap is visible before you offer.</p>
 <h3 id="how-to-check-dob-violations-and-complaints">How to check DOB violations and complaints</h3>
 <p>DOB data is split across two systems: legacy <strong>BIS</strong> (pre-2020 records) and <strong>DOB NOW</strong> (current filings). Checking only one misses an entire class of violations. <em>Or skip the two logins — the violation check and the DOB complaint check scan both BIS and DOB NOW by BBL in <a href="/chat">one query</a>. Step-by-step walkthrough: <a href="/dob-violations">free NYC DOB &amp; ECB violations lookup</a>.</em></p>
 <h3 id="how-to-check-ecb-violations-and-why-a-resolved-dob-violation-can-still-owe-an-ecb-fine">How to check ECB violations (and why a &ldquo;resolved&rdquo; DOB violation can still owe an ECB fine)</h3>
@@ -249,7 +269,7 @@
 <p><strong>Honest limit:</strong> this surfaces and flags every machine-readable public violation <em>before you offer</em> — it does not clear a lien, issue title insurance, or replace your title company&rsquo;s certification. It moves discovery earlier; your attorney still closes it out.</p>
 <hr />
 <h2 id="check-2-liens">Check 2: Liens &amp; Encumbrances — ACRIS, DOF Tax Liens &amp; ECB Judgment Liens</h2>
-<p>The pain: in NYC, a single property&rsquo;s debts are not stored in one place. To find every encumbrance you have to query <strong>ACRIS</strong> (deeds, mortgages), <strong>DOF</strong> (tax liens, water/sewer arrears via DEP), <strong>OATH/ECB</strong> (judgment liens), <em>and</em> the NY State courts (<strong>NYSCEF/eCourts</strong> — foreclosure lis pendens, docketed money judgments, and mechanic&rsquo;s liens that never touch ACRIS) — none of which cross-reference each other. As one guide puts it, &ldquo;Liens are scattered across disconnected government portals&hellip; Missing even one lien can delay a closing by weeks&rdquo;. Miss one and you inherit it: a single overlooked ECB judgment can carry five figures of liability the buyer cannot see until closing. Picture a two-family with $87,000 in outstanding ECB default judgments — the seller can&rsquo;t pay it off and the title company won&rsquo;t insure over it, so the deal dies at title.</p>
+<p>The pain: in NYC, a single property&rsquo;s debts are not stored in one place. To find every encumbrance you have to query <strong>ACRIS</strong> (deeds, mortgages), <strong>DOF</strong> (tax liens, water/sewer arrears via DEP), <strong>OATH/ECB</strong> (judgment liens), <em>and</em> the NY State courts (<strong>NYSCEF/eCourts</strong> — foreclosure lis pendens, docketed money judgments, and mechanic&rsquo;s liens that never touch ACRIS) — none of which cross-reference each other. As one guide puts it, &ldquo;Liens are scattered across disconnected government portals&hellip; Missing even one lien can delay a closing by weeks&rdquo;. Miss one and you inherit it: a single overlooked ECB judgment can carry five figures of liability the buyer cannot see until closing. Recall the two-family illustration above: the seller can&rsquo;t pay the judgments off and the title company won&rsquo;t insure over them, so the deal dies at title.</p>
 <p><strong>NYC Property Intel runs three of those four lookups in one call.</strong> The lien &amp; encumbrance check pulls DOF tax liens, ACRIS mortgages, and ECB/OATH judgment liens against the canonical BBL at once — surfacing your dollar exposure <em>before</em> you make an offer, not at attorney review. The fourth source — court-filed foreclosure lis pendens and docketed money judgments (NYSCEF) — still needs a separate search today; it&rsquo;s the dataset we&rsquo;re adding next.</p>
 <h3 id="how-to-find-mortgages-in-acris-and-lis-pendens-in-the-courts">How to find mortgages in ACRIS (and lis pendens in the courts)</h3>
 <p>Search ACRIS by BBL, list every recorded mortgage, then look for a matching Satisfaction of Mortgage (a missing one reads as an open lien even when the loan is dead). For a <strong>foreclosure lis pendens</strong> — a notice of pending litigation that can extinguish a buyer&rsquo;s rights if a foreclosing plaintiff wins — search the NY State court system (<strong>NYSCEF</strong>), since these are filed with the courts/County Clerk, not reliably in ACRIS. <em>Or skip the logins: NYC Property Intel surfaces every recorded mortgage and satisfaction gap on the BBL in <a href="/chat">seconds</a> (court-filed lis pendens is a NYSCEF dataset we&rsquo;re adding next).</em></p>
@@ -336,7 +356,7 @@
 </blockquote>
 <hr />
 <h2 id="the-complete-nyc-pre-offer-due-diligence-checklist-run-it-as-one-query">The Complete NYC Pre-Offer Due Diligence Checklist (Run It as One Query)</h2>
-<p>Here&rsquo;s the math that should scare every NYC investor: you screen <strong>5–10 candidate properties for every deal you actually win</strong>. If due diligence means logging into DOB BIS <em>and</em> DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR for each one, you either spend a week per address or you cut corners — and the corner you cut is the $87,000 ECB judgment that kills the deal at title. Records are spread across more than a dozen city agencies, each with its own database, and &ldquo;relying on only one of these systems could cause you to miss critical information&rdquo; (<a href="https://www.nyc.gov/site/buildings/dob/find-building-data.page" target="_blank" rel="nofollow noopener noreferrer">NYC Dept. of Buildings</a>). Due diligence has to be <strong>fast and repeatable</strong> or it doesn&rsquo;t get done.</p>
+<p>Here&rsquo;s the math that should scare every NYC investor: you screen <strong>5–10 candidate properties for every deal you actually win</strong>. If due diligence means logging into DOB BIS <em>and</em> DOB NOW, ECB/OATH, HPD Online, ACRIS, DOF, 311, ZoLa, and DHCR for each one, you either spend a week per address or you cut corners — and the corner you cut is the five-figure ECB judgment that kills the deal at title. NYC keeps its records in a dozen-plus separate systems, and &ldquo;relying on only one of these systems could cause you to miss critical information&rdquo; (<a href="https://www.nyc.gov/site/buildings/dob/find-building-data.page" target="_blank" rel="nofollow noopener noreferrer">NYC Dept. of Buildings</a>). Due diligence has to be <strong>fast and repeatable</strong> or it doesn&rsquo;t get done.</p>
 <p>NYC Property Intel collapses 20+ sources into one query. Below is the master checklist — every line is a check the tool automates.</p>
 <h3 id="the-20-checks-mapped-to-what-each-catches">The 20+ Checks Mapped to What Each Catches</h3>
 <div class="table-wrap"><table>
@@ -511,7 +531,7 @@
 <hr />
 <h2 id="faq-nyc-property-due-diligence">FAQ: NYC Property Due Diligence</h2>
 <h3 id="do-building-violations-transfer-to-the-new-owner-in-nyc">Do building violations transfer to the new owner in NYC?</h3>
-<p>Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller — so the buyer &ldquo;steps into the shoes&rdquo; of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. A two-family carrying <strong>$87,000 in outstanding ECB default judgments</strong>, for example, can be impossible to close: the title company will not insure over them and the seller cannot pay them off. NYC Property Intel surfaces every open violation, summons balance, and docketed judgment before you bid — but we flag exposure, we don&rsquo;t clear liens or issue title insurance.</p>
+<p>Yes. In NYC, DOB and HPD violations, ECB/OATH judgments, and city-billed charges attach to the property, not the seller — so the buyer &ldquo;steps into the shoes&rdquo; of the prior owner at closing. Unpaid OATH/ECB judgments become liens enforceable for eight years and must be satisfied before you can close or refinance. A building carrying tens of thousands of dollars in outstanding ECB default judgments, for example, can be impossible to close: the title company will not insure over them and the seller cannot pay them off. NYC Property Intel surfaces every open violation, summons balance, and docketed judgment before you bid — but we flag exposure, we don&rsquo;t clear liens or issue title insurance.</p>
 <h3 id="is-nyc-property-intel-the-same-as-a-title-search">Is NYC Property Intel the same as a title search?</h3>
 <p>No. A title search is a legal certification of clean ownership, performed by a title company and backed by title insurance. NYC Property Intel is a due-diligence screen: it aggregates 20+ public city data sources into one query so you see risk signals (ACRIS mortgages, ECB/OATH liens, DOF tax liens) before you make an offer. Critically, some encumbrances — foreclosure lis pendens, mechanics liens, most docketed money judgments, and building loan contracts — are filed with the courts or County Clerk (NYSCEF) and <strong>never appear in ACRIS at all</strong>. A &ldquo;clean&rdquo; ACRIS read is not a clean title. Always order a full title search before closing.</p>
 <h3 id="how-do-i-know-if-a-building-is-rent-stabilized">How do I know if a building is rent stabilized?</h3>
@@ -560,6 +580,10 @@
       </div>
       <div class="footer-links">
         <a href="/nyc-property-due-diligence">Due Diligence Guide</a>
+        <a href="/hpd-violations">HPD Violations Lookup</a>
+        <a href="/dob-violations">DOB &amp; ECB Violations Lookup</a>
+        <a href="/property-owner-lookup">Property Owner Lookup</a>
+        <a href="/nyc-eviction-history-search">Eviction History Search</a>
         <a href="/legal">Terms of Use &amp; Privacy Policy</a>
         <a href="/legal#fair-housing-policy">Fair Housing Policy</a>
         <a href="https://github.com/ccedacero/nyc-property-intel" target="_blank" rel="noopener noreferrer">GitHub</a>
