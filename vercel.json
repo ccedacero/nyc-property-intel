@@ -10,7 +10,8 @@
   ],
   "redirects": [
     {
-      "source": "/www/:path*",
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.nycpropertyintel.com" }],
       "destination": "https://nycpropertyintel.com/:path*",
       "permanent": true
     }
@@ -84,6 +85,12 @@
     },
     {
       "source": "/llms.txt",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/llms-full.txt",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]

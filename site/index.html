@@ -43,7 +43,15 @@
         "name": "NYC Property Intel",
         "description": "Free MCP server for NYC property due diligence from public records",
         "inLanguage": "en-US",
-        "publisher": { "@id": "https://nycpropertyintel.com/#organization" }
+        "publisher": { "@id": "https://nycpropertyintel.com/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://nycpropertyintel.com/chat?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
       },
       {
         "@type": "Organization",
@@ -190,6 +198,14 @@
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "ACRIS (Automated City Register Information System) is the NYC Department of Finance's online database of recorded property documents, including deeds, mortgages, liens, satisfactions, and UCC filings. NYC Property Intel queries ACRIS data to show ownership transfer history, recorded mortgages, and lien satisfactions. ACRIS records go back to 1966 and are a primary source for establishing chain of title in NYC real estate transactions."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I monitor an NYC building for new violations?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes — look up the building in the chat and use the free Watch this building option (it also appears on every shared report page). You'll get an email alert if the building picks up a new HPD, DOB, or ECB violation or a new HPD litigation case — only when something actually changes, checked against the daily data sync, and at most one email per building per week. It's free for up to 25 buildings per email, and you can stop alerts at any time."
             }
           }
         ]
@@ -1003,6 +1019,13 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
             <summary class="faq-q">Can AI access NYC public property records?</summary>
             <div class="faq-a">
               <p>Yes. NYC Property Intel is an <abbr title="Model Context Protocol">MCP</abbr> server that gives Claude AI direct access to 20+ NYC public record datasets. Claude can look up properties, check violations, pull sales history, find comparable sales, and generate comprehensive due-diligence reports &mdash; all from public city records. Available as a hosted service or self-hosted via the open-source repo.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-q">Can I monitor an NYC building for new violations?</summary>
+            <div class="faq-a">
+              <p>Yes &mdash; look up the building <a href="/chat">in the chat</a> and use the free <strong>Watch this building</strong> option (it also appears on every shared report page). You&rsquo;ll get an email alert if the building picks up a new HPD, DOB, or ECB violation or a new HPD litigation case &mdash; only when something actually changes, checked against the daily data sync, and at most one email per building per week. It&rsquo;s free for up to 25 buildings per email, and you can stop alerts at any time.</p>
             </div>
           </details>
 

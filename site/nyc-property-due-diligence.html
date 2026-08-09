@@ -50,7 +50,7 @@
       "author": { "@type": "Person", "name": "Cristian Cedacero", "url": "https://github.com/ccedacero", "sameAs": ["https://github.com/ccedacero"] },
       "publisher": { "@type": "Organization", "name": "NYC Property Intel" },
       "datePublished": "2026-06-03",
-      "dateModified": "2026-06-13",
+      "dateModified": "2026-08-09",
       "mainEntityOfPage": { "@type": "WebPage", "@id": "https://nycpropertyintel.com/nyc-property-due-diligence" },
       "keywords": "nyc property due diligence checklist, nyc property violations check, nyc property liens search, rent stabilization due diligence nyc, acris lien search, ecb violation lien nyc, 1031 exchange nyc due diligence"
     },
@@ -131,7 +131,7 @@
         "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
         "inLanguage": "en-US",
         "datePublished": "2026-06-03",
-        "dateModified": "2026-06-13",
+        "dateModified": "2026-08-09",
         "breadcrumb": { "@id": "https://nycpropertyintel.com/nyc-property-due-diligence#breadcrumb" }
       },
       {
@@ -230,7 +230,7 @@
 <li><strong>ZoLa/DCP</strong> — zoning, land use, and lot data.</li>
 </ul>
 <h3 id="run-all-20-sources-in-one-step">Run all 20+ sources in one step</h3>
-<p>Give NYC Property Intel an address; the property lookup resolves the canonical BBL, then every downstream tool — the violation check, the lien &amp; encumbrance check, the ownership lookup, the rent-stabilization check, and more — runs against it. Ask a plain-English question; get one normalized risk profile <em>before</em> you bid. Our edge isn&rsquo;t breadth alone (the new aggregators claim that too) — it&rsquo;s <strong>natural-language AI querying plus MCP/agent access, and radical data-vintage honesty.</strong></p>
+<p>Give NYC Property Intel an address; the property lookup resolves the canonical BBL, then every downstream tool — the violation check, the lien &amp; encumbrance check, <a href="/property-owner-lookup">the ownership lookup</a>, the rent-stabilization check, and more — runs against it. Ask a plain-English question; get one normalized risk profile <em>before</em> you bid. Our edge isn&rsquo;t breadth alone (the new aggregators claim that too) — it&rsquo;s <strong>natural-language AI querying plus MCP/agent access, and radical data-vintage honesty.</strong></p>
 <h3 id="data-vintage-and-known-limits-indexing-lag-33-dobjobs-drift">Data vintage and known limits (indexing lag, ~33% dobjobs drift)</h3>
 <p>Public data has real limits, and we disclose them rather than paper over them. DOB job-filing (<code>dobjobs</code>) data shows roughly <strong>33% drift from Socrata</strong> and a <strong>30–70 day violation-closure lag</strong> — a known, accepted limitation. NYC Property Intel surfaces and flags public records; it does <strong>not</strong> replace a title search, a formal DHCR rent-history request, or a physical inspection. Honest data vintage is part of the value: you know exactly how fresh each signal is before you act on it.</p>
 <blockquote>
@@ -241,11 +241,11 @@
 <p>The single most expensive mistake a NYC buyer makes is checking <em>one</em> violation system and assuming it&rsquo;s the whole picture. It isn&rsquo;t. DOB violations, ECB/OATH judgments, and HPD violations live in separate databases that don&rsquo;t talk to each other — and a violation that reads &ldquo;resolved&rdquo; in one can still owe a five-figure fine in another. A buyer can easily turn up <strong>a dozen-plus open DOB/HPD violations days before closing — enough to trigger a multi-week delay, a deal collapse, and five figures in sunk fees</strong>. Violations follow the property, not the seller — so whatever you miss, you inherit.</p>
 <p><strong>What is an ECB violation?</strong> An ECB (Environmental Control Board) violation is a penalty issued by the NYC Department of Buildings and adjudicated by the Office of Administrative Trials and Hearings (OATH). Unlike a standard DOB violation, an ECB violation carries a monetary fine — and under <strong>Local Law 153 of 2017 the City can enter an unpaid ECB judgment as a tax lien</strong> against the property: automatically for a private dwelling or any building with three or fewer dwelling units (no dollar minimum), or above set thresholds for larger buildings (6–19 units at $30,000+, 20+ units at $60,000+). Either way the unpaid fine attaches to the BBL, which is why &ldquo;the DOB site says resolved&rdquo; is dangerously incomplete.</p>
 <h3 id="how-to-check-dob-violations-and-complaints">How to check DOB violations and complaints</h3>
-<p>DOB data is split across two systems: legacy <strong>BIS</strong> (pre-2020 records) and <strong>DOB NOW</strong> (current filings). Checking only one misses an entire class of violations. <em>Or skip the two logins — the violation check and the DOB complaint check scan both BIS and DOB NOW by BBL in <a href="/chat">one query</a>.</em></p>
+<p>DOB data is split across two systems: legacy <strong>BIS</strong> (pre-2020 records) and <strong>DOB NOW</strong> (current filings). Checking only one misses an entire class of violations. <em>Or skip the two logins — the violation check and the DOB complaint check scan both BIS and DOB NOW by BBL in <a href="/chat">one query</a>. Step-by-step walkthrough: <a href="/dob-violations">free NYC DOB &amp; ECB violations lookup</a>.</em></p>
 <h3 id="how-to-check-ecb-violations-and-why-a-resolved-dob-violation-can-still-owe-an-ecb-fine">How to check ECB violations (and why a &ldquo;resolved&rdquo; DOB violation can still owe an ECB fine)</h3>
 <p>Search OATH&rsquo;s Hearings Division separately for open summonses and docketed judgments — a DOB condition can be cured while the OATH fine sits unpaid for years. <em>Or skip the third login — <a href="/chat">the scan</a> surfaces open ECB/OATH balances and flags the resolved-but-unpaid gap. See the deep-dive on <a href="#check-2-liens">liens and encumbrances</a>.</em></p>
 <h3 id="how-to-check-hpd-violations-on-an-occupied-building">How to check HPD violations on an occupied building</h3>
-<p>For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair charges matter most — Class C hazards can trigger HPD repairs billed back as liens. <em>Or skip HPD Online — the HPD complaint check pulls violations by class behind the LLC, in <a href="/chat">one scan</a>.</em></p>
+<p>For any building with tenants, HPD violations (Class A/B/C) and Emergency Repair charges matter most — Class C hazards can trigger HPD repairs billed back as liens. <em>Or skip HPD Online — the HPD complaint check pulls violations by class behind the LLC, in <a href="/chat">one scan</a>. Step-by-step walkthrough: <a href="/hpd-violations">free NYC HPD violations lookup</a>.</em></p>
 <p><strong>Honest limit:</strong> this surfaces and flags every machine-readable public violation <em>before you offer</em> — it does not clear a lien, issue title insurance, or replace your title company&rsquo;s certification. It moves discovery earlier; your attorney still closes it out.</p>
 <hr />
 <h2 id="check-2-liens">Check 2: Liens &amp; Encumbrances — ACRIS, DOF Tax Liens &amp; ECB Judgment Liens</h2>

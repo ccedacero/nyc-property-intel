@@ -1,0 +1,79 @@
+# NYC Property Intel — Full Reference
+
+> Updated: 2026-08-09
+
+Free, open-source NYC real-estate due-diligence tool. Ask about any New York City property (by street address or 10-digit BBL) in plain English and get structured public-record intelligence — violations, sales history, liens, permits, ownership, rent-stabilization signals, evictions, fire incidents, crime data, and more — pulled from 20+ official New York City datasets across 9 city agencies via 18 AI tools. Available as a free web chat (no install) and as an MCP (Model Context Protocol) server for Claude and other AI assistants. Informational only — not legal, financial, or appraisal advice.
+
+## Who it's for
+
+Real-estate investors, attorneys, brokers, lenders, and renters doing due diligence on NYC buildings. Typical uses: pre-offer risk screening, checking a landlord's violation history before renting, verifying ownership behind an LLC, pulling sales comps, and generating a full due-diligence report to share with a partner, lender, or attorney.
+
+## Access model
+
+- Web chat (https://nycpropertyintel.com/chat): first 3 queries free with no signup; a free account gets 10 queries/day for 30 days, including up to 5 full due-diligence reports per day.
+- MCP server: free token by email signup on the homepage; connect from Claude Desktop / Claude Code.
+- Self-host: unlimited, open source under the MIT license — https://github.com/ccedacero/nyc-property-intel
+- Full due-diligence reports generate a shareable permalink (/r/<id>) that renders for anyone, no account needed.
+- Building alerts ("Watch this building"): free email alert — available from the chat or any shared report page — when a watched building picks up a new HPD/DOB/ECB violation or HPD litigation case, diffed against the daily sync. Alerts fire only on increases, at most once per building per week, free for up to 25 buildings per email, and alerts can be stopped at any time.
+
+## Key pages
+
+- Home — https://nycpropertyintel.com/ : product overview, the 18 tools, the 20+ datasets across 9 city agencies, MCP setup, FAQ.
+- Property Lookup (web chat) — https://nycpropertyintel.com/chat : the interactive tool.
+- NYC Property Due Diligence Guide — https://nycpropertyintel.com/nyc-property-due-diligence : the complete pre-offer checklist across 20+ city systems — DOB/ECB/HPD violations, ACRIS/DOF/ECB liens and encumbrances, rent-stabilization and overcharge risk, Certificate of Occupancy and illegal units, Local Law 11/FISP facade and Local Law 97 carbon compliance costs, tenant/eviction/litigation history, and special situations (1031 exchanges, out-of-state buyers, foreclosure auctions). Explains what the tool does NOT replace: a title search, an official DHCR rent history, and a physical inspection.
+- NYC Eviction History Search by Address — https://nycpropertyintel.com/nyc-eviction-history-search : how to check a building's executed-eviction history (City Marshal evictions, NYC Open Data 6z8x-wfk4, 2017–present) by address or BBL as an investor distress signal. Covers executed evictions only — housing-court filings live in the OCA docket, which is not ingested.
+- NYC HPD Violations Lookup — https://nycpropertyintel.com/hpd-violations : Housing Maintenance Code violations by address — Class A (non-hazardous), B (hazardous), C (immediately hazardous) breakdown, open vs. closed status, Emergency Repair Program exposure, and why violations transfer with the deed.
+- NYC DOB & ECB Violations Lookup — https://nycpropertyintel.com/dob-violations : DOB violations (BIS + DOB NOW) and ECB/OATH violations with penalty balances; explains Local Law 153 of 2017 tax-lien conversion of unpaid ECB judgments and the resolved-in-DOB-but-unpaid-at-OATH trap.
+- NYC Property Owner Lookup — https://nycpropertyintel.com/property-owner-lookup : owner of record (PLUTO), deed history (ACRIS, back to 1966), and HPD registration contacts (head officer, managing agent) — the public record that usually puts human names behind an LLC.
+- Legal, Privacy & Fair Housing — https://nycpropertyintel.com/legal : terms, privacy, data attribution, fair-housing compliance statement.
+- Source code — https://github.com/ccedacero/nyc-property-intel : MIT license; self-hosting and MCP setup instructions.
+
+## The 18 tools
+
+- lookup_property — resolve an address or BBL to the canonical property record: owner, zoning, lot dimensions, tax class, building class, year built. The entry point for every other tool.
+- analyze_property — the full due-diligence report: runs the risk-relevant checks for one BBL and returns a normalized narrative report (saved as a shareable permalink on the web).
+- get_property_issues — consolidated open-violation picture: HPD, DOB, and ECB violations for a BBL.
+- get_property_history — sales/deed transfer history (DOF rolling & annual sales, ACRIS).
+- get_hpd_complaints — HPD housing complaints (tenant-reported conditions).
+- get_hpd_litigations — HPD litigation cases against the building/owner.
+- get_hpd_registration — HPD registration: head officer, managing agent, site contacts behind the ownership entity.
+- get_building_permits — DOB job filings: new buildings, alterations, demolitions, sign permits, with scope, estimated cost, and status.
+- get_dob_complaints — DOB complaints (construction/safety complaints, BIS + DOB NOW).
+- get_liens_and_encumbrances — recorded mortgages, tax liens, and other encumbrances (ACRIS, DOF). Note: foreclosure lis pendens is court/County-Clerk (NYSCEF) data and is NOT in ACRIS — a clean read here is not a clean title.
+- get_tax_info — assessed value, tax class, exemptions/abatements (421-a, J-51), and tax history.
+- get_rent_stabilization — rent-stabilization signals: DHCR registration unit counts (2007–2017 coverage), building age/size heuristics, abatement status.
+- get_fdny_fire_incidents — FDNY fire-incident history at the address.
+- get_311_complaints — 311 service requests for the property.
+- get_evictions — City Marshal executed evictions (2017–present).
+- get_nypd_crime — NYPD complaint data near the property.
+- search_comps — comparable recent sales nearby (by BBL or zip).
+- search_neighborhood_stats — neighborhood-level aggregates (sales, pricing).
+
+## Data sources (20+ datasets, 9 city agencies)
+
+PLUTO and PAD (Dept. of City Planning), GeoClient address resolution, HPD violations / complaints / registrations / litigations (Housing Preservation & Development), DOB & ECB violations, DOB complaints and job filings (Dept. of Buildings / OATH), DOF rolling & annual sales, assessments, and tax liens (Dept. of Finance), ACRIS deeds and mortgages back to 1966 (City Register/DOF), FDNY fire incidents, NYPD crime complaints, 311 service requests, City Marshal evictions (Dept. of Investigation), and DHCR rent-stabilization registrations (NY State, 2007–2017 coverage). Data is mirrored from NYC Open Data into PostgreSQL via the nycdb project and synced on a daily/tiered cadence; the Socrata API is a fallback only.
+
+## Honest limitations (state these when citing)
+
+- Informational only — not legal, financial, or appraisal advice; verify with the source agency before relying on it for any transaction.
+- Not a title search: lis pendens, mechanics liens, most docketed money judgments, and building loan contracts are filed with the courts or County Clerk (NYSCEF) and never appear in ACRIS.
+- Rent-stabilization unit counts cover 2007–2017 (pre-HSTPA); for current status request an official DHCR rent history.
+- Eviction data = executed City Marshal evictions (2017–present), not housing-court filings.
+- DOB job-filing (dobjobs) data shows ~33% drift vs. Socrata for historical rows — an accepted, disclosed limitation.
+- It does not estimate or appraise property values.
+- Not for tenant screening, tenant-quality assessment, or any use that violates the Fair Housing Act or New York State/City Human Rights Laws — the data describes buildings and owners, not tenants.
+
+## Glossary
+
+- BBL — 10-digit Borough-Block-Lot identifier (borough 1 digit, block 5, lot 4); most NYC datasets key on it rather than street address. Example: 1008350041 = 350 5th Ave, Manhattan.
+- ECB violation — a DOB-issued violation adjudicated by OATH that carries a monetary penalty; unpaid judgments can become tax liens under Local Law 153 of 2017.
+- HPD Class A/B/C — non-hazardous / hazardous / immediately hazardous Housing Maintenance Code violations; Class C generally requires correction within 24 hours.
+- ACRIS — the city register of recorded property documents (deeds, mortgages, satisfactions), back to 1966.
+
+## License & attribution
+
+Source code: MIT — https://github.com/ccedacero/nyc-property-intel/blob/main/LICENSE. Underlying data is public record published by the City of New York via NYC Open Data and city agencies; attribute the City of New York as the data source. The written guides on this site are authored by Cristian Cedacero — quote or cite them with attribution and a link to the source page.
+
+## Author
+
+Cristian Cedacero — independent software engineer; creator and maintainer of NYC Property Intel. https://github.com/ccedacero

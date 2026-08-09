@@ -77,3 +77,4 @@ docs/decisions-log.md
 .claude/settings.local.json
 .vercel
 .env*.local
+!scripts/check_ai_crawlers.sh
