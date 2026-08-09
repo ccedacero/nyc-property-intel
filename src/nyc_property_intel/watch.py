@@ -180,7 +180,43 @@ async def register_watch(email: str, bbl: str, address: str | None) -> dict:
     )
     if row["confirmed"]:
         return {"status": "confirmed"}
-    return {"status": "pending", "token": row["id"]}
+    # "existing" → this (email, bbl) was already registered, so a confirm email
+    # went out on the original registration; callers should not resend on every
+    # repeat submit (bounded otherwise only by the IP bucket).
+    return {"status": "pending", "token": row["id"], "existing": bool(stats["has_bbl"])}
+
+
+async def unsubscribe_watch(token: str, all_for_email: bool = False) -> dict | None:
+    """Deactivate the watch whose row id is ``token`` — or, with
+    ``all_for_email``, every watch belonging to that row's email. Returns
+    ``{"email", "address", "bbl"}`` for the token's watch on success, None if
+    the token is unknown. Idempotent.
+
+    The row id doubles as the unsubscribe token: it's a ``secrets.token_urlsafe``
+    slug that only ever travels inside that subscriber's own emails.
+    """
+    pool = await get_pool()
+    await _ensure_watch_table(pool)
+    row = await pool.fetchrow(
+        "SELECT email, address, bbl FROM watched_buildings WHERE id = $1", token
+    )
+    if not row:
+        return None
+    if all_for_email:
+        await pool.execute(
+            "UPDATE watched_buildings SET active = FALSE WHERE email = $1",
+            row["email"],
+        )
+    else:
+        await pool.execute(
+            "UPDATE watched_buildings SET active = FALSE WHERE id = $1", token
+        )
+    logger.info(
+        "watch unsubscribed: %s (%s)",
+        row["email"],
+        "all" if all_for_email else token,
+    )
+    return {"email": row["email"], "address": row["address"], "bbl": row["bbl"]}
 
 
 async def confirm_email(token: str) -> str | None:
@@ -243,7 +279,12 @@ async def _send_confirm_email(email: str, confirm_url: str) -> bool:
 
 
 async def _send_watch_email(
-    email: str, address: str | None, bbl: str, changes: list[str], report_url: str | None
+    email: str,
+    address: str | None,
+    bbl: str,
+    changes: list[str],
+    report_url: str | None,
+    watch_id: str | None = None,
 ) -> bool:
     """Send one Loops transactional alert. Returns True on a successful send."""
     if not settings.loops_api_key or not settings.loops_watch_transactional_id:
@@ -261,6 +302,12 @@ async def _send_watch_email(
             "address": address or f"BBL {bbl}",
             "changes": "; ".join(changes),
             "reportUrl": report_url or f"{_SITE_BASE}/chat",
+            # CAN-SPAM: one-click opt-out. The row id is the token.
+            "unsubscribeUrl": (
+                f"{_SITE_BASE}/watch-unsubscribe?t={watch_id}"
+                if watch_id
+                else f"{_SITE_BASE}/watch-unsubscribe"
+            ),
         },
     }
     try:
@@ -324,7 +371,8 @@ async def process_watches(dry_run: bool = False) -> dict:
             if changes and cooled_down:
                 report_url = await _latest_report_url(pool, row["bbl"])
                 sent = True if dry_run else await _send_watch_email(
-                    row["email"], row["address"], row["bbl"], changes, report_url
+                    row["email"], row["address"], row["bbl"], changes, report_url,
+                    watch_id=row["id"],
                 )
                 if sent:
                     stats["alerted"] += 1

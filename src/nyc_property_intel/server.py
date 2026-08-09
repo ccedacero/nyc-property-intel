@@ -607,8 +607,11 @@ def main() -> None:
                 return _err("watch_limit", 429)
             if status == "pending":
                 # New, unconfirmed email — send the double-opt-in confirmation.
-                confirm_url = f"https://nycpropertyintel.com/watch-confirm?t={result['token']}"
-                await _send_confirm_email(email, confirm_url)
+                # Repeat submits for an already-pending (email, bbl) don't
+                # resend; the original confirm email is still valid.
+                if not result.get("existing"):
+                    confirm_url = f"https://nycpropertyintel.com/watch-confirm?t={result['token']}"
+                    await _send_confirm_email(email, confirm_url)
                 return Response(
                     '{"ok":true,"confirm_required":true}', media_type="application/json"
                 )
@@ -642,6 +645,49 @@ def main() -> None:
                 )
             return Response('{"ok":true}', media_type="application/json")
 
+        async def watch_unsubscribe_handler(request: Request) -> Response:
+            """Deactivate a watch (one-click opt-out from the alert email).
+
+            POST {"token": "<watch id>", "all": bool}. Same token shape as the
+            confirm flow; "all" turns off every watch for that token's email.
+            """
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            token = str(body.get("token") or "").strip()
+            unsubscribe_all = bool(body.get("all"))
+            if not (6 <= len(token) <= 32) or not all(
+                c.isalnum() or c in "-_" for c in token
+            ):
+                return Response(
+                    '{"error":"invalid_token"}', status_code=400, media_type="application/json"
+                )
+            # Unauthenticated endpoint doing a DB round-trip — same IP budget
+            # as /api/watch.
+            if not _check_watch_ip_rate_limit(_get_client_ip(request)):
+                return Response(
+                    '{"error":"rate_limited"}', status_code=429, media_type="application/json"
+                )
+            try:
+                from nyc_property_intel.watch import unsubscribe_watch
+
+                result = await unsubscribe_watch(token, all_for_email=unsubscribe_all)
+            except Exception as exc:
+                logger.warning("watch unsubscribe failed: %s", exc)
+                return Response(
+                    '{"error":"unavailable"}', status_code=503, media_type="application/json"
+                )
+            if result is None:
+                return Response(
+                    '{"error":"not_found"}', status_code=404, media_type="application/json"
+                )
+            # Address lets the page name the building it just unsubscribed.
+            return Response(
+                json.dumps({"ok": True, "address": result.get("address")}),
+                media_type="application/json",
+            )
+
         if use_streamable:
             @asynccontextmanager
             async def _combined_lifespan(app):
@@ -660,6 +706,7 @@ def main() -> None:
                     Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                     Route("/api/watch", watch_handler, methods=["POST"]),
                     Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
+                    Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
@@ -677,6 +724,7 @@ def main() -> None:
                 Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                 Route("/api/watch", watch_handler, methods=["POST"]),
                 Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
+                Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
 

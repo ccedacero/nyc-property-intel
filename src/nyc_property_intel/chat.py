@@ -537,6 +537,7 @@ async def _agentic_stream(
     resolved_bbl: str | None = None
     resolved_address: str | None = None
     ran_analyze = False
+    property_event_sent = False
     user_query = _last_user_text(messages)
 
     for _round in range(_MAX_ROUNDS):
@@ -662,6 +663,13 @@ async def _agentic_stream(
                     if am:
                         resolved_address = am.group(1)
 
+                # Any resolved BBL — not just a full analyze run — is a
+                # watchable building; let the UI offer "watch this building"
+                # on plain lookups too. Once per stream.
+                if resolved_bbl and not property_event_sent:
+                    property_event_sent = True
+                    yield f"data: {json.dumps({'type': 'property_resolved', 'bbl': resolved_bbl, 'address': resolved_address})}\n\n"
+
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -687,7 +695,9 @@ async def _agentic_stream(
                 owner_token_hash=owner_token_hash,
             )
             if rid:
-                yield f"data: {json.dumps({'type': 'report_saved', 'id': rid, 'url': f'/r/{rid}'})}\n\n"
+                # bbl + address let the chat UI offer "watch this building"
+                # inline, without a round-trip to /api/report/<id>.
+                yield f"data: {json.dumps({'type': 'report_saved', 'id': rid, 'url': f'/r/{rid}', 'bbl': resolved_bbl, 'address': resolved_address})}\n\n"
         except Exception:
             logger.warning("shared-report persist failed", exc_info=True)
 

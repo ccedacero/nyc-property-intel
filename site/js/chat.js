@@ -17,6 +17,7 @@
   const FREE_LIMIT = 3;
   const TRIAL_LIMIT = 10;
   const TOKEN_KEY = "nyc_pi_token";
+  const EMAIL_KEY = "nyc_pi_email";
   const QUERY_COUNT_KEY = "nyc_pi_qcount";
   const TRIAL_COUNT_KEY = "nyc_pi_trial_count";
   const TRIAL_DATE_KEY  = "nyc_pi_trial_date";
@@ -243,6 +244,11 @@
     let assistantEl = null;
     let assistantText = "";
     let toolIndicatorEl = null;
+    // Post-message extras render in a fixed order: report permalink → watch
+    // box → follow-up chips. Track the tail so chips never jump the queue.
+    let extrasTail = null;
+    let savedReportThisTurn = false;
+    let resolvedProperty = null;
 
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -323,9 +329,19 @@
           } else if (evt.type === "tool_done") {
             // Keep indicator visible until first text_delta to avoid blank gap
 
+          } else if (evt.type === "property_resolved") {
+            // A BBL was resolved this turn (any lookup, not just a full
+            // report) — remember it and offer the watch box after the answer.
+            resolvedProperty = evt;
+
           } else if (evt.type === "report_saved") {
             // A full analysis was persisted as a shareable permalink (/r/<id>).
-            if (evt.url) appendReportPermalink(assistantEl, evt.url);
+            if (evt.url) {
+              savedReportThisTurn = true;
+              const permalinkBox = appendReportPermalink(assistantEl, evt.url);
+              const watchBox = appendWatchCTA(permalinkBox, evt);
+              extrasTail = watchBox || permalinkBox || extrasTail;
+            }
 
           } else if (evt.type === "error") {
             if (toolIndicatorEl) { toolIndicatorEl.remove(); toolIndicatorEl = null; }
@@ -342,10 +358,19 @@
       if (assistantText) {
         if (assistantEl) assistantEl.classList.remove("streaming");
         messages.push({ role: "assistant", content: assistantText });
+        // Plain lookup (no report permalink) that still resolved a building →
+        // offer the watch box here. The per-BBL dedupe keeps this quiet when
+        // report_saved already rendered one.
+        if (!savedReportThisTurn && resolvedProperty) {
+          const watchBox = appendWatchCTA(extrasTail || assistantEl, resolvedProperty);
+          if (watchBox) extrasTail = watchBox;
+        }
         // Show follow-up chips after each assistant response — progressive
         // disclosure of the expensive full-DD path. Real users click; tire-
         // kickers walk away. Click = explicit signal, $0.32 well-spent.
-        appendFollowupChips(assistantEl);
+        // Chained after the permalink/watch boxes, and without the redundant
+        // "Full DD report" chip when a full report just ran.
+        appendFollowupChips(extrasTail || assistantEl, savedReportThisTurn);
       }
 
       // If anon and now at limit, prompt for email
@@ -436,6 +461,11 @@
           credentials: "include",
         });
         const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          // Remember the email so later asks (e.g. the watch box) prefill
+          // instead of asking again.
+          try { localStorage.setItem(EMAIL_KEY, email); } catch { /* no-op */ }
+        }
         if (!res.ok) {
           gateError.textContent = data.error || "Something went wrong. Please try again.";
           submitBtn.disabled = false;
@@ -529,18 +559,154 @@
       setTimeout(() => { btn.textContent = "Copy"; }, 2000);
       if (typeof posthog !== "undefined") posthog.capture("report_permalink_copied");
     });
+    return box;
+  }
+
+  // Painted-door WTP probe (no billing) — same signal report.js collects on
+  // /r/<id>, ported here so the higher-volume chat surface samples it too.
+  function appendChatProProbe(box, email, bbl) {
+    const probe = document.createElement("div");
+    probe.className = "chat-watch-probe";
+    probe.innerHTML =
+      "<p>Watching more than one building? <strong>Pro monitoring</strong> — " +
+      "unlimited buildings + an alert on every change (no weekly cap), " +
+      "<strong>$19/mo</strong>.</p>" +
+      '<button type="button" class="btn btn-sm btn-accent">Notify me at launch</button>';
+    box.appendChild(probe);
+    probe.querySelector("button").addEventListener("click", () => {
+      if (typeof posthog !== "undefined") {
+        posthog.capture("pro_monitoring_interest", {
+          price_shown: 19, bbl: bbl || null, email: email || null, source: "chat",
+        });
+      }
+      probe.innerHTML = "<p class=\"chat-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
+    });
+  }
+
+  // "Watch this building" (feature 1.9), surfaced where buildings are actually
+  // looked up. Same /api/watch endpoint the /r/<id> permalink page uses.
+  // Sync path (bbl known) returns the box so callers can chain insertion
+  // order; the async fallback (older backend: report_saved without bbl)
+  // returns null and inserts when the fetch resolves.
+  function appendWatchCTA(afterEl, evt) {
+    const render = (bbl, address) => {
+      if (!bbl) return null;
+      // Insertion anchor gone (e.g. "New chat" while the fallback fetch was
+      // in flight) → don't drop a stale box into a fresh conversation.
+      if (afterEl && !afterEl.isConnected) return null;
+      // One box per building per conversation — but if the earlier box was
+      // abandoned unsubmitted, move the offer down to where the user is now.
+      const existing = messagesEl.querySelector(`.chat-watch-box[data-bbl="${bbl}"]`);
+      if (existing) {
+        if (existing.querySelector("form")) existing.remove();
+        else return null; // already subscribed — don't re-ask
+      }
+
+      const box = document.createElement("div");
+      box.className = "chat-watch-box";
+      box.dataset.bbl = bbl;
+      box.innerHTML = `
+        <p class="chat-watch-heading">🔔 Watch this building — free</p>
+        <p class="chat-watch-sub">Get an email if ${address ? escapeHtml(address) : "this building"} picks up a new violation or litigation. Only when something changes — at most one email a week, no spam.</p>
+        <form class="chat-watch-form" novalidate>
+          <input type="email" class="chat-watch-input" placeholder="you@email.com" autocomplete="email" required aria-label="Email address for building alerts">
+          <button type="submit" class="chat-watch-btn">Watch this building</button>
+        </form>
+        <p class="chat-watch-msg" role="status" aria-live="polite"></p>
+      `;
+      if (afterEl && afterEl.parentNode) {
+        afterEl.parentNode.insertBefore(box, afterEl.nextSibling);
+      } else {
+        messagesEl.appendChild(box);
+      }
+
+      const watchForm = box.querySelector(".chat-watch-form");
+      const emailInput = box.querySelector(".chat-watch-input");
+      const msgEl = box.querySelector(".chat-watch-msg");
+
+      // Prefill from the email captured at the signup gate (or a previous
+      // watch) — a prefilled field converts; a second blank ask doesn't.
+      let knownEmail = null;
+      try { knownEmail = localStorage.getItem(EMAIL_KEY); } catch { /* no-op */ }
+      if (knownEmail && validateEmail(knownEmail)) emailInput.value = knownEmail;
+
+      watchForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = (emailInput.value || "").trim();
+        if (!validateEmail(email)) {
+          msgEl.textContent = "Please enter a valid email address.";
+          return;
+        }
+        const submitBtn = watchForm.querySelector("button");
+        submitBtn.disabled = true;
+        msgEl.textContent = "Saving…";
+        fetch(`${API_BASE}/api/watch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, bbl, address: address || null }),
+        })
+          .then((res) => res.json().catch(() => ({})).then((d) => ({ ok: res.ok, d })))
+          .then(({ ok, d }) => {
+            if (ok) {
+              try { localStorage.setItem(EMAIL_KEY, email); } catch { /* no-op */ }
+              const msg = d.confirm_required
+                ? "✓ Almost there — check your inbox and click the confirmation link to start getting alerts."
+                : "✓ You're watching this building. We'll email you if a new violation or litigation shows up.";
+              watchForm.remove();
+              msgEl.textContent = msg;
+              if (typeof posthog !== "undefined") {
+                posthog.capture("building_watch_subscribed", {
+                  bbl, confirm_required: !!d.confirm_required, source: "chat",
+                });
+              }
+              appendChatProProbe(box, email, bbl);
+            } else {
+              const map = {
+                invalid_email: "Please enter a valid email address.",
+                disposable_email: "Please use a non-disposable email address.",
+                watch_limit: "You've reached the limit of watched buildings for this email.",
+                rate_limited: "Too many requests — please try again in a little while.",
+              };
+              msgEl.textContent = map[d.error] || "Couldn't save that right now. Please try again.";
+              submitBtn.disabled = false;
+            }
+          })
+          .catch(() => {
+            msgEl.textContent = "Connection error. Please try again.";
+            submitBtn.disabled = false;
+          });
+      });
+      scrollToBottom();
+      return box;
+    };
+
+    if (evt.bbl) {
+      return render(evt.bbl, evt.address);
+    }
+    if (evt.id) {
+      fetch(`${API_BASE}/api/report/${encodeURIComponent(evt.id)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d && d.bbl) render(d.bbl, d.address); })
+        .catch(() => {});
+    }
+    return null;
   }
 
   // Render 3 follow-up suggestion chips after each assistant response.
   // Click = explicit user intent to dig deeper → fires a new query that
   // re-uses conversation history so Claude knows which property to act on.
-  function appendFollowupChips(afterEl) {
+  function appendFollowupChips(afterEl, reportJustRan) {
     const chips = document.createElement("div");
     chips.className = "chat-followup-chips";
     chips.setAttribute("role", "group");
     chips.setAttribute("aria-label", "Follow-up suggestions");
+    // No "Full DD report" chip right after a full report ran — it's redundant
+    // and burns another analyze call from the daily cap.
+    const fullDDChip = reportJustRan
+      ? ""
+      : `<button class="chat-followup-chip chat-followup-primary" type="button" data-query="Generate the full due diligence report on the property we just discussed">📋 Full DD report</button>`;
     chips.innerHTML = `
-      <button class="chat-followup-chip chat-followup-primary" type="button" data-query="Generate the full due diligence report on the property we just discussed">📋 Full DD report</button>
+      ${fullDDChip}
       <button class="chat-followup-chip" type="button" data-query="Check any open violations on the property we just discussed">⚠️ Check violations</button>
       <button class="chat-followup-chip" type="button" data-query="Show comparable sales nearby for the property we just discussed">📈 Comparable sales</button>
     `;

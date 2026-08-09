@@ -34,7 +34,7 @@
         if (res.ok) {
           show("You're all set ✓",
             "<p>Your building alerts are confirmed. We'll email you when a " +
-            "watched building gets a new violation, litigation, or lien — and " +
+            "watched building gets a new violation or litigation — and " +
             "only then.</p>" +
             '<p><a href="/chat" class="btn btn-primary">Check another building &rarr;</a></p>');
           if (typeof posthog !== "undefined") posthog.capture("watch_confirmed");

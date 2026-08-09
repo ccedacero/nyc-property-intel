@@ -129,8 +129,20 @@ async def test_register_watch_pending_when_confirm_required():
     with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)), \
          patch.object(watch_module.settings, "loops_watch_confirm_transactional_id", "tmpl_x"):
         result = await register_watch("new@example.com", "2025180028", None)
-    assert result == {"status": "pending", "token": "abc123XY"}
+    assert result == {"status": "pending", "token": "abc123XY", "existing": False}
     assert pool.fetchrow.await_args_list[2].args[6] is False  # inserted unconfirmed
+
+
+@pytest.mark.asyncio
+async def test_register_watch_pending_repeat_flags_existing():
+    # Re-submitting an already-pending (email, bbl) → existing=True, so the
+    # caller can suppress a duplicate confirm email.
+    watch_module._watch_table_ready = True
+    pool = _register_pool(has_bbl=True, any_confirmed=False, returned_confirmed=False)
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)), \
+         patch.object(watch_module.settings, "loops_watch_confirm_transactional_id", "tmpl_x"):
+        result = await register_watch("new@example.com", "2025180028", None)
+    assert result == {"status": "pending", "token": "abc123XY", "existing": True}
 
 
 @pytest.mark.asyncio
@@ -193,6 +205,51 @@ async def test_confirm_email_unknown_token_returns_none():
         email = await watch_module.confirm_email("nope9999")
     assert email is None
     pool.execute.assert_not_awaited()  # no UPDATE when token unknown
+
+
+# ── unsubscribe_watch ─────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_single_watch():
+    watch_module._watch_table_ready = True
+    pool = AsyncMock()
+    pool.fetchrow = AsyncMock(
+        return_value={"email": "w@example.com", "address": "132 W 169 St", "bbl": "2025180028"}
+    )
+    pool.execute = AsyncMock()
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)):
+        result = await watch_module.unsubscribe_watch("abc123XY")
+    assert result == {"email": "w@example.com", "address": "132 W 169 St", "bbl": "2025180028"}
+    sql = pool.execute.await_args.args[0]
+    assert "SET active = FALSE WHERE id" in sql  # single watch, not the email
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_all_for_email():
+    watch_module._watch_table_ready = True
+    pool = AsyncMock()
+    pool.fetchrow = AsyncMock(
+        return_value={"email": "w@example.com", "address": None, "bbl": "2025180028"}
+    )
+    pool.execute = AsyncMock()
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)):
+        result = await watch_module.unsubscribe_watch("abc123XY", all_for_email=True)
+    assert result["email"] == "w@example.com"
+    sql = pool.execute.await_args.args[0]
+    assert "SET active = FALSE WHERE email" in sql  # every watch for the email
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_unknown_token_returns_none():
+    watch_module._watch_table_ready = True
+    pool = AsyncMock()
+    pool.fetchrow = AsyncMock(return_value=None)
+    pool.execute = AsyncMock()
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)):
+        result = await watch_module.unsubscribe_watch("nope9999")
+    assert result is None
+    pool.execute.assert_not_awaited()
 
 
 # ── process_watches ───────────────────────────────────────────────────

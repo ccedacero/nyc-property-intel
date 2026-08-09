@@ -50,7 +50,7 @@
     box.className = "report-pro-probe";
     box.innerHTML =
       "<p>Watching more than one building? <strong>Pro monitoring</strong> — " +
-      "watch unlimited buildings + same-day alerts, <strong>$19/mo</strong>.</p>" +
+      "unlimited buildings + an alert on every change (no weekly cap), <strong>$19/mo</strong>.</p>" +
       "<button type=\"button\" class=\"btn btn-sm btn-accent\" id=\"report-pro-notify\">Notify me at launch</button>";
     watchEl.appendChild(box);
     var btn = box.querySelector("#report-pro-notify");
@@ -92,7 +92,7 @@
                 ? "✓ Almost there — check your inbox and click the confirmation " +
                   "link to start getting alerts for this building."
                 : "✓ You're watching this building. We'll email you if a new " +
-                  "violation, litigation, or lien shows up.";
+                  "violation or litigation shows up.";
               watchForm.innerHTML = "<p class=\"report-watch-msg\">" + msg + "</p>";
               if (typeof posthog !== "undefined") {
                 posthog.capture("building_watch_subscribed", {

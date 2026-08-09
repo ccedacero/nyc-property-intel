@@ -773,3 +773,82 @@
 @media (max-width: 640px) {
   .chat-report-permalink-row { flex-direction: column; }
 }
+
+/* "Watch this building" box (feature 1.9) — rendered under the permalink box
+   after a full report, or under the answer on a plain lookup. Shares the
+   permalink box's container language (border, radius, accent-subtle bg). */
+.chat-watch-box {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent-subtle, rgba(59, 130, 246, 0.08));
+}
+.chat-watch-heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.chat-watch-sub {
+  margin: 0 0 0.625rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.chat-watch-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.chat-watch-input {
+  flex: 1;
+  min-width: 180px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 0.55rem 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-watch-input:focus { border-color: var(--accent); }
+.chat-watch-input::placeholder { color: var(--text-muted); }
+.chat-watch-btn {
+  flex: 0 0 auto;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.chat-watch-btn:hover { filter: brightness(1.08); }
+.chat-watch-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.chat-watch-msg {
+  margin: 0.4rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  min-height: 1em;
+}
+.chat-watch-probe {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.chat-watch-probe p {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .chat-watch-form { flex-direction: column; }
+  .chat-watch-btn { width: 100%; }
+}

@@ -1,0 +1,112 @@
+<!--
+  NYC Property Intel — "Watch this building" transactional email (feature 1.9)
+  MJML format — for the Loops Code editor (Editing → Code → Select/drop a file).
+
+  HOW TO USE:
+  1. Loops → Transactional → Create → name it "Building watch alert".
+  2. Editing panel (right) → Code tab → click "Select" and upload THIS .mjml file.
+     (No zip needed — this email has no images.)
+  3. Set the Subject line field (top of the editor) to:  New activity on {DATA_VARIABLE:address}
+  4. Loops substitutes these four data variables at send time — they must match
+     the names my backend sends in dataVariables:
+        address         e.g. "132 West 169th Street, Bronx"
+        changes         e.g. "2 new open HPD violations; 1 new HPD litigation case"
+        reportUrl       e.g. "https://nycpropertyintel.com/r/1flN9UFc74E"
+        unsubscribeUrl  e.g. "https://nycpropertyintel.com/watch-unsubscribe?t=ar3e4KiRe1Y"
+  5. Publish → copy the Transactional ID → set LOOPS_WATCH_TRANSACTIONAL_ID in Railway.
+
+  CAN-SPAM TODO before real volume: add a physical postal address line to the
+  footer (a CMRA/PO Box address is fine) — required for commercial email.
+-->
+<mjml>
+  <mj-head>
+    <mj-title>New activity on {DATA_VARIABLE:address}</mj-title>
+    <mj-preview>The city records for a building you're watching just changed.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" />
+      <mj-text color="#0f172a" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f1f5f9" width="600px">
+
+    <!-- Header -->
+    <mj-section background-color="#0f172a" padding="20px 32px">
+      <mj-column>
+        <mj-text color="#ffffff" font-size="16px" font-weight="700" letter-spacing="0.2px">
+          NYC Property Intel
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Lead -->
+    <mj-section background-color="#ffffff" padding="32px 32px 4px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700" line-height="1.3" padding="0 0 8px">
+          {DATA_VARIABLE:address} just changed.
+        </mj-text>
+        <mj-text font-size="15px" color="#475569">
+          You asked us to watch this building. New activity showed up in the official city records:
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Changes highlight box -->
+    <mj-section background-color="#ffffff" padding="12px 32px 24px">
+      <mj-column background-color="#fef2f2" border="1px solid #fecaca" border-radius="8px" padding="16px 20px">
+        <mj-text font-size="16px" font-weight="600" color="#b91c1c" line-height="1.5">
+          {DATA_VARIABLE:changes}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA -->
+    <mj-section background-color="#ffffff" padding="0 32px 24px">
+      <mj-column>
+        <mj-button href="{DATA_VARIABLE:reportUrl}" background-color="#2563eb" color="#ffffff"
+                   font-size="15px" font-weight="600" border-radius="8px"
+                   inner-padding="13px 28px" align="left">
+          See the full report &rarr;
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Context -->
+    <mj-section background-color="#ffffff" padding="0 32px 28px">
+      <mj-column>
+        <mj-text font-size="14px" color="#64748b">
+          We only email when something new appears — a new violation or litigation.
+          No digests, no spam. New activity is often the moment a deal or a legal issue turns,
+          so it's worth a look.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Disclaimer -->
+    <mj-section background-color="#ffffff" padding="0 32px 28px">
+      <mj-column>
+        <mj-divider border-width="1px" border-color="#e2e8f0" padding="0 0 16px" />
+        <mj-text font-size="12px" color="#94a3b8" padding="0 0 10px">
+          Informational only — not legal, financial, or appraisal advice. Data is sourced from
+          NYC public records and may be incomplete or out of date; verify with the source agency
+          before relying on it for any transaction. NYC Property Intel is not affiliated with the
+          City of New York.
+        </mj-text>
+        <mj-text font-size="12px" color="#94a3b8">
+          You're receiving this because you asked NYC Property Intel to watch {DATA_VARIABLE:address}.
+          <a href="{DATA_VARIABLE:unsubscribeUrl}" style="color:#64748b;">Unsubscribe from alerts for this building</a>.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding="16px 32px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#94a3b8">
+          <a href="https://nycpropertyintel.com" style="color:#94a3b8; text-decoration:none;">nycpropertyintel.com</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
