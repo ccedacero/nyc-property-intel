@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>NYC HPD Violations Lookup by Address | NYC Property Intel</title>
+  <title>NYC HPD Violations Lookup — Free Building Search by Address</title>
   <meta name="description" content="Look up any NYC building's HPD violations by address, free. Class A/B/C breakdown and open vs. closed status from the official city record, synced daily.">
   <meta name="keywords" content="hpd violations lookup, nyc hpd violations by address, hpd violation search, hpd violations free, housing maintenance code violations nyc, hpd class c violations, check hpd violations before renting">
   <meta name="robots" content="index, follow">
@@ -31,9 +31,10 @@
   <meta name="twitter:site" content="@nycpropertyintel">
 
   <link rel="canonical" href="https://nycpropertyintel.com/hpd-violations">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly site index">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260612">
+  <link rel="stylesheet" href="css/style.css?v=20260809">
   <script src="js/posthog-init.js?v=20260522" defer></script>
 
   <!-- WebPage + FAQPage + Breadcrumb structured data -->
@@ -47,18 +48,38 @@
       "url": "https://nycpropertyintel.com/hpd-violations",
       "name": "Free NYC HPD Violations Lookup by Address",
       "description": "Look up any NYC building's HPD violations by address: Class A, B, C breakdown and open vs. closed status, sourced from the official city record and synced daily.",
-      "isPartOf": { "@id": "https://nycpropertyintel.com/#website" },
+      "isPartOf": {
+        "@id": "https://nycpropertyintel.com/#website"
+      },
       "inLanguage": "en-US",
       "datePublished": "2026-06-12",
       "dateModified": "2026-08-09",
-      "breadcrumb": { "@id": "https://nycpropertyintel.com/hpd-violations#breadcrumb" }
+      "breadcrumb": {
+        "@id": "https://nycpropertyintel.com/hpd-violations#breadcrumb"
+      }
     },
     {
       "@type": "BreadcrumbList",
       "@id": "https://nycpropertyintel.com/hpd-violations#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://nycpropertyintel.com/" },
-        { "@type": "ListItem", "position": 2, "name": "HPD Violations Lookup", "item": "https://nycpropertyintel.com/hpd-violations" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://nycpropertyintel.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "NYC Property Due Diligence",
+          "item": "https://nycpropertyintel.com/nyc-property-due-diligence"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "HPD Violations Lookup",
+          "item": "https://nycpropertyintel.com/hpd-violations"
+        }
       ]
     },
     {
@@ -69,7 +90,7 @@
           "name": "How do I look up HPD violations for a NYC building?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Enter the building's street address (or its 10-digit BBL) and the lookup returns every Housing Maintenance Code violation HPD has recorded against that property: the class breakdown (A, B, C and I), which violations are still open, when they were issued, and the inspector's description of each condition. The data comes from NYC Open Data's Housing Maintenance Code Violations dataset (wvxf-dwi5), the same record HPD itself publishes, mirrored and synced on a daily cadence. The free manual alternative is HPD Online (hpdonline.nyc.gov), which works one building at a time and requires you to interpret the raw record yourself. The advantage of querying by BBL is precision: street addresses are free text in city systems, so address-string searches can miss records or pull in a neighbor's building."
+            "text": "Enter the building's street address (or its 10-digit BBL) above and the lookup returns every Housing Maintenance Code violation HPD has recorded against that property: the class breakdown (A, B, C and I), which violations are still open, when they were issued, and the inspector's description of each condition. The data comes from NYC Open Data's Housing Maintenance Code Violations dataset (wvxf-dwi5) — the same record HPD itself publishes — mirrored and synced on a daily cadence. The free manual alternative is HPD Online (hpdonline.nyc.gov), which works one building at a time and requires you to interpret the raw record yourself. The advantage of querying by BBL is precision: street addresses are free text in city systems, so address-string searches can miss records or pull in a neighbor's building."
           }
         },
         {
@@ -85,7 +106,7 @@
           "name": "Is this HPD violations lookup really free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Your first lookups are free with no signup, and a free account currently gets you 10 queries a day — enough to compare several buildings or run a deeper follow-up on one. The underlying data is public record, and the project is open source (the code is on GitHub), so you can also self-host it or verify exactly how the numbers are produced. We make the public record usable in one query instead of several city websites; we don't paywall the record itself. If you need more volume or a timestamped report you can hand to an attorney or partner, that's the paid tier we're building — but checking a building before you rent, bid, or litigate costs nothing."
+            "text": "Yes. Your first lookups are free with no signup, and a free account currently gets you 10 queries a day — enough to compare several buildings or run a deeper follow-up on one. The underlying data is public record, and the project is open source (code on GitHub), so you can also self-host it or verify exactly how the numbers are produced. We make the public record usable in one query instead of several city websites; we don't paywall the record itself. If you need more volume or a timestamped report you can hand to an attorney or partner, that's the paid tier we're building — but checking a building before you rent, bid, or litigate costs nothing."
           }
         },
         {
@@ -101,7 +122,7 @@
           "name": "How current is the violation data, and how do I know it's accurate?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "The violations mirror syncs from NYC Open Data on a daily cadence, and every answer is stamped with its data vintage so you know exactly what you're reading. Accuracy is checked, not assumed: an automated weekly audit cross-checks a sample of our records against the live city record, field by field, and flags any contradiction. The most recent audit matched 51,187 HPD violation records against the city's published data with zero classification contradictions. Two honest caveats: city source systems themselves lag real-world events (an inspection from yesterday may not be in any public dataset yet), and a small share of records show status differences against the live record at any moment because closures propagate on the city's schedule. We surface the record; conditions on the ground are what an inspection is for."
+            "text": "The violations mirror syncs from NYC Open Data on a daily cadence, and every answer is stamped with its data vintage so you know exactly what you're reading. Accuracy is checked, not assumed: an automated weekly audit cross-checks a sample of our records against the live city record, field by field, and flags any contradiction. The most recent audit (June 12, 2026) matched 51,187 HPD violation records against the city's published data with zero classification contradictions. Two honest caveats: city source systems themselves lag real-world events — an inspection from yesterday may not be in any public dataset yet — and a small share of records show status differences against the live record at any moment because closures propagate on the city's schedule. We surface the record; conditions on the ground are what an inspection is for."
           }
         },
         {
@@ -110,6 +131,22 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Yes — it is one of the fastest free checks a NYC renter can run, and it tells you how the landlord actually maintains the building, regardless of how good the listing photos look. Look at three things: the open Class C count (immediately hazardous conditions like no heat or lead paint that haven't been fixed), whether open violations are recent or years old (chronic neglect shows up as old, still-open violations), and the volume relative to building size — 40 open violations in a 10-unit building is a very different story than 40 in a 200-unit complex. Heat and hot-water violations in winter months are a particularly telling pattern. Check the buildings you're comparing before you hand over a deposit; it takes one query each."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there an official NYC HPD online database?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — HPD Online (hpdonline.nyc.gov) is the agency’s own building-by-building portal, and the same violation record is published in bulk on NYC Open Data as the Housing Maintenance Code Violations dataset (wvxf-dwi5). NYC Property Intel reads that official record, mirrored and synced daily, and returns it in one query by address or BBL instead of one manual portal search per building. Whichever route you use, the underlying data is the same official HPD record — the difference is speed, BBL-exact matching, and getting the Class A/B/C breakdown and open-vs-closed status already summarized."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I search HPD violations by building or address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Type the building’s street address (or its 10-digit BBL) into the free lookup and it returns every Housing Maintenance Code violation HPD has recorded for that building: the Class A/B/C breakdown, which violations are still open, when each was issued, and the inspector’s description of the condition. Searching by BBL is the most precise route because city addresses are free text — the same building can appear under multiple spellings, and a BBL query catches them all. The manual alternative is HPD Online, one building at a time."
           }
         }
       ]
@@ -138,7 +175,7 @@
   <main class="legal-page article-page" id="lookup-content">
     <article class="container">
       <h1>Free NYC HPD Violations Lookup by Address</h1>
-      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated June 12, 2026</p>
+      <p class="article-meta">By <strong>Cristian Cedacero</strong>, NYC Property Intel · Updated August 9, 2026</p>
 
       <p>Enter any NYC address and get the building's full HPD violation record — the Class A/B/C breakdown, what's still open, and when each violation was issued — pulled from the official city record in one query. No signup for your first lookups.</p>
 
@@ -158,11 +195,11 @@
           </div>
         </form>
         <p class="lookup-hero-note">Works with a street address or a 10-digit BBL. First queries free, no signup required.</p>
-        <span class="lookup-fresh">✓ Data synced daily from NYC Open Data · last audit matched 51,187 records against the live city record with 0 contradictions</span>
+        <span class="lookup-fresh">✓ Data synced daily from NYC Open Data · June 2026 audit matched 51,187 records against the live city record with 0 contradictions</span>
       </div>
 
       <div class="lookup-sample">
-        <h3>What you get — real example</h3>
+        <h2>What you get — real example</h2>
         <p><strong>132 West 169th Street, Bronx</strong> (BBL 2025180028) — 6-story, 25-unit multifamily, built 1931:</p>
         <table>
           <thead>
@@ -211,6 +248,12 @@
 
       <h3>Should I check HPD violations before renting an apartment?</h3>
       <p>Yes — it is one of the fastest free checks a NYC renter can run, and it tells you how the landlord actually maintains the building, regardless of how good the listing photos look. Look at three things: the open Class C count (immediately hazardous conditions like no heat or lead paint that haven't been fixed), whether open violations are recent or years old (chronic neglect shows up as old, still-open violations), and the volume relative to building size — 40 open violations in a 10-unit building is a very different story than 40 in a 200-unit complex. Heat and hot-water violations in winter months are a particularly telling pattern. Check the buildings you're comparing before you hand over a deposit; it takes one query each.</p>
+
+      <h3>Is there an official NYC HPD online database?</h3>
+      <p>Yes — HPD Online (hpdonline.nyc.gov) is the agency&rsquo;s own building-by-building portal, and the same violation record is published in bulk on NYC Open Data as the Housing Maintenance Code Violations dataset (<code>wvxf-dwi5</code>). NYC Property Intel reads that official record, mirrored and synced daily, and returns it in one query by address or BBL instead of one manual portal search per building. Whichever route you use, the underlying data is the same official HPD record — the difference is speed, BBL-exact matching, and getting the Class A/B/C breakdown and open-vs-closed status already summarized.</p>
+
+      <h3>How do I search HPD violations by building or address?</h3>
+      <p>Type the building&rsquo;s street address (or its 10-digit BBL) into the <a href="/chat">free lookup</a> and it returns every Housing Maintenance Code violation HPD has recorded for that building: the Class A/B/C breakdown, which violations are still open, when each was issued, and the inspector&rsquo;s description of the condition. Searching by BBL is the most precise route because city addresses are free text — the same building can appear under multiple spellings, and a BBL query catches them all. The manual alternative is HPD Online, one building at a time.</p>
 
       <hr />
       <p><em>Data source: NYC Open Data &ldquo;Housing Maintenance Code Violations&rdquo; (<code>wvxf-dwi5</code>), published by HPD, synced daily. NYC Property Intel surfaces and flags public records; it is not a title search, an appraisal, an inspection, or legal advice. Verify with the source agency and your professionals before you transact.</em></p>
