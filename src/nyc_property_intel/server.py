@@ -645,6 +645,44 @@ def main() -> None:
                 )
             return Response('{"ok":true}', media_type="application/json")
 
+        async def watch_mine_handler(request: Request) -> Response:
+            """GET /api/watch/mine — the caller's active watches.
+
+            Token-authenticated (Bearer or nyc_pi_token cookie), mirroring
+            /api/reports/mine. Watches are email-keyed, so the join is the
+            token's customer email; a token with no email (shouldn't happen)
+            gets an empty list. Each row's id doubles as the removal token
+            for POST /api/watch/unsubscribe.
+            """
+            auth_header = request.headers.get("authorization", "")
+            raw_token = request.cookies.get("nyc_pi_token") or (
+                auth_header[7:] if auth_header.startswith("Bearer ") else None
+            )
+            if not raw_token:
+                return Response(
+                    '{"error":"auth_required"}', status_code=401, media_type="application/json"
+                )
+            token_info = await auth.validate(raw_token)
+            if token_info is None:
+                return Response(
+                    '{"error":"invalid_token"}', status_code=401, media_type="application/json"
+                )
+            email = (token_info.customer_email or "").strip().lower()
+            if not email:
+                return Response('{"watches":[]}', media_type="application/json")
+            try:
+                from nyc_property_intel.watch import list_watches_for_email
+
+                watches = await list_watches_for_email(email)
+            except Exception as exc:
+                logger.warning("watch_mine failed: %s", exc)
+                return Response(
+                    '{"error":"unavailable"}', status_code=503, media_type="application/json"
+                )
+            return Response(
+                json.dumps({"watches": watches}), media_type="application/json"
+            )
+
         async def watch_unsubscribe_handler(request: Request) -> Response:
             """Deactivate a watch (one-click opt-out from the alert email).
 
@@ -705,6 +743,7 @@ def main() -> None:
                     Route("/api/report/{id}", report_handler, methods=["GET"]),
                     Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                     Route("/api/watch", watch_handler, methods=["POST"]),
+                    Route("/api/watch/mine", watch_mine_handler, methods=["GET"]),
                     Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                     Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
                     Mount("/", mcp_app),
@@ -723,6 +762,7 @@ def main() -> None:
                 Route("/api/report/{id}", report_handler, methods=["GET"]),
                 Route("/api/reports/mine", reports_mine_handler, methods=["GET"]),
                 Route("/api/watch", watch_handler, methods=["POST"]),
+                Route("/api/watch/mine", watch_mine_handler, methods=["GET"]),
                 Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                 Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
                 Mount("/", mcp_app),
