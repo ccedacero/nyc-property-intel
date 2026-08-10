@@ -186,6 +186,39 @@ async def register_watch(email: str, bbl: str, address: str | None) -> dict:
     return {"status": "pending", "token": row["id"], "existing": bool(stats["has_bbl"])}
 
 
+async def list_watches_for_email(email: str) -> list[dict]:
+    """Active watches for an email, newest-first — the /watches management page.
+
+    Callers authenticate via token (the token's customer email is the join
+    key); this function itself is auth-agnostic.
+    """
+    pool = await get_pool()
+    await _ensure_watch_table(pool)
+    rows = await pool.fetch(
+        """
+        SELECT id, bbl, address, created_at, last_notified_at, confirmed
+        FROM watched_buildings
+        WHERE email = $1 AND active
+        ORDER BY created_at DESC
+        LIMIT 100
+        """,
+        email.strip().lower(),
+    )
+    return [
+        {
+            "id": r["id"],
+            "bbl": r["bbl"],
+            "address": r["address"],
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            "last_notified_at": (
+                r["last_notified_at"].isoformat() if r["last_notified_at"] else None
+            ),
+            "confirmed": bool(r["confirmed"]),
+        }
+        for r in rows
+    ]
+
+
 async def unsubscribe_watch(token: str, all_for_email: bool = False) -> dict | None:
     """Deactivate the watch whose row id is ``token`` — or, with
     ``all_for_email``, every watch belonging to that row's email. Returns

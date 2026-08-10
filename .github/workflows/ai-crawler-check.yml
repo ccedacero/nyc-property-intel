@@ -1,0 +1,21 @@
+# Daily guard for the AI-citation channel: verifies GPTBot/ClaudeBot/
+# PerplexityBot/Googlebot can still reach the site and that robots.txt is
+# being served verbatim (Cloudflare's "Block AI Scrapers" toggle would
+# silently rewrite it at the edge — robots.txt itself documents this risk).
+# Fails the workflow (and emails the repo owner via GitHub's default
+# workflow-failure notification) if any check breaks.
+name: AI crawler check
+
+on:
+  schedule:
+    - cron: "17 11 * * *"   # daily, 11:17 UTC (~7am ET)
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run crawler accessibility checks
+        run: bash scripts/check_ai_crawlers.sh

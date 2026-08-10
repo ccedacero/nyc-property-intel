@@ -207,6 +207,39 @@ async def test_confirm_email_unknown_token_returns_none():
     pool.execute.assert_not_awaited()  # no UPDATE when token unknown
 
 
+# ── list_watches_for_email ────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_list_watches_for_email_shapes_rows():
+    import datetime
+    watch_module._watch_table_ready = True
+    now = datetime.datetime(2026, 8, 10, 12, 0, tzinfo=datetime.timezone.utc)
+    pool = AsyncMock()
+    pool.fetch = AsyncMock(return_value=[
+        {"id": "abc123XY", "bbl": "2025180028", "address": "132 W 169 St",
+         "created_at": now, "last_notified_at": None, "confirmed": True},
+    ])
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)):
+        rows = await watch_module.list_watches_for_email("  W@Example.COM ")
+    assert rows == [{
+        "id": "abc123XY", "bbl": "2025180028", "address": "132 W 169 St",
+        "created_at": now.isoformat(), "last_notified_at": None, "confirmed": True,
+    }]
+    # email normalized before hitting the DB
+    assert pool.fetch.await_args.args[1] == "w@example.com"
+
+
+@pytest.mark.asyncio
+async def test_list_watches_for_email_empty():
+    watch_module._watch_table_ready = True
+    pool = AsyncMock()
+    pool.fetch = AsyncMock(return_value=[])
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)):
+        rows = await watch_module.list_watches_for_email("none@example.com")
+    assert rows == []
+
+
 # ── unsubscribe_watch ─────────────────────────────────────────────────
 
 

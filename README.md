@@ -6,11 +6,20 @@ MCP server that gives Claude AI access to 20+ NYC public record datasets for rea
 
 ## Quickstart — Web Chat (no setup)
 
-The fastest way to try it: open **[nycpropertyintel.com/chat](https://nycpropertyintel.com/chat)** and ask about any NYC property in plain English. **3 free queries, no signup** (resets daily) — no install, no token, and no Claude client needed.
+The fastest way to try it: open **[nycpropertyintel.com/chat](https://nycpropertyintel.com/chat)** and ask about any NYC property in plain English. **3 free queries, no signup** — no install, no token, and no Claude client needed.
 
 ```
 "What violations does 123 Atlantic Ave, Brooklyn have?"
 ```
+
+### Free guides & lookups
+
+- [NYC Property Due Diligence Checklist](https://nycpropertyintel.com/nyc-property-due-diligence) — the complete pre-offer checklist across 20+ city data sources
+- [NYC HPD Violations Lookup](https://nycpropertyintel.com/hpd-violations) — Class A/B/C breakdown by address
+- [NYC DOB & ECB Violations Lookup](https://nycpropertyintel.com/dob-violations) — open violations, ECB penalties, Local Law 153 lien risk
+- [NYC Property Owner Lookup](https://nycpropertyintel.com/property-owner-lookup) — the owner and HPD contacts behind an LLC
+- [NYC Eviction History by Address](https://nycpropertyintel.com/nyc-eviction-history-search) — City Marshal executed evictions, 2017–present
+- [Check If You Have an Eviction on Your Record (NYC)](https://nycpropertyintel.com/nyc-eviction-record-check) — tenant-facing guide to court records, screening files, and your rights
 
 ## Quickstart — Claude Code / Desktop (hosted MCP)
 

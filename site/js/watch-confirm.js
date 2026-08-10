@@ -36,7 +36,7 @@
             "<p>Your building alerts are confirmed. We'll email you when a " +
             "watched building gets a new violation or litigation — and " +
             "only then.</p>" +
-            '<p><a href="/chat" class="btn btn-primary">Check another building &rarr;</a></p>');
+            '<p><a href="/chat" class="btn btn-primary">Check another building &rarr;</a> <a href="/watches" class="btn btn-outline">Manage alerts</a></p>');
           if (typeof posthog !== "undefined") posthog.capture("watch_confirmed");
         } else if (res.status === 404) {
           show("Link expired",

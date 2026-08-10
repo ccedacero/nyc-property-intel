@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Watched Buildings | NYC Property Intel</title>
+  <meta name="description" content="Manage your NYC Property Intel building alerts — see every building you're watching and stop alerts any time.">
+  <!-- Personal account surface; keep it out of the index. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f172a">
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
+  <link rel="stylesheet" href="/css/style.css?v=20260809">
+  <script src="/js/posthog-init.js?v=20260522" defer></script>
+  <script src="/js/watches.js?v=20260810" defer></script>
+</head>
+<body>
+  <a href="#watches-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main navigation">
+      <a href="/" class="nav-logo">NYC Property Intel</a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/reports">Your Reports</a></li>
+        <li><a href="/chat" class="btn btn-sm btn-accent">Run a report &rarr;</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="legal-page article-page" id="watches-content">
+    <article class="container">
+
+      <p class="article-eyebrow">NYC Property Intel · Building Alerts</p>
+      <h1>Your Watched Buildings</h1>
+      <p class="article-meta" id="watches-meta">Every building you watch is checked against the daily data sync — you get one email if it picks up a new violation or litigation.</p>
+
+      <!-- Loading -->
+      <div id="watches-status" class="report-status">
+        <p>Loading your watched buildings…</p>
+      </div>
+
+      <!-- Signed-out / no token -->
+      <aside class="article-cta-box" id="watches-signedout" hidden>
+        <h2>Sign in to manage your alerts</h2>
+        <p>This page shows the buildings watched under your account&rsquo;s email. Run a query in the <a href="/chat">chat</a> while signed in, or use the unsubscribe link in any alert email to manage a single watch.</p>
+        <p><a href="/chat" class="btn btn-primary">Open the chat &rarr;</a></p>
+      </aside>
+
+      <!-- The list -->
+      <ul class="reports-list" id="watches-list" hidden></ul>
+
+      <!-- Empty -->
+      <aside class="article-cta-box" id="watches-empty" hidden>
+        <h2>You're not watching any buildings yet</h2>
+        <p>Look up any NYC address in the chat and tap <strong>Watch this building</strong> &mdash; you&rsquo;ll get a free email alert if it picks up a new violation or litigation. At most one email per building per week, and you can stop any time.</p>
+        <p><a href="/chat" class="btn btn-primary">Look up a building &rarr;</a></p>
+      </aside>
+
+      <!-- CTA under a non-empty list -->
+      <aside class="article-cta-box" id="watches-cta" hidden>
+        <h2>Watch another</h2>
+        <p>Look up any NYC building and add it to your alerts in one click.</p>
+        <p><a href="/chat" class="btn btn-primary">New lookup &rarr;</a></p>
+      </aside>
+
+    </article>
+  </main>
+</body>
+</html>
