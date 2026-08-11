@@ -163,11 +163,15 @@ img {
 .nav-toggle {
   display: none;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .nav-toggle span {
@@ -1519,6 +1523,19 @@ abbr[title] {
   scroll-margin-top: 84px;
 }
 
+/* Long-form readability (audit 2026-08-11): body was 15px at ~88 chars/line
+   in --text-secondary gray — AA-compliant but fatiguing over 6,000 words.
+   17px, brighter ink, and a ~68ch measure; tables/headings keep full width. */
+.article-page p,
+.article-page li {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: #cbd5e1;
+  max-width: 68ch;
+}
+.article-page li { margin-bottom: 0.35rem; }
+.article-page table p, .article-page table li { max-width: none; }
+
 .article-page a {
   color: var(--accent);
   text-decoration: underline;
@@ -1559,9 +1576,19 @@ abbr[title] {
 /* Data tables (the checklist + keyword/comp tables) */
 .article-page .table-wrap { overflow-x: auto; margin: 1.5rem 0; }
 .article-page table {
-  width: 100%;
+  /* width:auto + min-width:100% lets a wide table overflow its wrapper and
+     scroll, instead of crushing columns to single characters on phones
+     (visual audit 2026-08-11: 5-col tables lost 37% of their width). */
+  width: auto;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+@media (max-width: 640px) {
+  /* Right-edge inset shadow = "there's more, swipe" affordance. */
+  .article-page .table-wrap {
+    box-shadow: inset -24px 0 18px -18px rgba(0, 0, 0, 0.55);
+  }
 }
 .article-page th, .article-page td {
   border: 1px solid var(--border);
@@ -1595,6 +1622,10 @@ abbr[title] {
   text-align: center;
 }
 .article-cta-box .btn { text-decoration: none; color: #fff; margin-top: 0.5rem; }
+/* Long TL;DR paragraphs read badly centered (both edges ragged); keep the
+   box's headings/buttons centered but set running prose left. */
+.article-cta-box p { text-align: left; }
+.article-cta-box p:has(.btn) { text-align: center; }
 .article-cta-fine { font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
 
 .article-page hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }

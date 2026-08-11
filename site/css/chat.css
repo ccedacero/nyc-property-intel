@@ -646,6 +646,20 @@
     font-size: 16px;
   }
 
+  /* Keep the one-line placeholder from wrapping into a clipped second line
+     on narrow screens (the composer is the sole conversion surface). */
+  .chat-textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The legal line shouldn't out-weigh the input on a phone. */
+  .chat-disclaimer {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
   .chat-gate-input {
     font-size: 16px;
   }
