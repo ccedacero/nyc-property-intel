@@ -1,7 +1,12 @@
-"""Liens and encumbrances tool — tax liens and ACRIS mortgage records.
+"""Liens and encumbrances tool — tax liens and ACRIS mortgage/lien records.
 
-Returns DOF tax lien sale list entries and ACRIS mortgage/lien documents
-for a given BBL.
+Returns DOF tax lien sale list entries and ACRIS recorded documents for a
+given BBL: mortgages and their satisfactions, plus the lien-family doctypes
+present in the ACRIS real-property mirror — condo common-charge liens (LOCC)
+and their terminations (TOLCC), tax lien sale certificates and their
+assignments/amendments (TLS/ATL/AMTL), and tax-lien discharges/releases
+(DTL/RTXL). Federal tax liens and mechanic's liens are filed in ACRIS
+personal-property records / with the County Clerk and are NOT covered.
 """
 
 from __future__ import annotations
@@ -43,7 +48,8 @@ SELECT m.documentid, m.doctype, m.docdate, m.docamount, m.recordedfiled,
 FROM real_property_legals l
 JOIN real_property_master m ON l.documentid = m.documentid
 WHERE l.borough = $1 AND l.block = $2::int AND l.lot = $3::int
-  AND m.doctype IN ('MTGE', 'AGMT', 'ASST', 'SAT', 'SMTG', 'AL&R', 'AALR')
+  AND m.doctype IN ('MTGE', 'AGMT', 'ASST', 'SAT', 'SMTG', 'AL&R', 'AALR',
+                    'LOCC', 'TOLCC', 'TLS', 'ATL', 'AMTL', 'DTL', 'RTXL')
 ORDER BY m.docdate DESC
 LIMIT $4;"""
 
@@ -57,9 +63,12 @@ async def get_liens_and_encumbrances(
 ) -> dict[str, Any]:
     """Get tax liens and mortgage/encumbrance records for a property.
 
-    Shows DOF tax lien sale list entries and ACRIS mortgage documents
-    including lender names, amounts, and satisfaction records. Use this
-    to assess a property's debt profile and lien exposure.
+    Shows DOF tax lien sale list entries and ACRIS recorded documents —
+    mortgages, satisfactions, condo common-charge liens (LOCC), tax lien
+    sale certificates (TLS/ATL/AMTL), and tax-lien discharges (DTL/RTXL) —
+    including party names and amounts. Use this to assess a property's
+    debt profile and lien exposure. Not covered (different filing systems):
+    federal tax liens, mechanic's liens, and court-filed lis pendens.
     """
     try:
         borough_str, block_str, lot_str = validate_bbl(bbl)
