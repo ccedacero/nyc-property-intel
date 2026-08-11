@@ -14,6 +14,10 @@
 -->
 <mjml>
   <mj-head>
+    <mj-raw>
+      <meta name="color-scheme" content="light only" />
+      <meta name="supported-color-schemes" content="light only" />
+    </mj-raw>
     <mj-title>Confirm your building alerts</mj-title>
     <mj-preview>One click to start watching this NYC building.</mj-preview>
     <mj-attributes>
@@ -46,10 +50,10 @@
 
     <mj-section background-color="#ffffff" padding="8px 32px 28px">
       <mj-column>
-        <mj-button href="{DATA_VARIABLE:confirmUrl}" background-color="#2563eb" color="#ffffff"
+        <mj-button href="{DATA_VARIABLE:confirmUrl}" background-color="#2563eb" color="#fffffe"
                    font-size="15px" font-weight="600" border-radius="8px"
                    inner-padding="13px 28px" align="left">
-          Confirm my alerts &rarr;
+          <span style="color:#fffffe;">Confirm my alerts &rarr;</span>
         </mj-button>
       </mj-column>
     </mj-section>
