@@ -20,6 +20,10 @@
 -->
 <mjml>
   <mj-head>
+    <mj-raw>
+      <meta name="color-scheme" content="light only" />
+      <meta name="supported-color-schemes" content="light only" />
+    </mj-raw>
     <mj-title>New activity on {DATA_VARIABLE:address}</mj-title>
     <mj-preview>The city records for a building you're watching just changed.</mj-preview>
     <mj-attributes>
@@ -63,10 +67,10 @@
     <!-- CTA -->
     <mj-section background-color="#ffffff" padding="0 32px 24px">
       <mj-column>
-        <mj-button href="{DATA_VARIABLE:reportUrl}" background-color="#2563eb" color="#ffffff"
+        <mj-button href="{DATA_VARIABLE:reportUrl}" background-color="#2563eb" color="#fffffe"
                    font-size="15px" font-weight="600" border-radius="8px"
                    inner-padding="13px 28px" align="left">
-          See the full report &rarr;
+          <span style="color:#fffffe;">See the full report &rarr;</span>
         </mj-button>
       </mj-column>
     </mj-section>
