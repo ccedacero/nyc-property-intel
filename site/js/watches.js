@@ -103,6 +103,52 @@
     show(listEl);
   }
 
+
+  // Sign-in-from-anywhere (signed-out state): email -> existing signup
+  // endpoint. Brand-new emails may get an instant token (store + reload);
+  // returning emails get a magic link whose ?next brings them back here.
+  function wireSignin(nextPath) {
+    var form = document.getElementById("signin-form");
+    var input = document.getElementById("signin-email");
+    var msg = document.getElementById("signin-msg");
+    if (!form || !input) return;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = (input.value || "").trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        if (msg) msg.textContent = "Please enter a valid email address.";
+        return;
+      }
+      var btn = form.querySelector("button");
+      btn.disabled = true;
+      if (msg) msg.textContent = "Sending\u2026";
+      fetch(API_BASE + "/api/chat/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, next: nextPath }),
+        credentials: "include",
+      })
+        .then(function (res) { return res.json().catch(function () { return {}; }).then(function (d) { return { ok: res.ok, d: d }; }); })
+        .then(function (r) {
+          if (r.ok && r.d.token) {
+            try { localStorage.setItem(TOKEN_KEY, r.d.token); } catch (err) { /* no-op */ }
+            try { localStorage.setItem("nyc_pi_email", email); } catch (err) { /* no-op */ }
+            window.location.reload();
+          } else if (r.ok) {
+            form.hidden = true;
+            if (msg) msg.textContent = "\u2713 Check your inbox \u2014 we sent a sign-in link to " + email + ". It brings you right back here.";
+          } else {
+            btn.disabled = false;
+            if (msg) msg.textContent = r.d.error || "Something went wrong. Please try again.";
+          }
+        })
+        .catch(function () {
+          btn.disabled = false;
+          if (msg) msg.textContent = "Connection error. Please try again.";
+        });
+    });
+  }
+
   function load() {
     var token = null;
     try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { token = null; }
@@ -110,6 +156,7 @@
     if (!token) {
       hide(statusEl);
       show(signedOutEl);
+      wireSignin("/watches");
       capture("watches_page_view", { state: "signed_out" });
       return;
     }
@@ -124,6 +171,7 @@
           try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* no-op */ }
           hide(statusEl);
           show(signedOutEl);
+      wireSignin("/watches");
           capture("watches_page_view", { state: "expired" });
           return null;
         }

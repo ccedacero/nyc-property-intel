@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/css/style.css?v=20260813">
 
   <script src="/js/posthog-init.js?v=20260522" defer></script>
-  <script src="/js/reports.js?v=20260619" defer></script>
+  <script src="/js/reports.js?v=20260813b" defer></script>
 </head>
 <body>
   <a href="#reports-content" class="skip-link">Skip to your reports</a>
@@ -51,9 +51,14 @@
 
       <!-- Signed-out / no token -->
       <aside class="article-cta-box" id="reports-signedout" hidden>
-        <h2>Your reports live here once you have a free account</h2>
-        <p>Run a full due-diligence report while signed in and it&rsquo;s saved to this page automatically &mdash; a permanent link you can reopen, print to PDF, or forward. No account yet? It&rsquo;s free.</p>
-        <p><a href="/chat" class="btn btn-primary">Start a free report &rarr;</a></p>
+        <h2>Sign in to see your saved reports</h2>
+        <p>Every full due-diligence report you run while signed in is saved here automatically. Enter your email &mdash; we&rsquo;ll sign you in, or start your free account.</p>
+        <form id="signin-form" class="hero-signup-fields" novalidate>
+          <input type="email" id="signin-email" class="signup-input" placeholder="you@email.com" autocomplete="email" required aria-label="Email address">
+          <button type="submit" class="btn btn-primary signup-btn">Email me a sign-in link</button>
+        </form>
+        <p class="report-watch-msg" id="signin-msg" role="status" aria-live="polite"></p>
+        <p class="article-cta-fine">Or <a href="/chat">start a free report</a> right away &mdash; no signup needed for your first queries.</p>
       </aside>
 
       <!-- The list -->
