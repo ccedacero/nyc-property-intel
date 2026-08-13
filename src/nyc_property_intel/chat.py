@@ -976,6 +976,12 @@ def make_chat_handlers(auth: TokenAuth):
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
 
+        # Optional post-activation destination (sign-in-from-anywhere): only
+        # whitelisted internal paths ride along on the magic link.
+        next_path = str(body.get("next", "")).strip()
+        if next_path not in ("/watches", "/reports"):
+            next_path = ""
+
         # Email passed shape check — NOW count it against the IP budget.
         if not _check_signup_ip_rate_limit(client_ip):
             logger.warning("Signup rate limit hit for IP %s", client_ip)
@@ -1012,6 +1018,8 @@ def make_chat_handlers(auth: TokenAuth):
             return JSONResponse({"error": "Service error"}, status_code=500)
 
         activation_url = f"{_SITE_BASE}/chat?t={link_id}"
+        if next_path:
+            activation_url += f"&next={next_path}"
         if created:
             ph_capture(email_canonical, "web_chat_signup", {"plan": "trial"})
 
@@ -1620,6 +1628,12 @@ def make_signup_endpoint_handler(auth: TokenAuth):
         email = str(body.get("email", "")).strip().lower()
         if not email or len(email) > 254 or not _EMAIL_RE.match(email):
             return JSONResponse({"error": "Invalid email"}, status_code=400)
+
+        # Optional post-activation destination (sign-in-from-anywhere): only
+        # whitelisted internal paths ride along on the magic link.
+        next_path = str(body.get("next", "")).strip()
+        if next_path not in ("/watches", "/reports"):
+            next_path = ""
 
         # ── IP rate limit ────────────────────────────────────────────
         # Applied AFTER email-shape validation so that typos / malformed

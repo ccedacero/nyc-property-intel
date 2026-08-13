@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://nyc-property-intel-production.up.railway.app" crossorigin>
   <link rel="stylesheet" href="/css/style.css?v=20260813">
   <script src="/js/posthog-init.js?v=20260522" defer></script>
-  <script src="/js/watches.js?v=20260810" defer></script>
+  <script src="/js/watches.js?v=20260813b" defer></script>
 </head>
 <body>
   <a href="#watches-content" class="skip-link">Skip to main content</a>
@@ -47,8 +47,13 @@
       <!-- Signed-out / no token -->
       <aside class="article-cta-box" id="watches-signedout" hidden>
         <h2>Sign in to manage your alerts</h2>
-        <p>This page shows the buildings watched under your account&rsquo;s email. Run a query in the <a href="/chat">chat</a> while signed in, or use the unsubscribe link in any alert email to manage a single watch.</p>
-        <p><a href="/chat" class="btn btn-primary">Open the chat &rarr;</a></p>
+        <p>Enter the email you watch buildings with &mdash; we&rsquo;ll sign you in. New here? The same email starts a free account.</p>
+        <form id="signin-form" class="hero-signup-fields" novalidate>
+          <input type="email" id="signin-email" class="signup-input" placeholder="you@email.com" autocomplete="email" required aria-label="Email address">
+          <button type="submit" class="btn btn-primary signup-btn">Email me a sign-in link</button>
+        </form>
+        <p class="report-watch-msg" id="signin-msg" role="status" aria-live="polite"></p>
+        <p class="article-cta-fine">You can also manage any single watch from the unsubscribe link in its alert email.</p>
       </aside>
 
       <!-- The list -->

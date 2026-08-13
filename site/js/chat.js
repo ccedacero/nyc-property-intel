@@ -83,7 +83,10 @@
     const params = new URLSearchParams(window.location.search);
     const magicId = params.get("t");
     if (magicId) {
-      activateMagicLink(magicId);
+      // Sign-in-from-anywhere: a whitelisted ?next sends the user back to
+      // the page they signed in from once the token is applied.
+      const nextPath = params.get("next");
+      activateMagicLink(magicId, ["/watches", "/reports"].includes(nextPath) ? nextPath : null);
       // Clean URL without reload
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -169,7 +172,7 @@
 
   /* ── Magic link activation ────────────────────────────────────────── */
 
-  async function activateMagicLink(id) {
+  async function activateMagicLink(id, nextPath) {
     try {
       const res = await fetch(`${API_BASE}/api/activate`, {
         method: "POST",
@@ -188,6 +191,10 @@
       if (data.token) {
         applyIssuedToken(data.token);
         if (typeof posthog !== "undefined") posthog.capture("chat_activated");
+        if (nextPath) {
+          window.location.assign(nextPath);
+          return;
+        }
       }
     } catch {
       appendSystemMessage("Could not activate your account. Please try again.");
