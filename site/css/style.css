@@ -1542,6 +1542,14 @@ abbr[title] {
   text-underline-offset: 2px;
 }
 .article-page a:hover { color: var(--accent-hover); }
+/* Buttons rendered inside article layouts (watch-confirm, watch-unsubscribe,
+   report error states): the generic .article-page a rule above out-specifies
+   .btn-primary's color, producing blue-on-blue "blank" buttons. Re-assert. */
+.article-page a.btn { text-decoration: none; }
+.article-page a.btn-primary,
+.article-page a.btn-primary:hover,
+.article-page a.btn-accent,
+.article-page a.btn-accent:hover { color: #fff; }
 
 /* Blockquote callouts — TL;DR, inline CTAs, tips */
 .article-page blockquote {
