@@ -579,6 +579,12 @@
           price_shown: 19, bbl: bbl || null, email: email || null, source: "chat",
         });
       }
+      // Durable list behind the "we'll email you" promise — fire-and-forget.
+      fetch(`${API_BASE}/api/pro-interest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email || null, bbl: bbl || null, source: "chat" }),
+      }).catch(() => { /* best-effort */ });
       probe.innerHTML = "<p class=\"chat-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
     });
   }

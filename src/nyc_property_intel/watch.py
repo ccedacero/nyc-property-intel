@@ -186,6 +186,35 @@ async def register_watch(email: str, bbl: str, address: str | None) -> dict:
     return {"status": "pending", "token": row["id"], "existing": bool(stats["has_bbl"])}
 
 
+async def record_pro_interest(email: str | None, bbl: str | None, source: str) -> None:
+    """Durably record a 'Notify me at launch' click for Pro monitoring.
+
+    The painted-door probe previously fired only a PostHog event, so the UI's
+    'we'll email you when Pro launches' promise had no list behind it. This
+    table IS that list. Self-provisioning like the watch table; best-effort —
+    callers never fail on a write error.
+    """
+    pool = await get_pool()
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pro_monitoring_interest (
+            id         BIGSERIAL PRIMARY KEY,
+            email      TEXT,
+            bbl        TEXT,
+            source     TEXT NOT NULL DEFAULT 'unknown',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    await pool.execute(
+        "INSERT INTO pro_monitoring_interest (email, bbl, source) VALUES ($1, $2, $3)",
+        (email or None) and email.strip().lower()[:254],
+        (bbl or None) and bbl.strip()[:10],
+        source[:32],
+    )
+    logger.info("pro interest recorded: %s (%s)", email or "anon", source)
+
+
 async def list_watches_for_email(email: str) -> list[dict]:
     """Active watches for an email, newest-first — the /watches management page.
 

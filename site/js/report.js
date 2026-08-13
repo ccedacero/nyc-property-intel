@@ -58,6 +58,12 @@
       if (typeof posthog !== "undefined") {
         posthog.capture("pro_monitoring_interest", { price_shown: 19, bbl: bbl || null, email: email || null });
       }
+      // Durable list behind the "we'll email you" promise — fire-and-forget.
+      fetch(API_BASE + "/api/pro-interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email || null, bbl: bbl || null, source: "report" }),
+      }).catch(function () { /* best-effort */ });
       box.innerHTML = "<p class=\"report-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
     });
   }

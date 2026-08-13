@@ -683,6 +683,35 @@ def main() -> None:
                 json.dumps({"watches": watches}), media_type="application/json"
             )
 
+        async def pro_interest_handler(request: Request) -> Response:
+            """POST /api/pro-interest — durable 'notify me at Pro launch' list.
+
+            Body: {"email": optional, "bbl": optional, "source": "chat"|"report"}.
+            Best-effort by design: the UI treats any response as success.
+            """
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            email = str(body.get("email") or "").strip().lower()[:254] or None
+            bbl = str(body.get("bbl") or "").strip()[:10] or None
+            source = str(body.get("source") or "unknown")[:32]
+            if email and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+                email = None
+            if bbl and not bbl.isdigit():
+                bbl = None
+            if not _check_watch_ip_rate_limit(_get_client_ip(request)):
+                return Response(
+                    '{"error":"rate_limited"}', status_code=429, media_type="application/json"
+                )
+            try:
+                from nyc_property_intel.watch import record_pro_interest
+
+                await record_pro_interest(email, bbl, source)
+            except Exception as exc:
+                logger.warning("pro-interest record failed: %s", exc)
+            return Response('{"ok":true}', media_type="application/json")
+
         async def watch_unsubscribe_handler(request: Request) -> Response:
             """Deactivate a watch (one-click opt-out from the alert email).
 
@@ -746,6 +775,8 @@ def main() -> None:
                     Route("/api/watch/mine", watch_mine_handler, methods=["GET"]),
                     Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                     Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
+                Route("/api/pro-interest", pro_interest_handler, methods=["POST"]),
+                    Route("/api/pro-interest", pro_interest_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
                 lifespan=_combined_lifespan,
