@@ -303,7 +303,15 @@ async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client
 
 # ── Loops transactional email ─────────────────────────────────────────
 
-async def _send_activation_email(email: str, activation_url: str) -> None:
+async def _send_activation_email(
+    email: str, activation_url: str, returning: bool = False
+) -> None:
+    """Send the magic-link email. New signups get the activation template
+    ("Activate your free access", trial pitch); returning users signing back
+    in get the sign-in template when configured — same activationUrl
+    variable, different copy. Falls back to the activation template so the
+    flow never breaks on a missing template id.
+    """
     if not settings.loops_api_key:
         logger.warning("LOOPS_API_KEY not set — activation email not sent to %s", email)
         return
@@ -323,7 +331,11 @@ async def _send_activation_email(email: str, activation_url: str) -> None:
                 "Content-Type": "application/json",
             },
             json={
-                "transactionalId": settings.loops_chat_transactional_id,
+                "transactionalId": (
+                    settings.loops_signin_transactional_id
+                    if returning and settings.loops_signin_transactional_id
+                    else settings.loops_chat_transactional_id
+                ),
                 "email": email,
                 "dataVariables": {"activationUrl": activation_url},
             },
@@ -1024,7 +1036,7 @@ def make_chat_handlers(auth: TokenAuth):
             ph_capture(email_canonical, "web_chat_signup", {"plan": "trial"})
 
         try:
-            await _send_activation_email(email, activation_url)
+            await _send_activation_email(email, activation_url, returning=not created)
         except Exception:
             logger.exception("Failed to send activation email to %s", email)
 

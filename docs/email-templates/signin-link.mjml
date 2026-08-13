@@ -1,0 +1,101 @@
+<!--
+  NYC Property Intel — returning-user sign-in email
+  MJML format — for the Loops Code editor.
+
+  HOW TO USE:
+  1. Loops → Transactional → Create → name it "Sign-in link".
+  2. Editing panel → Code tab → upload THIS .mjml (or the .zip).
+  3. Subject line:  Your sign-in link — NYC Property Intel
+  4. Data variable (must match the backend's dataVariables):
+        activationUrl  e.g. "https://nycpropertyintel.com/chat?t=<uuid>&next=/watches"
+  5. Publish → copy the Transactional ID → set LOOPS_SIGNIN_TRANSACTIONAL_ID
+     on both Railway services. Until the env var is set, returning users
+     keep getting the activation template (graceful fallback).
+
+  Button text uses #fffffe (not pure white) so Gmail dark mode doesn't
+  invert it invisible — same fix as the alert/confirm templates.
+-->
+<mjml>
+  <mj-head>
+    <mj-raw>
+      <meta name="color-scheme" content="light only" />
+      <meta name="supported-color-schemes" content="light only" />
+    </mj-raw>
+    <mj-title>Your sign-in link — NYC Property Intel</mj-title>
+    <mj-preview>One click to sign back in.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" />
+      <mj-text color="#0f172a" line-height="1.6" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f1f5f9" width="600px">
+
+    <!-- Header -->
+    <mj-section background-color="#0f172a" padding="20px 32px">
+      <mj-column>
+        <mj-text color="#ffffff" font-size="16px" font-weight="700" letter-spacing="0.2px">
+          NYC Property Intel
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Lead -->
+    <mj-section background-color="#ffffff" padding="32px 32px 8px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700" line-height="1.3" padding="0 0 8px">
+          Sign back in
+        </mj-text>
+        <mj-text font-size="15px" color="#475569">
+          Click below to sign in to your NYC Property Intel account — your
+          saved reports and watched buildings are where you left them.
+          The link expires in 24 hours and can be used once.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- CTA -->
+    <mj-section background-color="#ffffff" padding="8px 32px 28px">
+      <mj-column>
+        <mj-button href="{DATA_VARIABLE:activationUrl}" background-color="#2563eb" color="#fffffe"
+                   font-size="15px" font-weight="600" border-radius="8px"
+                   inner-padding="13px 28px" align="left">
+          <span style="color:#fffffe;">Sign me in &rarr;</span>
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Fallback link -->
+    <mj-section background-color="#ffffff" padding="0 32px 28px">
+      <mj-column>
+        <mj-text font-size="13px" color="#94a3b8">
+          Or copy and paste this link into your browser:
+        </mj-text>
+        <mj-text font-size="12px" color="#2563eb">
+          {DATA_VARIABLE:activationUrl}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#ffffff" padding="0 32px 28px">
+      <mj-column>
+        <mj-divider border-width="1px" border-color="#e2e8f0" padding="0 0 16px" />
+        <mj-text font-size="12px" color="#94a3b8">
+          If you didn't request this, you can safely ignore this email — no
+          one can access your account without it. Informational only; not
+          legal, financial, or appraisal advice.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="16px 32px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#94a3b8">
+          <a href="https://nycpropertyintel.com" style="color:#94a3b8; text-decoration:none;">nycpropertyintel.com</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
