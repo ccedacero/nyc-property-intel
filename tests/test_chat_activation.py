@@ -69,6 +69,21 @@ class _FakePool:
     async def fetchval(self, *_args: Any, **_kwargs: Any) -> Any:
         return 0
 
+    # The rotate-on-activate step runs inside `async with pool.acquire() as
+    # conn: async with conn.transaction():` — let the fake serve as its own
+    # connection and transaction context.
+    def acquire(self) -> "_FakePool":
+        return self
+
+    def transaction(self) -> "_FakePool":
+        return self
+
+    async def __aenter__(self) -> "_FakePool":
+        return self
+
+    async def __aexit__(self, *_exc: Any) -> bool:
+        return False
+
 
 class _FakeAuth:
     """Stand-in for TokenAuth that yields a fake pool."""
@@ -78,6 +93,9 @@ class _FakeAuth:
 
     async def _get_pool(self) -> _FakePool:
         return self._pool
+
+    def invalidate_cache(self, _token_hash: str) -> None:
+        pass
 
 
 # ── Tests ─────────────────────────────────────────────────────────────
@@ -94,7 +112,7 @@ class TestActivateHandlerReturnsToken:
         """
         plaintext = "nyprop_abcdef0123456789abcdef0123456789"
         # _decrypt_token is patched, so the encrypted_token value is opaque.
-        pool = _FakePool(row={"encrypted_token": "encrypted-blob"})
+        pool = _FakePool(row={"encrypted_token": "encrypted-blob", "customer_email": "user@example.com"})
         auth = _FakeAuth(pool)
 
         _, activate, _, _ = make_chat_handlers(auth)
@@ -117,7 +135,7 @@ class TestActivateHandlerReturnsToken:
     async def test_success_sets_httponly_cookie(self) -> None:
         """Defence in depth: cookie is also set so non-localStorage clients work."""
         plaintext = "nyprop_abcdef0123456789abcdef0123456789"
-        pool = _FakePool(row={"encrypted_token": "blob"})
+        pool = _FakePool(row={"encrypted_token": "blob", "customer_email": "user@example.com"})
         auth = _FakeAuth(pool)
         _, activate, _, _ = make_chat_handlers(auth)
 
@@ -136,7 +154,7 @@ class TestActivateHandlerReturnsToken:
 
     async def test_atomic_consume_query_marks_used(self) -> None:
         """The SQL must atomically UPDATE used_at and only succeed once."""
-        pool = _FakePool(row={"encrypted_token": "blob"})
+        pool = _FakePool(row={"encrypted_token": "blob", "customer_email": "user@example.com"})
         auth = _FakeAuth(pool)
         _, activate, _, _ = make_chat_handlers(auth)
 
@@ -211,7 +229,7 @@ class TestActivateHandlerRejectsBadInput:
 
     async def test_decrypt_failure_returns_500_no_token(self) -> None:
         """Fernet failure must not leak the encrypted blob or anything else."""
-        pool = _FakePool(row={"encrypted_token": "tampered-blob"})
+        pool = _FakePool(row={"encrypted_token": "tampered-blob", "customer_email": "user@example.com"})
         auth = _FakeAuth(pool)
         _, activate, _, _ = make_chat_handlers(auth)
 

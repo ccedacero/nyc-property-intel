@@ -278,7 +278,13 @@ def _decrypt_token(encrypted: str) -> str | None:
 
 # ── Magic link DB helpers ─────────────────────────────────────────────
 
-async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client_ip: str = "") -> str:
+async def _create_magic_link(
+    pool,
+    token_hash: str,
+    plaintext_token: str,
+    client_ip: str = "",
+    customer_email: str | None = None,
+) -> str:
     """Insert a magic link row and return the UUID string.
 
     `expires_at` is set explicitly to NOW() + 24h instead of relying on
@@ -286,17 +292,21 @@ async def _create_magic_link(pool, token_hash: str, plaintext_token: str, client
     in migration 012 and scripts/manage_tokens.py to match. Setting it
     explicitly here means this code's TTL doesn't silently drift if the
     column default is ever rolled back in prod (E2 fix).
+
+    ``customer_email`` is carried on the row so activation can rotate the
+    right email's tokens (rotate-on-activate — see activate_handler).
     """
     link_id = str(uuid.uuid4())
     await pool.execute(
         """
-        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip, expires_at)
-        VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours')
+        INSERT INTO web_magic_links (id, token_hash, encrypted_token, created_by_ip, expires_at, customer_email)
+        VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours', $5)
         """,
         link_id,
         token_hash,
         _encrypt_token(plaintext_token),
         client_ip or None,
+        customer_email,
     )
     return link_id
 
@@ -922,29 +932,21 @@ async def _rotate_token_and_create_magic_link(
     async def _do_writes(executor) -> str:
         nonlocal token
         if not created:
+            # Rotate-on-ACTIVATE: do NOT revoke the existing token or insert the
+            # new one now. A returning user's live token — including an MCP
+            # token issued out-of-band and in use elsewhere — must survive
+            # until they actually click the link. So here we only mint the new
+            # plaintext and stash it (encrypted) on the magic-link row, carrying
+            # the email; activate_handler revokes-old-then-inserts-new in one
+            # transaction when the link is clicked. This closes the H-1 hole
+            # where an unauthenticated re-signup for a known email instantly
+            # killed that email's active tokens.
             logger.info(
-                "Web signup: %s re-signing up — revoking existing tokens and issuing fresh magic link",
-                email_canonical,
-            )
-            await executor.execute(
-                "UPDATE mcp_tokens SET revoked_at = NOW() "
-                "WHERE customer_email = $1 AND revoked_at IS NULL",
+                "Web signup: %s re-signing up — deferring token rotation to activation",
                 email_canonical,
             )
             token = generate_token()
             t_hash = hash_token(token)
-            expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
-            await executor.execute(
-                """
-                INSERT INTO mcp_tokens
-                    (token_hash, token_prefix, customer_email, plan,
-                     daily_limit, expires_at, notes)
-                VALUES ($1, $2, $3, 'trial', $4, $5, $6)
-                ON CONFLICT (token_hash) DO NOTHING
-                """,
-                t_hash, token[:15] + "...", email_canonical,
-                PLAN_LIMITS.get("trial", 10), expires_at, rotate_notes,
-            )
         else:
             t_hash = hash_token(token)
             await executor.execute(
@@ -955,7 +957,9 @@ async def _rotate_token_and_create_magic_link(
         # tests that patch `_create_magic_link` continue to intercept it.
         # Pass the executor (conn or pool) so this insert participates in
         # the surrounding transaction when one exists.
-        return await _create_magic_link(executor, t_hash, token, client_ip)
+        return await _create_magic_link(
+            executor, t_hash, token, client_ip, customer_email=email_canonical
+        )
 
     if has_transaction:
         async with pool.acquire() as conn:
@@ -1083,7 +1087,7 @@ def make_chat_handlers(auth: TokenAuth):
                 WHERE id = $1
                   AND used_at IS NULL
                   AND expires_at > NOW()
-                RETURNING encrypted_token
+                RETURNING encrypted_token, customer_email
                 """,
                 magic_token,
             )
@@ -1098,6 +1102,55 @@ def make_chat_handlers(auth: TokenAuth):
         if plaintext is None:
             logger.error("Fernet decryption failed for magic link %s", magic_token[:8])
             return JSONResponse({"error": "Service error"}, status_code=500)
+
+        # Rotate-on-activate + verify. Clicking the link is the proof of email
+        # ownership, so now (and only now) do we materialize/verify the token:
+        #  - if this token is already an active mcp_tokens row (the new-email
+        #    instant-token path), just flip verified=TRUE;
+        #  - otherwise (a returning-user re-signup link) revoke the email's old
+        #    active tokens and insert this one as the single active, verified
+        #    token — atomically, so the partial unique index is never violated.
+        t_hash = hash_token(plaintext)
+        link_email = row["customer_email"]
+        try:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    already_active = await conn.fetchval(
+                        "SELECT 1 FROM mcp_tokens WHERE token_hash = $1 AND revoked_at IS NULL",
+                        t_hash,
+                    )
+                    if already_active:
+                        await conn.execute(
+                            "UPDATE mcp_tokens SET verified = TRUE WHERE token_hash = $1",
+                            t_hash,
+                        )
+                    elif link_email:
+                        from datetime import datetime, timedelta, timezone
+                        await conn.execute(
+                            "UPDATE mcp_tokens SET revoked_at = NOW() "
+                            "WHERE customer_email = $1 AND revoked_at IS NULL",
+                            link_email,
+                        )
+                        await conn.execute(
+                            """
+                            INSERT INTO mcp_tokens
+                                (token_hash, token_prefix, customer_email, plan,
+                                 daily_limit, expires_at, notes, verified, source)
+                            VALUES ($1, $2, $3, 'trial', $4, $5,
+                                    'web re-signup activation', TRUE, 'web')
+                            ON CONFLICT (customer_email) WHERE revoked_at IS NULL DO NOTHING
+                            """,
+                            t_hash, plaintext[:15] + "...", link_email,
+                            PLAN_LIMITS.get("trial", 10),
+                            datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS),
+                        )
+            # Drop any stale cache entry for this hash so the fresh row is read.
+            auth.invalidate_cache(t_hash)
+        except Exception:
+            # Never fail activation on the rotation step — the decrypted token is
+            # still returned so the user isn't locked out; verification/rotation
+            # will settle on the next signup if this raced.
+            logger.exception("Rotate-on-activate step failed for %s", magic_token[:8])
 
         ph_capture("anonymous", "magic_link_activated", {})
         # Return the plaintext token in the JSON body so the browser can store
