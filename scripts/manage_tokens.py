@@ -87,6 +87,14 @@ async def cmd_migrate(pool: asyncpg.Pool) -> None:
         CREATE INDEX IF NOT EXISTS mcp_tokens_email
             ON mcp_tokens(customer_email);
 
+        -- Arbiter index for `ON CONFLICT (customer_email) WHERE revoked_at
+        -- IS NULL` in auth.create_token / token rotation. Prod has this
+        -- (created out-of-band as mcp_tokens_email_active); without it a
+        -- fresh rebuild 500s on every new-email signup. One active token
+        -- per email is also the intended invariant.
+        CREATE UNIQUE INDEX IF NOT EXISTS mcp_tokens_email_active
+            ON mcp_tokens(customer_email) WHERE revoked_at IS NULL;
+
         ALTER TABLE mcp_tokens
             ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'cli';
 

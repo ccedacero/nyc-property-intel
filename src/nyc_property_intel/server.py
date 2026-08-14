@@ -775,7 +775,6 @@ def main() -> None:
                     Route("/api/watch/mine", watch_mine_handler, methods=["GET"]),
                     Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                     Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
-                Route("/api/pro-interest", pro_interest_handler, methods=["POST"]),
                     Route("/api/pro-interest", pro_interest_handler, methods=["POST"]),
                     Mount("/", mcp_app),
                 ],
@@ -796,6 +795,7 @@ def main() -> None:
                 Route("/api/watch/mine", watch_mine_handler, methods=["GET"]),
                 Route("/api/watch/confirm", watch_confirm_handler, methods=["POST"]),
                 Route("/api/watch/unsubscribe", watch_unsubscribe_handler, methods=["POST"]),
+                Route("/api/pro-interest", pro_interest_handler, methods=["POST"]),
                 Mount("/", mcp_app),
             ])
 

@@ -316,11 +316,11 @@ async def _send_activation_email(
         logger.warning("LOOPS_API_KEY not set — activation email not sent to %s", email)
         return
     if not settings.loops_chat_transactional_id:
+        # Never log the activation URL — it embeds the single-use magic-link
+        # token (a live credential). Log only that the send was skipped.
         logger.warning(
-            "LOOPS_CHAT_TRANSACTIONAL_ID not set — skipping activation email for %s. "
-            "Activation URL: %s",
+            "LOOPS_CHAT_TRANSACTIONAL_ID not set — skipping activation email for %s.",
             email,
-            activation_url,
         )
         return
     async with httpx.AsyncClient(timeout=10) as client:
