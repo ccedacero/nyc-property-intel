@@ -98,16 +98,31 @@ async def cmd_migrate(pool: asyncpg.Pool) -> None:
         ALTER TABLE mcp_tokens
             ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'cli';
 
+        -- verified: FALSE for signup-issued tokens until the magic link is
+        -- clicked (activate flips it TRUE). CLI-issued tokens are trusted, so
+        -- the default is TRUE and this INSERT sets it TRUE explicitly below.
+        ALTER TABLE mcp_tokens
+            ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
+
+        -- token_hash carries the token the link will materialize on
+        -- activation; for a returning-user re-signup that token does NOT exist
+        -- in mcp_tokens until the link is clicked (rotate-on-activate), so
+        -- there is deliberately NO foreign key to mcp_tokens here.
         CREATE TABLE IF NOT EXISTS web_magic_links (
             id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-            token_hash       TEXT        NOT NULL REFERENCES mcp_tokens(token_hash),
+            token_hash       TEXT        NOT NULL,
             encrypted_token  TEXT        NOT NULL,
             created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             expires_at       TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '24 hours',
             used_at          TIMESTAMPTZ,
-            created_by_ip    TEXT
+            created_by_ip    TEXT,
+            customer_email   TEXT
         );
         ALTER TABLE web_magic_links ADD COLUMN IF NOT EXISTS created_by_ip TEXT;
+        ALTER TABLE web_magic_links ADD COLUMN IF NOT EXISTS customer_email TEXT;
+        -- Drop the legacy FK on pre-existing databases (incompatible with
+        -- rotate-on-activate — see the table comment above).
+        ALTER TABLE web_magic_links DROP CONSTRAINT IF EXISTS web_magic_links_token_hash_fkey;
 
         CREATE INDEX IF NOT EXISTS web_magic_links_expires
             ON web_magic_links(expires_at)
