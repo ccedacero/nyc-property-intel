@@ -88,6 +88,7 @@ class TokenInfo:
     customer_email: str
     plan: str
     daily_limit: int
+    verified: bool = True   # False until the email is proven via magic link
 
 
 # ── Core auth class ───────────────────────────────────────────────────
@@ -148,7 +149,8 @@ class TokenAuth:
             pool = await self._get_pool()
             row = await pool.fetchrow(
                 """
-                SELECT token_hash, token_prefix, customer_email, plan, daily_limit
+                SELECT token_hash, token_prefix, customer_email, plan, daily_limit,
+                       COALESCE(verified, TRUE) AS verified
                 FROM mcp_tokens
                 WHERE token_hash = $1
                   AND revoked_at IS NULL
@@ -169,6 +171,7 @@ class TokenAuth:
             customer_email=row["customer_email"],
             plan=row["plan"],
             daily_limit=row["daily_limit"],
+            verified=bool(row["verified"]),
         )
         self._cache[token_hash] = (info, time.monotonic())
         return info
@@ -209,11 +212,16 @@ class TokenAuth:
         if plan == "trial":
             expires_at = datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS)
 
+        # verified=FALSE: this token is issued through a signup path that
+        # delivers a magic link; it's only proven to belong to the email once
+        # that link is clicked (activate_handler flips it TRUE). Read surfaces
+        # keyed on the email (e.g. /api/watch/mine) must gate on verified so an
+        # unverified instant token can't read another email's data (M-4).
         await pool.execute(
             """
             INSERT INTO mcp_tokens
-                (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                (token_hash, token_prefix, customer_email, plan, daily_limit, expires_at, notes, verified)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE)
             ON CONFLICT (customer_email) WHERE revoked_at IS NULL DO NOTHING
             """,
             token_hash, token_prefix, email, plan, daily_limit, expires_at, notes,

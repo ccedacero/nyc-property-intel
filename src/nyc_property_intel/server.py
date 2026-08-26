@@ -667,6 +667,16 @@ def main() -> None:
                 return Response(
                     '{"error":"invalid_token"}', status_code=401, media_type="application/json"
                 )
+            # M-4: an unverified token (a brand-new instant token whose magic
+            # link hasn't been clicked) must not read the email's watches — else
+            # registering someone else's not-yet-verified email would expose
+            # their watched buildings. Unverified tokens belong to brand-new
+            # users who have no watches yet, so an empty list is also correct
+            # for the legitimate case.
+            if not getattr(token_info, "verified", True):
+                return Response(
+                    '{"watches":[],"verify_required":true}', media_type="application/json"
+                )
             email = (token_info.customer_email or "").strip().lower()
             if not email:
                 return Response('{"watches":[]}', media_type="application/json")

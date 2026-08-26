@@ -440,13 +440,14 @@ class TestBotRejectionBranches:
 
 
 class TestReSignupRotation:
-    async def test_duplicate_email_rotates_token(
+    async def test_duplicate_email_defers_rotation_to_activation(
         self, captured_events, patch_mx_ok, patch_email_send, patch_create_magic_link,
     ) -> None:
-        """Existing email triggers revoke-then-issue rotation, not a hard fail.
-
-        This mirrors chat.signup_handler's behaviour and ensures the trial
-        cap can't be bypassed by repeat signups accumulating tokens.
+        """Rotate-on-ACTIVATE: a re-signup must NOT touch mcp_tokens at request
+        time — no revoke, no insert. The existing (possibly MCP) token must
+        survive until the emailed link is clicked; activate_handler does the
+        revoke-then-insert. This closes H-1 (an unauthenticated re-signup for a
+        known email used to instantly kill that email's active tokens).
         """
         pool = _FakePool()
         auth = _FakeAuth(created=False, pool=pool)
@@ -454,16 +455,18 @@ class TestReSignupRotation:
         body = json.dumps({"email": "returner@example.com"}).encode()
         resp = await handle(_make_request(body, ip="203.0.113.60"))
         assert resp.status_code == 200
-        # The rotation path runs an UPDATE...revoked_at and an INSERT...mcp_tokens.
         sqls = [sql for sql, _args in pool.executes]
-        assert any("UPDATE mcp_tokens" in sql and "revoked_at" in sql for sql in sqls), (
-            "re-signup must revoke existing tokens"
+        # No mcp_tokens mutation at signup — rotation is deferred to activation.
+        assert not any("UPDATE mcp_tokens" in sql and "revoked_at" in sql for sql in sqls), (
+            "re-signup must NOT revoke the live token at signup time (H-1)"
         )
-        assert any("INSERT INTO mcp_tokens" in sql for sql in sqls), (
-            "re-signup must insert a new token row"
+        assert not any("INSERT INTO mcp_tokens" in sql for sql in sqls), (
+            "re-signup must NOT insert a new token at signup — deferred to activation"
         )
-        # Magic link still issued so the user gets an activation email.
+        # The magic link is still issued so the user gets an activation email.
         assert patch_create_magic_link.await_count == 1
+        # And the response carries no token (only new emails get an instant one).
+        assert "token" not in json.loads(resp.body)
 
 
 # ── In-chat gate: instant token for new signups (activation-leak fix) ─
