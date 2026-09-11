@@ -14,6 +14,7 @@ Update cadence: updated daily
 from __future__ import annotations
 
 import logging
+import re
 from datetime import date as _date
 from typing import Any
 
@@ -22,6 +23,13 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from nyc_property_intel.app import mcp
 from nyc_property_intel.socrata import SocrataError, query_socrata
+
+# NYC PAD placeholder BINs that match no real building: all-zero, and the
+# per-borough sentinels 1000000..5000000. These must be excluded when
+# resolving a BBL→BIN or the exact-BIN lookup silently returns zero rows
+# (was a bug: only '0' and Manhattan '1000000' were filtered, so BBLs whose
+# PAD row carried 2/3/4/5000000 falsely reported "0 complaints").
+_PLACEHOLDER_BIN_RE = re.compile(r"^(0+|[1-5]000000)$")
 
 logger = logging.getLogger(__name__)
 
@@ -52,17 +60,21 @@ def _soql_escape(value: str) -> str:
 # ── Local DB queries ──────────────────────────────────────────────────
 
 async def _query_local_by_bin(
-    bin_val: str,
+    bins: list[str],
     category: str | None,
     status: str | None,
     since_year: int | None,
     limit: int,
 ) -> list[dict[str, Any]]:
-    """Query dob_complaints by BIN — exact indexed lookup."""
+    """Query dob_complaints across one or more BINs — exact indexed lookup.
+
+    A BBL can map to several real BINs (multi-building lots); we query all of
+    them so counts aren't split across buildings on the same lot.
+    """
     from nyc_property_intel.db import fetch_all
 
-    conditions = ["bin = $1"]
-    params: list[Any] = [bin_val]
+    conditions = ["bin = ANY($1::text[])"]
+    params: list[Any] = [bins]
     idx = 2
 
     if since_year:
@@ -293,11 +305,11 @@ async def get_dob_complaints(
     street_name = ""
     resolved_address: str | None = None
     borough_code: str | None = None
-    bin_val: str | None = None
+    real_bins: list[str] = []
 
     if bbl:
         from nyc_property_intel.utils import validate_bbl
-        from nyc_property_intel.db import fetch_one
+        from nyc_property_intel.db import fetch_one, fetch_all
 
         try:
             b_code, _, _ = validate_bbl(bbl)
@@ -305,18 +317,29 @@ async def get_dob_complaints(
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
 
-        pad_row = await fetch_one(
+        # Fetch ALL PAD rows for the BBL — a lot can have multiple entrances
+        # (and multiple buildings/BINs). Collect every real BIN, dropping the
+        # placeholder sentinels (0 / 1-5000000) that match no real building.
+        pad_rows = await fetch_all(
             "SELECT lhnd AS house_number, stname AS street_name, bin "
-            "FROM pad_adr WHERE bbl = $1 LIMIT 1",
+            "FROM pad_adr WHERE bbl = $1",
             bbl,
         )
-        if pad_row is not None:
+        if pad_rows:
+            real_bins = sorted({
+                b for r in pad_rows
+                if (b := (str(r["bin"]).strip() if r.get("bin") else ""))
+                and not _PLACEHOLDER_BIN_RE.match(b)
+            })
+            # Representative row for display/address fallback — prefer one that
+            # carries a real BIN so we don't show a placeholder entrance.
+            pad_row = next(
+                (r for r in pad_rows
+                 if (str(r["bin"]).strip() if r.get("bin") else "") in real_bins),
+                pad_rows[0],
+            )
             house_number = (pad_row["house_number"] or "").strip()
             street_name = (pad_row["street_name"] or "").strip()
-            # Treat NYC sentinel BINs ('0', '1000000') as "no BIN" — they don't
-            # match any real building and would silently return zero results.
-            raw_bin = str(pad_row["bin"]).strip() if pad_row.get("bin") else ""
-            bin_val = raw_bin if raw_bin and raw_bin not in ("0", "1000000") else None
         else:
             # pad_adr has no row — common for synthetic condo billing lots
             # (lot 7501+). Fall back to PLUTO and address-based search.
@@ -365,10 +388,10 @@ async def get_dob_complaints(
     data_source_used: str
 
     try:
-        if bin_val:
-            # Best path: exact BIN lookup (indexed)
+        if real_bins:
+            # Best path: exact BIN lookup (indexed), across all BINs on the lot
             complaints = await _query_local_by_bin(
-                bin_val, category, status, since_year, limit
+                real_bins, category, status, since_year, limit
             )
         else:
             # Address path: string matching in local DB
@@ -393,10 +416,11 @@ async def get_dob_complaints(
         data_source_used = "socrata"
 
     # ── Build response ────────────────────────────────────────────────
-    if data_source_used == "local" and bin_val:
+    if data_source_used == "local" and real_bins:
         data_note = (
             "Local PostgreSQL (DOB Complaints, NYC Open Data eabe-havv). "
-            "BIN-based exact match via PAD table."
+            f"BIN-based exact match via PAD table ({len(real_bins)} BIN(s): "
+            f"{', '.join(real_bins)})."
         )
     elif data_source_used == "local" and bbl:
         # BBL was given but BIN couldn't be resolved (synthetic condo lot
@@ -423,7 +447,8 @@ async def get_dob_complaints(
     return {
         "address_queried": resolved_address,
         "bbl": bbl,
-        "bin": bin_val,
+        "bin": ", ".join(real_bins) if real_bins else None,
+        "bins": real_bins,
         "total_returned": len(complaints),
         "summary": summary,
         "category_reference": _CATEGORY_DESCRIPTIONS,

@@ -32,13 +32,18 @@ _TAX_CLASS_DESCRIPTIONS: dict[str, str] = {
     "4": "Commercial/industrial",
 }
 
+# Use the CURRENT-year columns (cur*) so the dollar values match the `year`
+# label we return. The py* columns are the PRIOR year's figures (py<col> for
+# roll year N == cur<col> for roll year N-1); returning them under the latest
+# `year` understated the current assessment by a full roll cycle and
+# contradicted lookup_property/analyze_property (which read PLUTO's current
+# assesstot). See docs/qa-comprehensive-2026-09-11.md, finding #3.
 _SQL_ASSESSMENT = """\
-SELECT bbl, year, pytaxclass,
-    pymktland, pymkttot, pyactland, pyacttot, pyactextot, pytxbtot,
-    cbnmktland, cbnmkttot, cbnactland, cbnacttot, cbnactextot, cbntxbtot,
-    fintaxclass
+SELECT bbl, year, curtaxclass, fintaxclass,
+    curmktland, curmkttot, curactland, curacttot, curactextot, curtxbtot,
+    cbnmktland, cbnmkttot, cbnactland, cbnacttot, cbnactextot, cbntxbtot
 FROM dof_property_valuation_and_assessments
-WHERE bbl = $1 AND pymkttot > 0
+WHERE bbl = $1 AND curmkttot > 0
 ORDER BY year DESC
 LIMIT 1;"""
 
@@ -71,7 +76,7 @@ async def get_tax_info(bbl: str) -> dict:
     try:
         assessment = await fetch_one(_SQL_ASSESSMENT, bbl)
         if assessment:
-            tax_class = assessment.get("pytaxclass") or assessment.get("fintaxclass")
+            tax_class = assessment.get("curtaxclass") or assessment.get("fintaxclass")
             tax_class_str = str(tax_class).strip() if tax_class else None
             result["assessment"] = {
                 "year": assessment.get("year"),
@@ -81,16 +86,16 @@ async def get_tax_info(bbl: str) -> dict:
                     if tax_class_str
                     else None
                 ),
-                "market_value_land": assessment.get("pymktland"),
-                "market_value_total": assessment.get("pymkttot"),
-                "assessed_value_land": assessment.get("pyactland"),
-                "assessed_value_total": assessment.get("pyacttot"),
-                "exempt_value": assessment.get("pyactextot"),
-                "taxable_value": assessment.get("pytxbtot"),
-                "market_value_land_formatted": format_currency(assessment.get("pymktland")),
-                "market_value_total_formatted": format_currency(assessment.get("pymkttot")),
-                "assessed_value_total_formatted": format_currency(assessment.get("pyacttot")),
-                "taxable_value_formatted": format_currency(assessment.get("pytxbtot")),
+                "market_value_land": assessment.get("curmktland"),
+                "market_value_total": assessment.get("curmkttot"),
+                "assessed_value_land": assessment.get("curactland"),
+                "assessed_value_total": assessment.get("curacttot"),
+                "exempt_value": assessment.get("curactextot"),
+                "taxable_value": assessment.get("curtxbtot"),
+                "market_value_land_formatted": format_currency(assessment.get("curmktland")),
+                "market_value_total_formatted": format_currency(assessment.get("curmkttot")),
+                "assessed_value_total_formatted": format_currency(assessment.get("curacttot")),
+                "taxable_value_formatted": format_currency(assessment.get("curtxbtot")),
             }
             # Include tentative values if available
             cbn_total = assessment.get("cbnmkttot")

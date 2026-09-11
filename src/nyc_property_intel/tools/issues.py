@@ -35,7 +35,10 @@ _SQL_ECB_SUMMARY = """\
 SELECT
     COUNT(*) AS ecb_total,
     COUNT(*) FILTER (WHERE upper(ecbviolationstatus) = 'ACTIVE') AS ecb_active,
-    COALESCE(SUM(balancedue), 0)::numeric AS ecb_balance_due_total,
+    -- Floor per-row at 0 so overpayment credits (negative balancedue) don't
+    -- net out to a confusing negative "balance due". Matches analysis.py's
+    -- _SQL_ECB_SUMMARY. See docs/qa-comprehensive-2026-09-11.md, finding #7.
+    COALESCE(SUM(GREATEST(balancedue, 0)), 0)::numeric AS ecb_balance_due_total,
     MAX(issuedate) AS ecb_most_recent
 FROM ecb_violations WHERE bbl = $1;"""
 
