@@ -389,7 +389,13 @@ DATASETS: dict[str, DatasetCfg] = {
     "personal_property_master": DatasetCfg(
         key="personal_property_master", socrata_id="sv7x-dduq",
         table="personal_property_master",
-        cursor_col="modifieddate", pk_cols=("documentid",), tier=2,
+        # tier=3 (monthly): moved off the weekly cron. The weekly service was
+        # running stale pre-2026-07-24 code (tier map predated the marshal
+        # re-tiering), so this dataset was never synced — it sat 132 days stale
+        # (last real data 2026-05-02) until a manual catch-up on 2026-09-11.
+        # Low-churn ACRIS UCC data; the monthly cron runs reliably. See the
+        # ACRIS personal_property_* child tables below, all tier=3.
+        cursor_col="modifieddate", pk_cols=("documentid",), tier=3,
         socrata_cursor_col="modified_date",
         column_map={
             "document_id":           "documentid",
