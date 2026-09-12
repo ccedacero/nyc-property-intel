@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYC Property Intel — Pitch Deck</title>
+<style>
+  :root{
+    --bg-primary:#0f172a; --bg-secondary:#1e293b; --bg-card:#1e293b; --bg-card-hover:#334155;
+    --border:#334155; --accent:#3b82f6; --accent-hover:#2563eb;
+    --text-primary:#f1f5f9; --text-secondary:#94a3b8; --text-muted:#7189a8;
+    --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  .deck{height:100vh;width:100vw;position:relative;}
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:7vh 9vw;animation:fade .45s ease;
+  }
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .kicker{font-family:var(--font-mono);font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:1.4rem}
+  h1{font-size:clamp(2.2rem,5.5vw,4.6rem);line-height:1.04;letter-spacing:-.02em;font-weight:800}
+  h2{font-size:clamp(1.8rem,4vw,3rem);line-height:1.08;letter-spacing:-.02em;font-weight:800;margin-bottom:1.6rem}
+  .sub{color:var(--text-secondary);font-size:clamp(1rem,1.7vw,1.5rem);line-height:1.5;max-width:52ch;margin-top:1.4rem}
+  .lead{font-size:clamp(1.2rem,2.2vw,1.9rem);line-height:1.4;color:var(--text-primary);max-width:24ch;font-weight:700}
+  .muted{color:var(--text-muted)}
+  .accent{color:var(--accent)}
+  .ok{color:var(--success)} .warn{color:var(--warning)}
+  .mono{font-family:var(--font-mono)}
+  .grid{display:grid;gap:1rem;margin-top:2rem}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1.4rem 1.5rem}
+  .card h3{font-size:1.05rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+  .card p{color:var(--text-secondary);font-size:.95rem;line-height:1.45}
+  .stat{font-family:var(--font-mono);font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;color:var(--accent);line-height:1}
+  .stat .unit{font-size:1rem;color:var(--text-muted);font-weight:500;margin-left:.3rem}
+  .statlabel{color:var(--text-secondary);font-size:.9rem;margin-top:.5rem}
+  ul.checks{list-style:none;margin-top:1.6rem;display:grid;gap:.9rem}
+  ul.checks li{font-size:clamp(1rem,1.6vw,1.3rem);display:flex;gap:.8rem;align-items:flex-start;color:var(--text-secondary)}
+  ul.checks li b{color:var(--text-primary)}
+  ul.checks li::before{content:"›";color:var(--accent);font-weight:800;font-family:var(--font-mono)}
+  .terminal{background:#0a0f1c;border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.4rem;
+    font-family:var(--font-mono);font-size:clamp(.7rem,1.05vw,.92rem);line-height:1.7;max-width:760px;overflow:hidden}
+  .terminal .c{color:var(--text-muted)} .terminal .k{color:var(--accent)} .terminal .v{color:var(--text-primary)}
+  .terminal .g{color:var(--success)} .terminal .y{color:var(--warning)}
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;
+    border:1px solid var(--border);border-radius:999px;padding:.3rem .7rem;color:var(--text-secondary);margin:.25rem .25rem 0 0}
+  .pill.live{border-color:var(--success);color:var(--success)}
+  .row{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem}
+  .bignum{font-family:var(--font-mono);font-weight:800;font-size:clamp(2.4rem,6vw,4.5rem);color:var(--accent);line-height:1}
+  .cta{font-size:clamp(1.1rem,2vw,1.7rem);color:var(--text-secondary);margin-top:1.6rem}
+  .cta .url{font-family:var(--font-mono);color:var(--accent);font-weight:700}
+  /* nav */
+  .nav{position:fixed;bottom:1.4rem;right:1.6rem;display:flex;align-items:center;gap:1rem;z-index:10;
+    font-family:var(--font-mono);font-size:.8rem;color:var(--text-muted)}
+  .nav button{background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);
+    width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:1rem}
+  .nav button:hover{background:var(--bg-card-hover)}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);transition:width .3s;z-index:10}
+  .brand{position:fixed;top:1.4rem;left:1.6rem;font-family:var(--font-mono);font-size:.8rem;color:var(--text-muted);z-index:10}
+  .brand b{color:var(--text-primary)}
+  .footnote{position:absolute;bottom:1.4rem;left:9vw;font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted)}
+  @media(max-width:720px){.g2,.g3,.g4{grid-template-columns:1fr}.slide{padding:9vh 7vw}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="brand"><b>NYC Property Intel</b> · pitch</div>
+<div class="deck" id="deck">
+
+  <!-- 1 — Title -->
+  <section class="slide active">
+    <div class="kicker">Due diligence · NYC real estate</div>
+    <h1>Know the building<br>before you sign,<br>offer, or file.</h1>
+    <p class="sub">Every public record on any NYC property — violations, liens, sales, permits, ownership, fire &amp; crime history — from 20+ official city datasets, in one query.</p>
+    <div class="row">
+      <span class="pill live">● LIVE · nycpropertyintel.com</span>
+      <span class="pill">Free</span>
+      <span class="pill">Open source</span>
+    </div>
+  </section>
+
+  <!-- 2 — Problem -->
+  <section class="slide">
+    <div class="kicker">The problem</div>
+    <h2>The data exists. It's just<br>unusable when you need it.</h2>
+    <div class="grid g3">
+      <div class="card"><h3>🗂️ Scattered</h3><p>DOB, HPD, ACRIS, PLUTO, FDNY, NYPD, 311, Finance — 20+ portals, each with its own search, login, and quirks.</p></div>
+      <div class="card"><h3>⏳ Slow</h3><p>A real diligence pass is hours of tab-juggling and CSV exports per property — right when a deal is time-boxed.</p></div>
+      <div class="card"><h3>💸 Gatekept</h3><p>The "easy" version is a $300–$1,000/mo data terminal priced for institutions, not the people closing the deal.</p></div>
+    </div>
+    <p class="sub">Investors, attorneys, and brokers either pay up, or skip the records and find out after they've signed.</p>
+  </section>
+
+  <!-- 3 — Solution -->
+  <section class="slide">
+    <div class="kicker">The solution</div>
+    <h2>Ask in plain English.<br>Get the official record back.</h2>
+    <p class="lead accent" style="max-width:34ch">One chat box, wired to the City's own datasets — no logins, no CSVs, no terminal.</p>
+    <ul class="checks">
+      <li><b>"Tell me about 350 5th Ave"</b> → owner, zoning, violations, liens, sales, permits — sourced and linked.</li>
+      <li>Every number traces back to an <b>authoritative city source</b>. No scraped guesses, no hallucinated counts.</li>
+      <li>Answers in <b>seconds</b>, not an afternoon — and it's <b>free</b>.</li>
+    </ul>
+  </section>
+
+  <!-- 4 — Demo / proof -->
+  <section class="slide">
+    <div class="kicker">See it in action</div>
+    <h2>Real query, real records.</h2>
+    <div class="terminal">
+<span class="c"># lookup_property("350 5th Ave, Manhattan")</span>
+<span class="k">BBL</span>           <span class="v">1-00835-0041</span>  <span class="c">(Empire State Building)</span>
+<span class="k">Owner</span>         <span class="v">ESRT EMPIRE STATE BUILDING, L.L.C.</span>
+<span class="k">Zoning</span>        <span class="v">C5-3 / C6-4.5 · Midtown special district</span>
+<span class="k">Built</span>         <span class="v">1931 · 102 floors · 2,812,739 sq ft</span>
+<span class="k">Assessed</span>      <span class="v">$577,440,900</span>
+<span class="k">Landmark</span>      <span class="y">Individual + Interior landmark</span>
+<span class="k">Source</span>        <span class="g">NYC DCP PLUTO · verify on ZoLa ↗</span>
+    </div>
+    <p class="sub">Behind that one answer: <b class="accent">18 tools</b> spanning violations, HPD litigation, evictions, rent stabilization, tax, liens, comps and neighborhood stats — each callable the same way.</p>
+  </section>
+
+  <!-- 5 — Data / coverage -->
+  <section class="slide">
+    <div class="kicker">Coverage</div>
+    <h2>18 tools. 20+ NYC datasets.<br>One source of truth.</h2>
+    <div class="grid g4">
+      <div class="card"><div class="stat">20<span class="unit">+</span></div><div class="statlabel">Official city datasets</div></div>
+      <div class="card"><div class="stat">18</div><div class="statlabel">Structured query tools</div></div>
+      <div class="card"><div class="stat">~200<span class="unit">ms</span></div><div class="statlabel">Median page load</div></div>
+      <div class="card"><div class="stat">$0</div><div class="statlabel">To the end user</div></div>
+    </div>
+    <div class="row">
+      <span class="pill">PLUTO / zoning</span><span class="pill">DOB permits &amp; complaints</span>
+      <span class="pill">HPD violations &amp; litigation</span><span class="pill">ACRIS liens</span>
+      <span class="pill">Evictions</span><span class="pill">Rent stabilization</span>
+      <span class="pill">FDNY incidents</span><span class="pill">NYPD crime</span>
+      <span class="pill">311</span><span class="pill">Tax &amp; assessments</span>
+      <span class="pill">Sales history</span><span class="pill">Comps &amp; neighborhood stats</span>
+    </div>
+  </section>
+
+  <!-- 6 — Market -->
+  <section class="slide">
+    <div class="kicker">Who it's for</div>
+    <h2>For the people who actually<br>read the records.</h2>
+    <div class="grid g3">
+      <div class="card"><h3>🏢 Investors</h3><p>Screen a deal before the LOI. Catch open violations, liens, and rent-stab exposure that kill returns.</p></div>
+      <div class="card"><h3>⚖️ Attorneys</h3><p>Pull the chain of title, litigation, and encumbrances for diligence — without a $1k/mo seat per associate.</p></div>
+      <div class="card"><h3>🔑 Brokers</h3><p>Walk into a listing or pitch already knowing the building's history. Win the conversation on facts.</p></div>
+    </div>
+    <p class="sub">NYC has <b class="accent">~1M tax lots</b> and tens of thousands of transactions a month — every one a potential query, every professional a recurring user.</p>
+  </section>
+
+  <!-- 7 — Wedge / distribution -->
+  <section class="slide">
+    <div class="kicker">The wedge</div>
+    <h2>It's a website <span class="muted">and</span> an AI tool<br>other apps plug into.</h2>
+    <ul class="checks">
+      <li>Ships as an <b>MCP server</b> — the same engine drops straight into Claude, ChatGPT, and any AI agent. Distribution rides the AI-assistant wave instead of fighting for SEO alone.</li>
+      <li><b>Open source + free</b> drives top-of-funnel trust and word-of-mouth in a market that distrusts black-box "data vendors."</li>
+      <li>Every property page is <b>indexable, citable content</b> — built for AI Overviews and organic search, not just paid traffic.</li>
+    </ul>
+    <p class="sub">Two front doors — the chat and the agent integration — feeding one funnel.</p>
+  </section>
+
+  <!-- 8 — Status / traction -->
+  <section class="slide">
+    <div class="kicker">Status · as of May 31, 2026</div>
+    <h2>Shipped, live, and hardened<br>for traffic.</h2>
+    <div class="grid g2">
+      <div class="card"><h3><span class="ok">●</span> Live &amp; fast</h3><p>Homepage 200 in ~195ms on Cloudflare. SSL valid, HSTS preload, CSP, X-Frame DENY — full security-header set in place.</p></div>
+      <div class="card"><h3><span class="ok">●</span> Backend healthy</h3><p>Railway API green, MCP endpoint serving live City data end-to-end. Verified against PLUTO this session.</p></div>
+      <div class="card"><h3><span class="ok">●</span> Abuse-proofed</h3><p>Cloudflare Turnstile on signup, hourly cap on anonymous queries — cost backstops in before the ad spend.</p></div>
+      <div class="card"><h3><span class="ok">●</span> Search-ready</h3><p>Sitemap, robots, structured data, OG cards and FAQ schema shipped in the latest SEO batch. Link previews render clean.</p></div>
+    </div>
+    <p class="footnote">All checks above were run live during this review.</p>
+  </section>
+
+  <!-- 9 — Model / moat -->
+  <section class="slide">
+    <div class="kicker">Why it wins</div>
+    <h2>Free at the top.<br>Defensible underneath.</h2>
+    <div class="grid g3">
+      <div class="card"><h3>🧱 Data plumbing</h3><p>The moat isn't the data — it's the normalized pipeline across 20+ messy city sources that no casual competitor will rebuild.</p></div>
+      <div class="card"><h3>📈 Land &amp; expand</h3><p>Free lookups build habit and trust; monetize on volume, saved reports, alerts, API access, and pro/team seats.</p></div>
+      <div class="card"><h3>🤝 Trust by design</h3><p>Open source + always-cited + fair-housing-compliant. Credibility competitors can't fake.</p></div>
+    </div>
+    <p class="sub">Capture the user free when they're researching; monetize when their work depends on it.</p>
+  </section>
+
+  <!-- 10 — CTA -->
+  <section class="slide">
+    <div class="kicker">Try it</div>
+    <h1>One query away<br>from the truth<br>about any NYC building.</h1>
+    <p class="cta">Live now at <span class="url">nycpropertyintel.com</span></p>
+    <div class="row">
+      <span class="pill live">● Site live</span>
+      <span class="pill">18 tools</span>
+      <span class="pill">20+ datasets</span>
+      <span class="pill">Free &amp; open source</span>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous">‹</button>
+  <span id="counter">1 / 10</span>
+  <button id="next" aria-label="Next">›</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    counter.textContent=(i+1)+' / '+slides.length;
+    progress.style.width=((i+1)/slides.length*100)+'%';
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1);}
+    if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1);}
+    if(e.key==='Home')show(0); if(e.key==='End')show(slides.length-1);
+  });
+  let sx=null;
+  document.addEventListener('touchstart',e=>sx=e.touches[0].clientX);
+  document.addEventListener('touchend',e=>{if(sx===null)return;const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>50)show(d<0?i+1:i-1);sx=null;});
+  show(0);
+</script>
+</body>
+</html>
