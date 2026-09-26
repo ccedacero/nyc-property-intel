@@ -569,30 +569,24 @@
     return box;
   }
 
-  // Painted-door WTP probe (no billing) — same signal report.js collects on
-  // /r/<id>, ported here so the higher-volume chat surface samples it too.
+  // Pro upgrade CTA. Real Stripe checkout ($49/mo). Surfaced on the higher-
+  // volume chat surface (mirrors report.js on /r/<id>).
+  const STRIPE_PRO_LINK = "https://buy.stripe.com/fZubJ1df070efe92bq4Ja00";
   function appendChatProProbe(box, email, bbl) {
     const probe = document.createElement("div");
     probe.className = "chat-watch-probe";
     probe.innerHTML =
-      "<p>Watching more than one building? <strong>Pro monitoring</strong> — " +
-      "unlimited buildings + an alert on every change (no weekly cap), " +
-      "<strong>$19/mo</strong>.</p>" +
-      '<button type="button" class="btn btn-sm btn-accent">Notify me at launch</button>';
+      "<p><strong>Upgrade to Pro</strong> — full access inside Claude Desktop/Code, " +
+      "no daily cap, no 30-day expiry, monitor up to 25 buildings. <strong>$49/mo</strong>.</p>" +
+      '<a href="' + STRIPE_PRO_LINK + '" target="_blank" rel="noopener" ' +
+      'class="btn btn-sm btn-accent">Get Pro &rarr;</a>';
     box.appendChild(probe);
-    probe.querySelector("button").addEventListener("click", () => {
+    probe.querySelector("a").addEventListener("click", () => {
       if (typeof posthog !== "undefined") {
-        posthog.capture("pro_monitoring_interest", {
-          price_shown: 19, bbl: bbl || null, email: email || null, source: "chat",
+        posthog.capture("pro_checkout_click", {
+          price_shown: 49, bbl: bbl || null, email: email || null, source: "chat",
         });
       }
-      // Durable list behind the "we'll email you" promise — fire-and-forget.
-      fetch(`${API_BASE}/api/pro-interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email || null, bbl: bbl || null, source: "chat" }),
-      }).catch(() => { /* best-effort */ });
-      probe.innerHTML = "<p class=\"chat-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
     });
   }
 
