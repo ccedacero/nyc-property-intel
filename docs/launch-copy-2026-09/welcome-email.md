@@ -2,10 +2,10 @@
 
 Send this by hand right after `manage_tokens.py create` succeeds. Includes the CAN-SPAM essentials (physical postal address, clear identification) and the self-serve cancel link.
 
-**⚠️ Before first send, fill these placeholders:**
-- `[POSTAL ADDRESS]` — a real mailing address (CAN-SPAM requires it; a registered-agent or PO box is fine). *You do not have one on file with me — set this once.*
-- ~~`[STRIPE CUSTOMER PORTAL LINK]`~~ ✅ DONE: `https://billing.stripe.com/p/login/fZubJ1df070efe92bq4Ja00`
+**⚠️ Before first send, fill this placeholder:**
 - `[TOKEN]` — the `nyprop_…` token printed by the provisioning script.
+
+Locked in: postal address (CAN-SPAM) ✅ and portal link ✅ — see the footer / billing line below.
 
 ---
 
@@ -30,7 +30,7 @@ Send this by hand right after `manage_tokens.py create` succeeds. Includes the C
 >
 > — Cristian
 > NYC Property Intel
-> [POSTAL ADDRESS]
+> 418 Broadway, STE R, Albany, NY 12207
 
 ---
 
