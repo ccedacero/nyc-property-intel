@@ -1465,8 +1465,10 @@ def make_chat_handlers(auth: TokenAuth):
             pool = await auth._get_pool() if token_info else None
 
             # Fetch today's analyze count for trial users (resets at midnight UTC).
+            # Paid plans (pro/team) are not sub-capped on full reports — they're
+            # bounded only by their overall daily_limit — so skip the count for them.
             analyze_count_today = 0
-            if token_info and pool:
+            if token_info and pool and token_info.plan == "trial":
                 analyze_count_today = await _count_analyze_today(pool, token_info.token_hash)
 
             # Stamp persisted reports with the authenticated creator so they
@@ -1478,7 +1480,7 @@ def make_chat_handlers(auth: TokenAuth):
                 try:
                     parsed = json.loads(chunk.removeprefix("data: ").strip())
                     if parsed.get("type") == "tool_start" and parsed.get("name") == "analyze_property":
-                        if token_info and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
+                        if token_info and token_info.plan == "trial" and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
                             limit = settings.chat_analyze_trial_limit
                             msg = (
                                 f"\n\n*You have used all {limit} full analysis reports for today. "
