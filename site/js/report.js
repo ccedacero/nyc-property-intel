@@ -42,29 +42,23 @@
     });
   }
 
-  // Painted-door WTP probe (no billing): after someone sets a free watch, gauge
-  // demand for a paid "monitor many buildings" tier. A click is the signal.
+  // Pro upgrade CTA. Real Stripe checkout ($49/mo), shown after a free watch.
+  var STRIPE_PRO_LINK = "https://buy.stripe.com/fZubJ1df070efe92bq4Ja00";
   function appendProProbe(email, bbl) {
     if (!watchEl) return;
     var box = document.createElement("div");
     box.className = "report-pro-probe";
     box.innerHTML =
-      "<p>Watching more than one building? <strong>Pro monitoring</strong> — " +
-      "unlimited buildings + an alert on every change (no weekly cap), <strong>$19/mo</strong>.</p>" +
-      "<button type=\"button\" class=\"btn btn-sm btn-accent\" id=\"report-pro-notify\">Notify me at launch</button>";
+      "<p><strong>Upgrade to Pro</strong> — full access inside Claude, no daily cap, " +
+      "no expiry, monitor up to 25 buildings. <strong>$49/mo</strong>.</p>" +
+      "<a href=\"" + STRIPE_PRO_LINK + "\" target=\"_blank\" rel=\"noopener\" " +
+      "class=\"btn btn-sm btn-accent\" id=\"report-pro-notify\">Get Pro &rarr;</a>";
     watchEl.appendChild(box);
-    var btn = box.querySelector("#report-pro-notify");
-    btn.addEventListener("click", function () {
+    var link = box.querySelector("#report-pro-notify");
+    link.addEventListener("click", function () {
       if (typeof posthog !== "undefined") {
-        posthog.capture("pro_monitoring_interest", { price_shown: 19, bbl: bbl || null, email: email || null });
+        posthog.capture("pro_checkout_click", { price_shown: 49, bbl: bbl || null, email: email || null });
       }
-      // Durable list behind the "we'll email you" promise — fire-and-forget.
-      fetch(API_BASE + "/api/pro-interest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email || null, bbl: bbl || null, source: "report" }),
-      }).catch(function () { /* best-effort */ });
-      box.innerHTML = "<p class=\"report-watch-msg\">✓ We'll email you when Pro monitoring launches.</p>";
     });
   }
 

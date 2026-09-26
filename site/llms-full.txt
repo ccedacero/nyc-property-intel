@@ -12,6 +12,7 @@ Real-estate investors, attorneys, brokers, lenders, and renters doing due dilige
 
 - Web chat (https://nycpropertyintel.com/chat): first 3 queries free with no signup; a free account gets 10 queries/day for 30 days, including up to 5 full due-diligence reports per day.
 - MCP server: free token by email signup on the homepage; connect from Claude Desktop / Claude Code.
+- Pro ($49/mo): full MCP access in Claude Desktop/Code, no daily cap, no 30-day expiry, monitor up to 25 buildings — https://buy.stripe.com/fZubJ1df070efe92bq4Ja00
 - Self-host: unlimited, open source under the MIT license — https://github.com/ccedacero/nyc-property-intel
 - Full due-diligence reports generate a shareable permalink (/r/<id>) that renders for anyone, no account needed.
 - Building alerts ("Watch this building"): free email alert — available from the chat or any shared report page — when a watched building picks up a new HPD/DOB/ECB violation or HPD litigation case, diffed against the daily sync. Alerts fire only on increases, at most once per building per week, free for up to 25 buildings per email, and alerts can be stopped at any time.

@@ -100,7 +100,7 @@
         "Web"
       ],
       "softwareVersion": "0.1.1",
-      "dateModified": "2026-05-31",
+      "dateModified": "2026-09-26",
       "url": "https://nycpropertyintel.com/",
       "downloadUrl": "https://github.com/ccedacero/nyc-property-intel",
       "author": {
@@ -126,7 +126,7 @@
           "name": "Is NYC Property Intel free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, in tiers: (1) anyone can try 3 free queries in the chat with no signup at all; (2) after that, sign up for free to get a personal token good for 10 queries per day for 30 days (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development — sign up and we’ll reach out when they launch."
+            "text": "Yes, in tiers: (1) anyone can try 3 free queries in the chat with no signup at all; (2) after that, sign up for free to get a personal token good for 10 queries per day for 30 days (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Pro ($49/mo) removes the daily cap and the 30-day expiry and gives you full access inside Claude Desktop and Claude Code."
           }
         },
         {
@@ -158,7 +158,7 @@
           "name": "How do I check NYC property tax liens?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ask Claude: “Does [address] have any tax liens?” The get_liens_and_encumbrances tool returns outstanding DOF tax liens from the annual lien sale list and ACRIS mortgage records — lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property — you inherit them when you close. Worth checking before any offer."
+            "text": "Ask Claude: “Does [address] have any tax liens?” The get_liens_and_encumbrances tool returns outstanding DOF tax liens from the lien sale list and ACRIS mortgage records — lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property — you inherit them when you close. Worth checking before any offer."
           }
         },
         {
@@ -351,7 +351,7 @@
       <div class="container">
         <h2>What an answer actually looks like</h2>
         <p class="section-intro">
-          Real data for a real building &mdash; pulled live from the production database on <strong>June 12, 2026</strong>.
+          Real data for a real building &mdash; pulled live from the production database.
         </p>
         <div class="lookup-sample" style="max-width:760px; margin-left:auto; margin-right:auto;">
           <h3>&ldquo;Any red flags on 132 West 169th St, Bronx?&rdquo;</h3>
@@ -367,7 +367,7 @@
               <tr><td>Owner of record</td><td>132 WEST 169 ST HSNG (PLUTO) &mdash; HPD registration lists the head officer &amp; managing agent</td></tr>
             </tbody>
           </table>
-          <p class="lookup-sample-meta">Every answer is stamped with its data vintage. An automated weekly audit cross-checks our records field-by-field against the live city record &mdash; the June 12, 2026 audit matched 70,000+ records with <strong>zero contradictions</strong>.</p>
+          <p class="lookup-sample-meta">Every answer is stamped with its data vintage. We cross-check our records field-by-field against the live city record &mdash; a recent audit matched 70,000+ records with <strong>zero contradictions</strong>.</p>
         </div>
         <p style="text-align:center; margin-top:1.5rem;">
           Free dedicated lookups:&nbsp;
@@ -960,7 +960,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">Is NYC Property Intel free?</summary>
             <div class="faq-a">
-              <p>Yes, in tiers: (1) anyone can try <strong>3 free queries</strong> in the chat with no signup at all; (2) after that, <strong>sign up for free</strong> to get a personal token good for <strong>10 queries per day for 30 days</strong> (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. Professional and team plans with higher rate limits are in development &mdash; <a href="#hero-signup-form-wrapper">sign up</a> and we&rsquo;ll reach out when they launch.</p>
+              <p>Yes, in tiers: (1) anyone can try <strong>3 free queries</strong> in the chat with no signup at all; (2) after that, <strong>sign up for free</strong> to get a personal token good for <strong>10 queries per day for 30 days</strong> (~300 total queries; including up to 5 full due-diligence reports per day); (3) self-host is unlimited under the MIT license. <strong>Pro ($49/mo)</strong> removes the daily cap and the 30-day expiry and gives you full access inside Claude Desktop and Claude Code.</p>
             </div>
           </details>
 
@@ -988,7 +988,7 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
           <details class="faq-item">
             <summary class="faq-q">How do I check NYC property tax liens?</summary>
             <div class="faq-a">
-              <p>Ask Claude: <em>&ldquo;Does [address] have any tax liens?&rdquo;</em> The <code>get_liens_and_encumbrances</code> tool returns outstanding DOF tax liens from the annual lien sale list and ACRIS mortgage records &mdash; lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property &mdash; you inherit them when you close. Worth checking before any offer.</p>
+              <p>Ask Claude: <em>&ldquo;Does [address] have any tax liens?&rdquo;</em> The <code>get_liens_and_encumbrances</code> tool returns outstanding DOF tax liens from the lien sale list and ACRIS mortgage records &mdash; lender names, outstanding amounts, and satisfaction status. Active tax liens follow the property &mdash; you inherit them when you close. Worth checking before any offer.</p>
             </div>
           </details>
 
@@ -1047,6 +1047,42 @@ pg_restore -U nycdb -d nycdb --no-owner --jobs=4 data/nycdb.dump
               <p>Yes &mdash; look up the building <a href="/chat">in the chat</a> and use the free <strong>Watch this building</strong> option (it also appears on every shared report page). You&rsquo;ll get an email alert if the building picks up a new HPD, DOB, or ECB violation or a new HPD litigation case &mdash; only when something actually changes, checked against the daily data sync, and at most one email per building per week. It&rsquo;s free for up to 25 buildings per email, and you can stop alerts at any time.</p>
             </div>
           </details>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Pricing ───────────────────────────────────────────────── -->
+    <section class="section" id="pricing">
+      <div class="container">
+        <h2>Underwrite deals &mdash; and watch your collateral &mdash; inside your own Claude</h2>
+        <p class="section-intro">Free to try. Upgrade when NYC due diligence is part of how you work.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center; margin-top:2rem;">
+
+          <div style="flex:1 1 280px; max-width:360px; border:1px solid var(--border,#e2e2e2); border-radius:12px; padding:1.75rem;">
+            <h3 style="margin-top:0;">Free</h3>
+            <p style="font-size:2rem; font-weight:700; margin:.25rem 0;">$0</p>
+            <ul style="padding-left:1.1rem; line-height:1.7;">
+              <li>3 chat queries, no signup</li>
+              <li>Free token: 10 queries/day for 30 days</li>
+              <li>Watch up to 25 buildings &mdash; violation &amp; litigation alerts</li>
+              <li>Self-host unlimited (open source, MIT)</li>
+            </ul>
+            <a href="/chat" class="btn btn-primary" style="width:100%; box-sizing:border-box; text-align:center;">Try It Free &rarr;</a>
+          </div>
+
+          <div style="flex:1 1 280px; max-width:360px; border:2px solid var(--accent,#2f6fed); border-radius:12px; padding:1.75rem;">
+            <h3 style="margin-top:0;">Pro</h3>
+            <p style="font-size:2rem; font-weight:700; margin:.25rem 0;">$49<span style="font-size:1rem; font-weight:400;">/mo</span></p>
+            <ul style="padding-left:1.1rem; line-height:1.7;">
+              <li><strong>Works inside Claude Desktop &amp; Claude Code</strong> &mdash; no new portal, no new login</li>
+              <li>No daily cap, no 30-day expiry</li>
+              <li>Monitor up to 25 buildings <em>(RegWatch caps at one)</em></li>
+              <li>Plain-English risk read across 20+ datasets from 9 city agencies</li>
+            </ul>
+            <a href="https://buy.stripe.com/fZubJ1df070efe92bq4Ja00" target="_blank" rel="noopener" class="btn btn-accent" style="width:100%; box-sizing:border-box; text-align:center;">Get Pro &rarr;</a>
+            <p class="hero-note" style="margin-top:.75rem; text-align:center;">14-day full refund. Cancel anytime.</p>
+          </div>
 
         </div>
       </div>
