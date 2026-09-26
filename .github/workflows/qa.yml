@@ -1,0 +1,58 @@
+# QA gate. Two jobs:
+#   tests        — runs the unit suite on every push/PR to main (the -m "not
+#                  integration" subset that needs no live DB). Catches
+#                  regressions before merge; there was previously NO CI running
+#                  the tests at all.
+#   weekly-health — a scheduled sweep that asserts production invariants
+#                  (/healthz freshness + DB integrity via scripts/weekly_qa_check.py).
+#                  Fails the workflow — and emails the repo owner via GitHub's
+#                  default failure notification — when something needs eyes.
+#
+# The weekly job needs the prod DB connection string in the repo secret
+# RAILWAY_DB (Settings → Secrets and variables → Actions). Without it the
+# /healthz check still runs; the DB-integrity checks fail closed and report.
+name: QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 12 * * 1"   # weekly, Mondays 12:23 UTC (~8:23am ET)
+  workflow_dispatch: {}
+
+jobs:
+  tests:
+    # Skip on the pure schedule tick — nothing changed to test; weekly-health covers prod.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --dev
+      - name: Run unit tests (excludes live-DB integration tests)
+        run: uv run pytest -m "not integration" -q
+
+  weekly-health:
+    # Runs on the weekly schedule and on manual dispatch — not on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync
+      - name: Run weekly QA invariants (healthz + data integrity)
+        env:
+          DATABASE_URL: ${{ secrets.RAILWAY_DB }}
+        run: uv run python scripts/weekly_qa_check.py
