@@ -202,7 +202,12 @@ def main() -> None:
         keys = [k for k, cfg in DATASETS.items() if cfg.tier == args.tier]
         if not keys:
             logger.warning("no datasets for tier %d", args.tier)
-            sys.exit(0)
+            # Tier 2 (the weekly cron) is dataset-empty after the 2026-09
+            # re-tiering, but it still owns the post-sync idle-token cleanup
+            # pass below — so fall through for tier 2 with an empty sync set.
+            # Every other empty tier has no post-sync work; exit early.
+            if args.tier != 2:
+                sys.exit(0)
 
     logger.info("running %d datasets: %s", len(keys), ", ".join(keys))
     results: list[RunResult] = []
