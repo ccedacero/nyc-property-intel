@@ -30,7 +30,6 @@ Locked in: postal address (CAN-SPAM) ✅ and portal link ✅ — see the footer 
 >
 > — Cristian
 > NYC Property Intel
-> 418 Broadway, STE R, Albany, NY 12207
 
 ---
 
