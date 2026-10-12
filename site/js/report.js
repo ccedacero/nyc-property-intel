@@ -40,6 +40,25 @@
       if (typeof posthog !== "undefined") posthog.capture("report_download_print", { bbl: bbl || null });
       window.print();
     });
+
+    // Always-visible, expiry-framed upgrade nudge — the "you got value, now it's
+    // being taken away" trigger. Shows on every saved report (not just after a
+    // watch, unlike the pro probe below). Non-blocking: skipped if no created date.
+    if (createdIso && !document.getElementById("report-expiry-note")) {
+      try {
+        var expires = new Date(new Date(createdIso).getTime() + 30 * 24 * 60 * 60 * 1000);
+        var when = expires.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+        var note = document.createElement("p");
+        note.id = "report-expiry-note";
+        note.className = "report-expiry-note hero-note";
+        note.style.cssText = "margin-top:0.75rem; font-size:0.85rem;";
+        note.innerHTML =
+          "This saved report expires " + when +
+          ". <strong>Pro</strong> keeps your reports live — no caps, full access inside Claude. " +
+          '<a href="' + STRIPE_PRO_LINK + '" target="_blank" rel="noopener">Get Pro — $49/mo &rarr;</a>';
+        actionsEl.parentNode.insertBefore(note, actionsEl.nextSibling);
+      } catch (e) { /* non-blocking */ }
+    }
   }
 
   // Pro upgrade CTA. Real Stripe checkout ($49/mo), shown after a free watch.

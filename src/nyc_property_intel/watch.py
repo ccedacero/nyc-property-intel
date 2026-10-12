@@ -118,7 +118,7 @@ def diff_increases(prev: dict, cur: dict) -> list[str]:
     return out
 
 
-async def register_watch(email: str, bbl: str, address: str | None) -> dict:
+async def register_watch(email: str, bbl: str, address: str | None, auto_confirm: bool = False) -> dict:
     """Subscribe (email, BBL). Baseline = current snapshot, so the user is only
     alerted on changes that happen *after* they start watching. Idempotent.
 
@@ -129,9 +129,12 @@ async def register_watch(email: str, bbl: str, address: str | None) -> dict:
       {"status": "limit_exceeded"}        — email is at the active-watch cap
 
     Double-opt-in: a watch is only confirmed if (a) confirmation emails aren't
-    configured (graceful degradation — feature still works), or (b) this email
-    already has a confirmed watch. Otherwise it's pending until the email clicks
-    the confirm link — which closes third-party watch-bombing.
+    configured (graceful degradation — feature still works), (b) this email
+    already has a confirmed watch, or (c) auto_confirm=True (the caller proved
+    the request comes from a signed-in user whose VERIFIED token email matches
+    this watch email — identity + consent already established, so the confirm
+    email is redundant). Otherwise it's pending until the email clicks the
+    confirm link — which closes third-party watch-bombing for un-owned emails.
     """
     email = email.strip().lower()
     pool = await get_pool()
@@ -152,7 +155,7 @@ async def register_watch(email: str, bbl: str, address: str | None) -> dict:
         return {"status": "limit_exceeded"}
 
     confirm_enabled = bool(settings.loops_watch_confirm_transactional_id)
-    confirmed = (not confirm_enabled) or bool(stats["any_confirmed"])
+    confirmed = (not confirm_enabled) or bool(stats["any_confirmed"]) or auto_confirm
 
     snap_json = json.dumps(await snapshot_counts(pool, bbl))
     wid = secrets.token_urlsafe(8)
