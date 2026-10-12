@@ -134,6 +134,21 @@ async def test_register_watch_pending_when_confirm_required():
 
 
 @pytest.mark.asyncio
+async def test_register_watch_auto_confirm_skips_double_opt_in():
+    # Single opt-in (2026-10 fix): confirm template IS set and the email is NOT
+    # already confirmed — normally pending — BUT the caller proved it's a signed-in
+    # user watching with their own verified email (auto_confirm=True), so the watch
+    # is confirmed immediately without the redundant opt-in email round-trip.
+    watch_module._watch_table_ready = True
+    pool = _register_pool(any_confirmed=False, returned_confirmed=True)
+    with patch.object(watch_module, "get_pool", AsyncMock(return_value=pool)), \
+         patch.object(watch_module.settings, "loops_watch_confirm_transactional_id", "tmpl_x"):
+        result = await register_watch("me@example.com", "2025180028", None, auto_confirm=True)
+    assert result == {"status": "confirmed"}
+    assert pool.fetchrow.await_args_list[2].args[6] is True  # inserted confirmed, no opt-in email
+
+
+@pytest.mark.asyncio
 async def test_register_watch_pending_repeat_flags_existing():
     # Re-submitting an already-pending (email, bbl) → existing=True, so the
     # caller can suppress a duplicate confirm email.

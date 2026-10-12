@@ -594,10 +594,36 @@ def main() -> None:
             if not _check_watch_ip_rate_limit(_get_client_ip(request)):
                 return _err("rate_limited", 429)
 
+            # Single opt-in for signed-in users: if the request carries a valid,
+            # verified token whose email matches this watch email, skip the
+            # double-opt-in (identity + consent already established — the confirm
+            # email is redundant and ~38% of watchers never click it). A missing
+            # or mismatched token still goes through confirm, preserving the
+            # anti-watch-bombing guard for un-owned emails. Emails are normalized
+            # before comparing (gmail dots/+aliases) so the match is reliable.
+            auto_confirm = False
+            try:
+                from nyc_property_intel.auth import normalize_email
+
+                _auth_hdr = request.headers.get("authorization", "")
+                _raw_token = request.cookies.get("nyc_pi_token") or (
+                    _auth_hdr[7:] if _auth_hdr.startswith("Bearer ") else None
+                )
+                if _raw_token:
+                    _ti = await auth.validate(_raw_token)
+                    if (
+                        _ti
+                        and getattr(_ti, "verified", True)
+                        and normalize_email(_ti.customer_email) == normalize_email(email)
+                    ):
+                        auto_confirm = True
+            except Exception:
+                auto_confirm = False  # never block a watch on an auth hiccup
+
             try:
                 from nyc_property_intel.watch import _send_confirm_email, register_watch
 
-                result = await register_watch(email, bbl, address)
+                result = await register_watch(email, bbl, address, auto_confirm=auto_confirm)
             except Exception as exc:
                 logger.warning("watch register failed for %s/%s: %s", email, bbl, exc)
                 return _err("unavailable", 503)
