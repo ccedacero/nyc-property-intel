@@ -1537,7 +1537,10 @@ def make_chat_handlers(auth: TokenAuth):
                 try:
                     tool_name = "analyze_property" if analyze_calls_this_request else "web_chat"
                     asyncio.create_task(
-                        auth.record_call(token_info.token_hash, tool_name, 0, 200)
+                        auth.record_call(
+                            token_info.token_hash, tool_name, 0, 200,
+                            query_text=user_query, bbl=captured_bbl, address=captured_address,
+                        )
                     )
                 except Exception:
                     pass
