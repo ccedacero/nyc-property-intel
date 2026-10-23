@@ -256,6 +256,27 @@ async def db_lifespan(server: Any):
         "ON shared_reports (owner_token_hash, created_at DESC) "
         "WHERE owner_token_hash IS NOT NULL"
     )
+    # Migration 019 — in-product query-content logging on the anonymous funnel.
+    # We already log one anon_chat_queries row per free query (ip_hash + counts);
+    # these additive, nullable columns capture WHAT was asked (de-identified
+    # product analytics: the query text + the resolved property) so we can see
+    # real intent, not just volume. Disclosed in the Privacy Policy (legal.html).
+    await pool.execute(
+        "ALTER TABLE anon_chat_queries ADD COLUMN IF NOT EXISTS query_text TEXT"
+    )
+    await pool.execute(
+        "ALTER TABLE anon_chat_queries ADD COLUMN IF NOT EXISTS bbl TEXT"
+    )
+    await pool.execute(
+        "ALTER TABLE anon_chat_queries ADD COLUMN IF NOT EXISTS address TEXT"
+    )
+    # Retention: purge the free-text content after 24 months (matching the
+    # Privacy Policy), keeping the de-identified count rows for funnel analysis.
+    # Bounded by the partial predicate, so it's cheap to run on each startup.
+    await pool.execute(
+        "UPDATE anon_chat_queries SET query_text = NULL, bbl = NULL, address = NULL "
+        "WHERE called_at < NOW() - INTERVAL '24 months' AND query_text IS NOT NULL"
+    )
     try:
         yield
     finally:
