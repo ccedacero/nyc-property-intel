@@ -105,7 +105,8 @@ class _FakeTokenAuth:
     async def check_rate_limit(self, token_hash: str, daily_limit: int):
         return True, 0
 
-    async def record_call(self, token_hash, tool_name, duration_ms, status_code):
+    async def record_call(self, token_hash, tool_name, duration_ms, status_code,
+                          query_text=None, bbl=None, address=None):
         return None
 
 

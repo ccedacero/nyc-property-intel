@@ -277,6 +277,23 @@ async def db_lifespan(server: Any):
         "UPDATE anon_chat_queries SET query_text = NULL, bbl = NULL, address = NULL "
         "WHERE called_at < NOW() - INTERVAL '24 months' AND query_text IS NOT NULL"
     )
+    # Migration 020 — same intent capture on the authenticated (MCP + signed-in
+    # web) path: which property the paid/ICP segment looked up. Pseudonymous
+    # (tied to token_hash), additive, nullable. Disclosed in the Privacy Policy.
+    await pool.execute(
+        "ALTER TABLE mcp_usage_log ADD COLUMN IF NOT EXISTS query_text TEXT"
+    )
+    await pool.execute(
+        "ALTER TABLE mcp_usage_log ADD COLUMN IF NOT EXISTS bbl TEXT"
+    )
+    await pool.execute(
+        "ALTER TABLE mcp_usage_log ADD COLUMN IF NOT EXISTS address TEXT"
+    )
+    await pool.execute(
+        "UPDATE mcp_usage_log SET query_text = NULL, bbl = NULL, address = NULL "
+        "WHERE called_at < NOW() - INTERVAL '24 months' "
+        "AND (query_text IS NOT NULL OR bbl IS NOT NULL OR address IS NOT NULL)"
+    )
     try:
         yield
     finally:

@@ -274,8 +274,17 @@ class TokenAuth:
         tool_name: str | None,
         duration_ms: int,
         status_code: int,
+        query_text: str | None = None,
+        bbl: str | None = None,
+        address: str | None = None,
     ) -> None:
         """Increment daily counter and write a log row.
+
+        `query_text`/`bbl`/`address` capture WHAT was looked up (migration
+        020): the resolved property for the paid/MCP segment and the question
+        for signed-in web chat. Pseudonymous (tied to the hashed token only),
+        truncated, 24-month retention, disclosed in the Privacy Policy. Used
+        to understand the ICP's real intent for monetization decisions.
 
         Both writes happen in a single transaction.
         Failures are logged as warnings — never raised to the caller.
@@ -296,13 +305,17 @@ class TokenAuth:
                     await conn.execute(
                         """
                         INSERT INTO mcp_usage_log
-                            (token_hash, tool_name, duration_ms, status_code)
-                        VALUES ($1, $2, $3, $4)
+                            (token_hash, tool_name, duration_ms, status_code,
+                             query_text, bbl, address)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
                         """,
                         token_hash,
                         tool_name,
                         duration_ms,
                         status_code,
+                        (query_text or None) and query_text.strip()[:1000],
+                        (bbl or None) and str(bbl)[:10],
+                        (address or None) and str(address)[:160],
                     )
         except Exception as exc:
             logger.warning("Failed to record usage for %s: %s", token_hash[:16], exc)

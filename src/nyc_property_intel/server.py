@@ -148,6 +148,30 @@ def _extract_tool_name(body: bytes) -> str | None:
     return None
 
 
+def _extract_tool_args(body: bytes) -> tuple[str | None, str | None]:
+    """Best-effort (bbl, address) from an MCP tools/call body's arguments.
+
+    Pseudonymous product analytics (migration 020): which property an
+    authenticated caller looked up — the intent signal for the paid/ICP
+    segment, who use MCP (not the web chat). Either may be None (the tool
+    takes neither arg, or the body didn't parse). Disclosed in the Privacy
+    Policy; tied only to the hashed token, truncated, 24-month retention.
+    """
+    try:
+        data = json.loads(body)
+        if data.get("method") == "tools/call":
+            args = data.get("params", {}).get("arguments", {}) or {}
+            bbl = args.get("bbl")
+            address = args.get("address")
+            return (
+                str(bbl)[:10] if bbl is not None else None,
+                str(address)[:160] if address is not None else None,
+            )
+    except Exception:
+        pass
+    return None, None
+
+
 class _BodySizeLimitMiddleware:
     """Reject requests whose Content-Length exceeds path-specific caps.
 
@@ -296,6 +320,7 @@ class _TokenAuthMiddleware:
         # ── Buffer body & extract tool name ──────────────────────────
         body = await _read_body(receive)
         tool_name = _extract_tool_name(body)
+        arg_bbl, arg_address = _extract_tool_args(body)
 
         # ── Forward request, track response ──────────────────────────
         start = time.monotonic()
@@ -316,6 +341,8 @@ class _TokenAuthMiddleware:
                     tool_name,
                     elapsed_ms,
                     status_code[0],
+                    bbl=arg_bbl,
+                    address=arg_address,
                 )
             )
             if tool_name:
