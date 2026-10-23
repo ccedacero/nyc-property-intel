@@ -795,8 +795,16 @@ async def _record_anon_chat_query(
     query_count: int,
     ran_analyze: bool = False,
     anon_session_id: str | None = None,
+    query_text: str | None = None,
+    bbl: str | None = None,
+    address: str | None = None,
 ) -> None:
     """Insert one row into anon_chat_queries.
+
+    `query_text`/`bbl`/`address` are DE-IDENTIFIED in-product intent capture
+    (migration 019): what the anon visitor asked + which property resolved,
+    tied only to the hashed IP / session, truncated, retained <=24mo, and
+    disclosed in the Privacy Policy. Used to understand real search intent.
 
     `ran_analyze` records whether analyze_property (a full DD report) ran on
     this request — it is the authoritative source for the anonymous
@@ -814,13 +822,17 @@ async def _record_anon_chat_query(
     try:
         await pool.execute(
             """
-            INSERT INTO anon_chat_queries (ip_hash, anon_session_id, query_count, ran_analyze)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO anon_chat_queries
+                (ip_hash, anon_session_id, query_count, ran_analyze, query_text, bbl, address)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             """,
             ip_hash or None,
             anon_session_id,
             query_count,
             ran_analyze,
+            (query_text or None) and query_text.strip()[:1000],
+            (bbl or None) and bbl[:10],
+            (address or None) and address[:160],
         )
     except Exception as exc:
         # Includes UndefinedTableError if the migration hasn't been applied —
@@ -1462,6 +1474,12 @@ def make_chat_handlers(auth: TokenAuth):
         async def stream_with_analyze_limit():
             """Wrap _agentic_stream to enforce analyze_property limit mid-stream."""
             analyze_calls_this_request = 0
+            # De-identified intent capture for the anon funnel log (see
+            # _record_anon_chat_query / migration 019). The resolved BBL/address
+            # arrive as a `property_resolved` SSE event passing through below.
+            captured_bbl = None
+            captured_address = None
+            user_query = _last_user_text(anthropic_messages)
             pool = await auth._get_pool() if token_info else None
 
             # Fetch today's analyze count for trial users (resets at midnight UTC).
@@ -1479,6 +1497,9 @@ def make_chat_handlers(auth: TokenAuth):
                 # Intercept tool_start for analyze_property to enforce limits
                 try:
                     parsed = json.loads(chunk.removeprefix("data: ").strip())
+                    if parsed.get("type") == "property_resolved" and captured_bbl is None:
+                        captured_bbl = parsed.get("bbl")
+                        captured_address = parsed.get("address")
                     if parsed.get("type") == "tool_start" and parsed.get("name") == "analyze_property":
                         if token_info and token_info.plan == "trial" and (analyze_count_today + analyze_calls_this_request) >= settings.chat_analyze_trial_limit:
                             limit = settings.chat_analyze_trial_limit
@@ -1542,6 +1563,9 @@ def make_chat_handlers(auth: TokenAuth):
                                 anon_ip_hash,
                                 query_count + 1,
                                 ran_analyze=analyze_calls_this_request > 0,
+                                query_text=user_query,
+                                bbl=captured_bbl,
+                                address=captured_address,
                             )
                         )
                 except Exception:
