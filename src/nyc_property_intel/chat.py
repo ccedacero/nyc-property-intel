@@ -48,6 +48,18 @@ _EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 _SITE_BASE = "https://nycpropertyintel.com"
 _LOOPS_API_BASE = "https://app.loops.so/api/v1"
 _CHAT_MODEL = "claude-sonnet-4-6"
+
+# Prompt-cache control for the stable prefix (system instructions + tool
+# schemas), which is byte-identical on every request. The consumer funnel runs
+# only ~1 query every 30-45 min during active hours, so the DEFAULT 5-minute
+# cache expires between most requests — re-paying to WRITE the prefix (1.25x)
+# instead of READING it (0.1x), which is the big recurring "cache write (5m)"
+# line in the Console. The 1-hour TTL holds the prefix across those gaps,
+# turning writes/misses into cheap reads. The beta header opts into the extended
+# TTL; it is a harmless no-op once 1h caching is GA on the account.
+_CACHE_CONTROL = {"type": "ephemeral", "ttl": "1h"}
+_CACHE_TTL_BETA = "extended-cache-ttl-2025-04-11"
+
 _MAX_TOKENS = 6144      # output ceiling per Anthropic API call. Full
                          # due-diligence reports run 9 tools + a 10-section
                          # markdown template, which can hit 3.5-4k output
@@ -120,9 +132,9 @@ def _get_anthropic_tools() -> list[dict]:
             "description": t.description or "",
             "input_schema": t.parameters,
         }
-        # Mark last tool for prompt caching
+        # Mark last tool for prompt caching (1-hour TTL — see _CACHE_CONTROL).
         if i == len(tools) - 1:
-            entry["cache_control"] = {"type": "ephemeral"}
+            entry["cache_control"] = _CACHE_CONTROL
         result.append(entry)
     _anthropic_tools = result
     return result
@@ -580,11 +592,12 @@ async def _agentic_stream(
                         {
                             "type": "text",
                             "text": MCP_INSTRUCTIONS,
-                            "cache_control": {"type": "ephemeral"},
+                            "cache_control": _CACHE_CONTROL,
                         }
                     ],
                     messages=messages,
                     tools=tools,
+                    extra_headers={"anthropic-beta": _CACHE_TTL_BETA},
                 ) as stream:
                     async for event in stream:
                         if event.type == "content_block_delta":
